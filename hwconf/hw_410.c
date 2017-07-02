@@ -93,7 +93,12 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
+#ifdef STM32F401xE
+	// on nucleo f401, PA5 is the green led
+	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
+#else
 	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+#endif
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
 
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
@@ -106,6 +111,35 @@ void hw_init_gpio(void) {
 }
 
 void hw_setup_adc_channels(void) {
+#ifdef STM32F401xE
+	// regular channels
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 2, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 3, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 4, ADC_SampleTime_15Cycles);
+
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_1, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_9, 6, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_6, 7, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 8, ADC_SampleTime_15Cycles);
+
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_2,  9,  ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_3,  10, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_12, 11, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_3,  12, ADC_SampleTime_15Cycles);
+
+	// Injected channels
+	// "serialization" of the simultaneous cross-read of the two channels
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_9, 1, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_8, 2, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_8, 3, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_9, 4, ADC_SampleTime_15Cycles);
+
+#else
+	/*
+	Do not convert the same channel on the two/three ADCs (no overlapping sampling
+	times for the two/three ADCs when converting the same channe
+	*/
 	// ADC1 regular channels
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 2, ADC_SampleTime_15Cycles);
@@ -122,6 +156,7 @@ void hw_setup_adc_channels(void) {
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+	// GG: why is Channel 3 repeated?
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 4, ADC_SampleTime_15Cycles);
 
 	// Injected channels
@@ -129,6 +164,7 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_8, 2, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_8, 1, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_9, 2, ADC_SampleTime_15Cycles);
+#endif
 }
 
 void hw_setup_servo_outputs(void) {

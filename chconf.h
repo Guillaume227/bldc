@@ -324,14 +324,17 @@
  * @{
  */
 /*===========================================================================*/
-
+#define CH_DBG_ENABLE
 /**
  * @brief   Debug option, kernel statistics.
  *
  * @note    The default is @p FALSE.
  */
+#ifdef CH_DBG_ENABLE
+#define CH_DBG_STATISTICS                   TRUE
+#else
 #define CH_DBG_STATISTICS                   FALSE
-
+#endif
 /**
  * @brief   Debug option, system state check.
  * @details If enabled the correct call protocol for system APIs is checked
@@ -339,8 +342,11 @@
  *
  * @note    The default is @p FALSE.
  */
+#ifdef CH_DBG_ENABLE
+#define CH_DBG_SYSTEM_STATE_CHECK           TRUE
+#else
 #define CH_DBG_SYSTEM_STATE_CHECK           FALSE
-
+#endif
 /**
  * @brief   Debug option, parameters checks.
  * @details If enabled then the checks on the API functions input
@@ -348,8 +354,11 @@
  *
  * @note    The default is @p FALSE.
  */
+#ifdef CH_DBG_ENABLE
+#define CH_DBG_ENABLE_CHECKS                TRUE
+#else
 #define CH_DBG_ENABLE_CHECKS                FALSE
-
+#endif
 /**
  * @brief   Debug option, consistency checks.
  * @details If enabled then all the assertions in the kernel code are
@@ -358,8 +367,11 @@
  *
  * @note    The default is @p FALSE.
  */
+#ifdef CH_DBG_ENABLE
+#define CH_DBG_ENABLE_ASSERTS               TRUE
+#else
 #define CH_DBG_ENABLE_ASSERTS               FALSE
-
+#endif
 /**
  * @brief   Debug option, trace buffer.
  * @details If enabled then the context switch circular trace buffer is
@@ -367,8 +379,11 @@
  *
  * @note    The default is @p FALSE.
  */
+#ifdef CH_DBG_ENABLE
+#define CH_DBG_ENABLE_TRACE                 TRUE
+#else
 #define CH_DBG_ENABLE_TRACE                 FALSE
-
+#endif
 /**
  * @brief   Debug option, stack checks.
  * @details If enabled then a runtime stack check is performed.
@@ -379,7 +394,11 @@
  * @note    The default failure mode is to halt the system with the global
  *          @p panic_msg variable set to @p NULL.
  */
+#ifdef CH_DBG_ENABLE
+#define CH_DBG_ENABLE_STACK_CHECK           TRUE
+#else
 #define CH_DBG_ENABLE_STACK_CHECK           FALSE
+#endif
 
 /**
  * @brief   Debug option, stacks initialization.
@@ -389,8 +408,12 @@
  *
  * @note    The default is @p FALSE.
  */
-#define CH_DBG_FILL_THREADS                 FALSE
 
+#ifdef CH_DBG_ENABLE
+#define CH_DBG_FILL_THREADS                 TRUE
+#else
+#define CH_DBG_FILL_THREADS                 FALSE
+#endif
 /**
  * @brief   Debug option, threads profiling.
  * @details If enabled then a field is added to the @p thread_t structure that

@@ -212,9 +212,9 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	filter_create_fir_lowpass((float*)current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
 
 	TIM_DeInit(TIM1);
-	TIM_DeInit(TIM8);
+	TIM_DeInit(TIMA);
 	TIM1->CNT = 0;
-	TIM8->CNT = 0;
+	TIMA->CNT = 0;
 
 	// TIM1 clock enable
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
@@ -315,16 +315,25 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	ADC_InitStructure.ADC_ScanConvMode = ENABLE;
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Falling;
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_CC1;
+#ifdef STM32F401xE
+    ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T5_CC1;
+#else
+    ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_CC1;
+#endif
+
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	ADC_InitStructure.ADC_NbrOfConversion = HW_ADC_NBR_CONV;
 
 	ADC_Init(ADC1, &ADC_InitStructure);
-	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
-	ADC_InitStructure.ADC_ExternalTrigConv = 0;
+
+#ifdef STM32F401xE
+#else
+    ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
+    ADC_InitStructure.ADC_ExternalTrigConv = 0;
+
 	ADC_Init(ADC2, &ADC_InitStructure);
 	ADC_Init(ADC3, &ADC_InitStructure);
-
+#endif
 	// Enable Vrefint channel
 	ADC_TempSensorVrefintCmd(ENABLE);
 
@@ -333,37 +342,52 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	// Injected channels for current measurement at end of cycle
 	ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_CC4);
-	ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T8_CC2);
-	ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
-	ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
-	ADC_InjectedSequencerLengthConfig(ADC1, 2);
-	ADC_InjectedSequencerLengthConfig(ADC2, 2);
+    ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
 
+#ifdef STM32F401xE
+    // no ADC2
+#else
+    ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T8_CC2);
+    ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
+#endif
+
+#ifdef STM32F401xE
+    // no ADC2 : ADC1 takes on ADC2 channels
+    ADC_InjectedSequencerLengthConfig(ADC1, 4);
+#else
+    ADC_InjectedSequencerLengthConfig(ADC1, 2);
+    ADC_InjectedSequencerLengthConfig(ADC2, 2);
+#endif
 	hw_setup_adc_channels();
 
-	// Interrupt
+	// Interrupt at end of injected conversion
 	ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE);
 	nvicEnableVector(ADC_IRQn, 6);
 
 	// Enable ADC1
 	ADC_Cmd(ADC1, ENABLE);
 
+#ifdef STM32F401xE
+#else
 	// Enable ADC2
 	ADC_Cmd(ADC2, ENABLE);
 
 	// Enable ADC3
 	ADC_Cmd(ADC3, ENABLE);
-
+#endif
 	// ------------- Timer8 for ADC sampling ------------- //
 	// Time Base configuration
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
-
+#ifdef STM32F401xE
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
+#else
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
+#endif
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIMA, &TIM_TimeBaseStructure);
 
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
@@ -372,26 +396,26 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
-	TIM_OC1Init(TIM8, &TIM_OCInitStructure);
-	TIM_OC1PreloadConfig(TIM8, TIM_OCPreload_Enable);
-	TIM_OC2Init(TIM8, &TIM_OCInitStructure);
-	TIM_OC2PreloadConfig(TIM8, TIM_OCPreload_Enable);
+	TIM_OC1Init(TIMA, &TIM_OCInitStructure);
+	TIM_OC1PreloadConfig(TIMA, TIM_OCPreload_Enable);
+	TIM_OC2Init(TIMA, &TIM_OCInitStructure);
+	TIM_OC2PreloadConfig(TIMA, TIM_OCPreload_Enable);
 
-	TIM_ARRPreloadConfig(TIM8, ENABLE);
-	TIM_CCPreloadControl(TIM8, ENABLE);
+	TIM_ARRPreloadConfig(TIMA, ENABLE);
+	TIM_CCPreloadControl(TIMA, ENABLE);
 
 	// PWM outputs have to be enabled in order to trigger ADC on CCx
-	TIM_CtrlPWMOutputs(TIM8, ENABLE);
+	TIM_CtrlPWMOutputs(TIMA, ENABLE);
 
-	// TIM1 Master and TIM8 slave
+	// TIM1 Master and TIMA slave
 	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Update);
 	TIM_SelectMasterSlaveMode(TIM1, TIM_MasterSlaveMode_Enable);
-	TIM_SelectInputTrigger(TIM8, TIM_TS_ITR0);
-	TIM_SelectSlaveMode(TIM8, TIM_SlaveMode_Reset);
+	TIM_SelectInputTrigger(TIMA, TIM_TS_ITR0);
+	TIM_SelectSlaveMode(TIMA, TIM_SlaveMode_Reset);
 
-	// Enable TIM1 and TIM8
+	// Enable TIM1 and TIMA
 	TIM_Cmd(TIM1, ENABLE);
-	TIM_Cmd(TIM8, ENABLE);
+	TIM_Cmd(TIMA, ENABLE);
 
 	// Main Output Enable
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
@@ -445,10 +469,16 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	chThdCreateStatic(rpm_thread_wa, sizeof(rpm_thread_wa), NORMALPRIO, rpm_thread, NULL);
 
 	// WWDG configuration
+
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
 	WWDG_SetPrescaler(WWDG_Prescaler_1);
 	WWDG_SetWindowValue(255);
+
+#ifndef CH_DBG_ENABLE
+	// do not enable Watchdog in debug mode as it would
+	// trigger when using breakpoints
 	WWDG_Enable(100);
+#endif
 
 	// Reset tachometers again
 	tachometer = 0;
@@ -467,7 +497,7 @@ void mcpwm_deinit(void) {
 
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM2);
-	TIM_DeInit(TIM8);
+	TIM_DeInit(TIMA);
 	TIM_DeInit(TIM12);
 	ADC_DeInit();
 	DMA_DeInit(DMA2_Stream4);
@@ -516,6 +546,7 @@ static void do_dc_cal(void) {
 	curr0_sum = 0;
 	curr1_sum = 0;
 	curr_start_samples = 0;
+	mcpwm_adc_inj_int_handler();
 	while(curr_start_samples < 4000) {};
 	curr0_offset = curr0_sum / curr_start_samples;
 	curr1_offset = curr1_sum / curr_start_samples;
@@ -1324,11 +1355,21 @@ static THD_FUNCTION(timer_thread, arg) {
 void mcpwm_adc_inj_int_handler(void) {
 	TIM12->CNT = 0;
 
+#ifdef STM32F401xE
 	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
-	int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
+	int curr1 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_2);
 
-	int curr0_2 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_2);
-	int curr1_2 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_2);
+	int curr0_2 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_3);
+    int curr1_2 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_4);
+
+#else
+    int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
+    int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
+
+    int curr0_2 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_2);
+    int curr1_2 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_2);
+#endif
+
 
 	float curr0_currsamp = curr0;
 	float curr1_currsamp = curr1;
@@ -1363,10 +1404,12 @@ void mcpwm_adc_inj_int_handler(void) {
 	curr1_currsamp -= curr1_offset;
 	curr0 -= curr0_offset;
 	curr1 -= curr1_offset;
-	curr0_2 -= curr0_offset;
-	curr1_2 -= curr1_offset;
 
 #if CURR1_DOUBLE_SAMPLE || CURR2_DOUBLE_SAMPLE
+
+    curr0_2 -= curr0_offset;
+    curr1_2 -= curr1_offset;
+
 	if (conf->pwm_mode != PWM_MODE_BIPOLAR && conf->motor_type == MOTOR_TYPE_BLDC) {
 		if (direction) {
 			if (CURR1_DOUBLE_SAMPLE && comm_step == 3) {
@@ -2399,20 +2442,20 @@ static void update_timer_attempt(void) {
 	if (!timer_struct.updated && TIM1->CNT > 10 && TIM1->CNT < (TIM1->ARR - 500)) {
 		// Disable preload register updates
 		TIM1->CR1 |= TIM_CR1_UDIS;
-		TIM8->CR1 |= TIM_CR1_UDIS;
+		TIMA->CR1 |= TIM_CR1_UDIS;
 
 		// Set the new configuration
 		TIM1->ARR = timer_struct.top;
 		TIM1->CCR1 = timer_struct.duty;
 		TIM1->CCR2 = timer_struct.duty;
 		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
+		TIMA->CCR1 = timer_struct.val_sample;
 		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
+		TIMA->CCR2 = timer_struct.curr2_sample;
 
 		// Enables preload register updates
 		TIM1->CR1 &= ~TIM_CR1_UDIS;
-		TIM8->CR1 &= ~TIM_CR1_UDIS;
+		TIMA->CR1 &= ~TIM_CR1_UDIS;
 		timer_struct.updated = true;
 	}
 

@@ -34,7 +34,17 @@
 /*
  * Settings
  */
-#define SYSTEM_CORE_CLOCK		168000000
+#ifdef STM32F401xE
+#define SYSTEM_CORE_CLOCK		84000000
+#else
+#define SYSTEM_CORE_CLOCK       168000000 // f407
+#endif
+
+#ifdef STM32F401xE
+#define TIMA  TIM5 // no TIM8 on f401; TIM5 is not Advanced though.
+#else
+#define TIMA  TIM8
+#endif
 
 // Settings and parameters to override
 //#define VIN_R1				33000.0
@@ -85,8 +95,11 @@
 /*
  * Enable CAN-bus
  */
-#define CAN_ENABLE				1
-
+#ifdef STM32F401xE
+#define CAN_ENABLE				0 // no CAN feature on f401
+#else
+#define CAN_ENABLE              1
+#endif
 /*
  * Settings for the external LEDs (hardcoded for now)
  */

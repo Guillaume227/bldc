@@ -48,7 +48,6 @@
 #include "hal.h"
 #include "hw.h"
 #include "conf_general.h"
-#include "stm32f407xx.h"
 
 #ifndef _BV
 #define _BV(bit) (1 << (bit))

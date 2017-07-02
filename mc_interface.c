@@ -859,7 +859,7 @@ void mc_interface_fault_stop(mc_fault_code fault) {
 		// Sent to terminal fault logger so that all faults and their conditions
 		// can be printed for debugging.
 		chSysLock();
-		volatile int val_samp = TIM8->CCR1;
+		volatile int val_samp = TIMA->CCR1;
 		volatile int current_samp = TIM1->CCR4;
 		volatile int tim_top = TIM1->ARR;
 		chSysUnlock();

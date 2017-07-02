@@ -46,13 +46,21 @@
 
 /*
  * Timers used:
- * TIM7: servo
- * TIM1: mcpwm
- * TIM2: mcpwm
- * TIM12: mcpwm
- * TIM8: mcpwm
- * TIM3: servo_dec/Encoder (HW_R2)/servo_simple
- * TIM4: WS2811/WS2812 LEDs/Encoder (other HW)
+ * TIM7:  servo
+ * TIM1:  mcpwm -> Advanced; pwm generation
+ * TIM2:  mcpwm -> General Purpose 32b; RPM measurement
+ * TIM12: mcpwm -> 2-channel; Various time measurements // GG: replaced with TIM9 on f401 as there is no TIM12 on f401
+ * TIM8:  mcpwm -> Advanced; slave of TIM1, triggers ADC reads // GG: replaced with TIM5 on f401 as there is no TIM8 on f401. TIM5 is only General Purpose 32b
+ * TIM3: servo_dec/Encoder (HW_R2)/servo_simple -> General Purpose 16b
+ * TIM4: WS2811/WS2812 LEDs/Encoder (other HW) -> General Purpose 16b
+ *
+ * f401
+ * To synchronize A/D conversion and timers, the ADCs could be triggered
+ * by any of TIM1, TIM2, TIM3, TIM4 or TIM5 timer
+ *
+ * ADC1
+ * ADC2 for double current sample (ifdef CURR2_DOUBLE_SAMPLE)
+ * ADC3
  *
  * DMA/stream	Device		Function
  * 1, 2			I2C1		Nunchuk, temp on rev 4.5
@@ -79,6 +87,7 @@ static THD_FUNCTION(periodic_thread, arg) {
 	chRegSetThreadName("Main periodic");
 
 	for(;;) {
+
 		if (mc_interface_get_state() == MC_STATE_RUNNING) {
 			ledpwm_set_intensity(LED_GREEN, 1.0);
 		} else {
@@ -137,6 +146,17 @@ static THD_FUNCTION(periodic_thread, arg) {
 		}
 		}
 
+#ifdef STM32F401xE
+		// blink green led on f401 to check running state
+		 static int led_counter = 0;
+		 if(led_counter <= 1)
+            LED_GREEN_ON();
+		 else if(led_counter == 50)
+            LED_GREEN_OFF();
+         else if(led_counter >= 100)
+            led_counter = 0;
+		 led_counter++;
+#endif
 		chThdSleepMilliseconds(10);
 	}
 }
@@ -184,7 +204,7 @@ int main(void) {
 #endif
 
 #if WS2811_ENABLE
-	ws2811_init();
+	ws2811_init(); // LED strip output
 	led_external_init();
 #endif
 
@@ -197,7 +217,9 @@ int main(void) {
 #endif
 
 	// Threads
+	// updates LED status and sends motor pos
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
+    // update packet rx timeout counter
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
 	for(;;) {

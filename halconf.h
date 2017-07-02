@@ -48,7 +48,11 @@
  * @brief   Enables the CAN subsystem.
  */
 #if !defined(HAL_USE_CAN) || defined(__DOXYGEN__)
+#ifdef STM32F401xE
+#define HAL_USE_CAN                 FALSE
+#else
 #define HAL_USE_CAN                 TRUE
+#endif
 #endif
 
 /**

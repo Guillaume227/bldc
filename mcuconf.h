@@ -39,18 +39,18 @@
 #define STM32_NO_INIT                       FALSE
 #define STM32_HSI_ENABLED                   TRUE
 #define STM32_LSI_ENABLED                   TRUE
-#define STM32_HSE_ENABLED                   TRUE
+#define STM32_HSE_ENABLED                   FALSE // orig: TRUE
 #define STM32_LSE_ENABLED                   FALSE
 #define STM32_CLOCK48_REQUIRED              TRUE
 #define STM32_SW                            STM32_SW_PLL
-#define STM32_PLLSRC                        STM32_PLLSRC_HSE
-#define STM32_PLLM_VALUE                    8
+#define STM32_PLLSRC                        STM32_PLLSRC_HSI // orig: _HSE
+#define STM32_PLLM_VALUE                    16 // orig: 8
 #define STM32_PLLN_VALUE                    336
-#define STM32_PLLP_VALUE                    2
+#define STM32_PLLP_VALUE                    4 // orig: 2
 #define STM32_PLLQ_VALUE                    7
 #define STM32_HPRE                          STM32_HPRE_DIV1
-#define STM32_PPRE1                         STM32_PPRE1_DIV4
-#define STM32_PPRE2                         STM32_PPRE2_DIV2
+#define STM32_PPRE1                         STM32_PPRE1_DIV2 // orig _DIV4
+#define STM32_PPRE2                         STM32_PPRE2_DIV1 // orig _DIV2
 #define STM32_RTCSEL                        STM32_RTCSEL_LSI
 #define STM32_RTCPRE_VALUE                  8
 #define STM32_MCO1SEL                       STM32_MCO1SEL_HSI
@@ -85,7 +85,7 @@
 /*
  * CAN driver system settings.
  */
-#define STM32_CAN_USE_CAN1                  TRUE
+#define STM32_CAN_USE_CAN1                  FALSE // orig: TRUE
 #define STM32_CAN_USE_CAN2                  FALSE
 #define STM32_CAN_CAN1_IRQ_PRIORITY         11
 #define STM32_CAN_CAN2_IRQ_PRIORITY         11
@@ -169,6 +169,21 @@
 #define STM32_I2C_I2C2_DMA_PRIORITY         3
 #define STM32_I2C_I2C3_DMA_PRIORITY         3
 #define STM32_I2C_DMA_ERROR_HOOK(i2cp)      osalSysHalt("DMA failure")
+
+/*
+ * I2S driver system settings.
+ */
+#define STM32_I2S_USE_SPI2                  FALSE
+#define STM32_I2S_USE_SPI3                  FALSE
+#define STM32_I2S_SPI2_IRQ_PRIORITY         10
+#define STM32_I2S_SPI3_IRQ_PRIORITY         10
+#define STM32_I2S_SPI2_DMA_PRIORITY         1
+#define STM32_I2S_SPI3_DMA_PRIORITY         1
+#define STM32_I2S_SPI2_RX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 3)
+#define STM32_I2S_SPI2_TX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 4)
+#define STM32_I2S_SPI3_RX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 0)
+#define STM32_I2S_SPI3_TX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 7)
+#define STM32_I2S_DMA_ERROR_HOOK(i2sp)      osalSysHalt("DMA failure")
 
 /*
  * ICU driver system settings.
@@ -275,8 +290,8 @@
  * UART driver system settings.
  */
 #define STM32_UART_USE_USART1               FALSE
-#define STM32_UART_USE_USART2               FALSE
-#define STM32_UART_USE_USART3               TRUE
+#define STM32_UART_USE_USART2               FALSE // on nucleo, used by ST-LINK wired for PA2/PA3 - USART2
+#define STM32_UART_USE_USART3               FALSE
 #define STM32_UART_USE_UART4                FALSE
 #define STM32_UART_USE_UART5                FALSE
 #define STM32_UART_USE_USART6               TRUE
@@ -318,5 +333,10 @@
 #define STM32_USB_OTG_THREAD_PRIO           LOWPRIO
 #define STM32_USB_OTG_THREAD_STACK_SIZE     128
 #define STM32_USB_OTGFIFO_FILL_BASEPRI      0
+
+/*
+ * WDG driver system settings.
+ */
+#define STM32_WDG_USE_IWDG                  FALSE
 
 #endif /* _MCUCONF_H_ */

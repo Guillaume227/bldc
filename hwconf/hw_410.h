@@ -25,11 +25,18 @@
 #define DCCAL_OFF()				palClearPad(GPIOB, 12)
 #define IS_DRV_FAULT()			(!palReadPad(GPIOC, 12))
 
+#ifdef STM32F401xE
+#define LED_GREEN_ON()              palSetPad(GPIOA, GPIOA_LED_GREEN)
+#define LED_GREEN_OFF()             palClearPad(GPIOA, GPIOA_LED_GREEN)
+// no second Red LED on f401 (only one USER LED available)
+#define LED_RED_ON()                palSetPad(GPIOC, 5)
+#define LED_RED_OFF()               palClearPad(GPIOC, 5)
+#else
 #define LED_GREEN_ON()				palSetPad(GPIOC, 4)
 #define LED_GREEN_OFF()				palClearPad(GPIOC, 4)
 #define LED_RED_ON()				palSetPad(GPIOC, 5)
 #define LED_RED_OFF()				palClearPad(GPIOC, 5)
-
+#endif
 /*
  * ADC Vector
  *
@@ -48,7 +55,12 @@
  */
 
 #define HW_ADC_CHANNELS				12
+
+#ifdef STM32F401xE
+#define HW_ADC_NBR_CONV				12 // ADC1 emulates ADC2 and ADC3 so 3x4=12
+#else
 #define HW_ADC_NBR_CONV				4
+#endif
 
 // ADC Indexes
 #define ADC_IND_SENS1				2

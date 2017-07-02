@@ -127,17 +127,17 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
-		volatile int t8_cnt = TIM8->CNT;
+		volatile int t8_cnt = TIMA->CNT;
 		volatile int dir1 = !!(TIM1->CR1 & (1 << 4));
-		volatile int dir8 = !!(TIM8->CR1 & (1 << 4));
+		volatile int dir8 = !!(TIMA->CR1 & (1 << 4));
 		chSysUnlock();
 		int duty1 = TIM1->CCR1;
 		int duty2 = TIM1->CCR2;
 		int duty3 = TIM1->CCR3;
 		int top = TIM1->ARR;
-		int voltage_samp = TIM8->CCR1;
+		int voltage_samp = TIMA->CCR1;
 		int current1_samp = TIM1->CCR4;
-		int current2_samp = TIM8->CCR2;
+		int current2_samp = TIMA->CCR2;
 		commands_printf("Tim1 CNT: %i", t1_cnt);
 		commands_printf("Tim8 CNT: %u", t8_cnt);
 		commands_printf("Duty cycle1: %u", duty1);
