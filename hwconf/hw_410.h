@@ -19,66 +19,98 @@
 #define HW_410_H_
 
 // Macros
-#define ENABLE_GATE()			palSetPad(GPIOC, 10)
-#define DISABLE_GATE()			palClearPad(GPIOC, 10)
-#define DCCAL_ON()				palSetPad(GPIOB, 12)
-#define DCCAL_OFF()				palClearPad(GPIOB, 12)
-#define IS_DRV_FAULT()			(!palReadPad(GPIOC, 12))
 
 #ifdef STM32F401xE
-#define LED_GREEN_ON()              palSetPad(GPIOA, GPIOA_LED_GREEN)
-#define LED_GREEN_OFF()             palClearPad(GPIOA, GPIOA_LED_GREEN)
-// no second Red LED on f401 (only one USER LED available)
-#define LED_RED_ON()                palSetPad(GPIOC, 5)
-#define LED_RED_OFF()               palClearPad(GPIOC, 5)
+  #define ENABLE_CH1_L6230()    palSetPad(GPIOC, GPIOC_PIN10)
+  #define ENABLE_CH2_L6230()    palSetPad(GPIOC, GPIOC_PIN11)
+  #define ENABLE_CH3_L6230()    palSetPad(GPIOC, GPIOC_PIN12)
+  #define DISABLE_CH1_L6230()    palClearPad(GPIOC, GPIOC_PIN10)
+  #define DISABLE_CH2_L6230()    palClearPad(GPIOC, GPIOC_PIN11)
+  #define DISABLE_CH3_L6230()    palClearPad(GPIOC, GPIOC_PIN12)
+
+  #define ENABLE_GATE()           // palSetPad(GPIOC, 10)// no such thing on IHM07M1
+  #define DISABLE_GATE()          // palClearPad(GPIOC, 10)// no such thing on IHM07M1
+  #define DCCAL_ON()              //palSetPad(GPIOB, 12) // no such thing on IHM07M1
+  #define DCCAL_OFF()             //palClearPad(GPIOB, 12) // no such thing on IHM07M1
+  #define IS_DRV_FAULT()			  0 // not fault signal from IHM07M1 ?
+  #define LED_GREEN_ON()              palSetPad(GPIOA, GPIOA_LED_GREEN)
+  #define LED_GREEN_OFF()             palClearPad(GPIOA, GPIOA_LED_GREEN)
+  // no second Red LED on f401 (only one USER LED available)
+  #define LED_RED_ON()                palSetPad(GPIOC, 5)
+  #define LED_RED_OFF()               palClearPad(GPIOC, 5)
 #else
-#define LED_GREEN_ON()				palSetPad(GPIOC, 4)
-#define LED_GREEN_OFF()				palClearPad(GPIOC, 4)
-#define LED_RED_ON()				palSetPad(GPIOC, 5)
-#define LED_RED_OFF()				palClearPad(GPIOC, 5)
+  #define ENABLE_GATE()           palSetPad(GPIOC, 10)
+  #define DISABLE_GATE()          palClearPad(GPIOC, 10)
+  #define DCCAL_ON()                palSetPad(GPIOB, 12)
+  #define DCCAL_OFF()             palClearPad(GPIOB, 12)
+  #define IS_DRV_FAULT()            (!palReadPad(GPIOC, 12))
+  #define LED_GREEN_ON()				palSetPad(GPIOC, 4)
+  #define LED_GREEN_OFF()				palClearPad(GPIOC, 4)
+  #define LED_RED_ON()				palSetPad(GPIOC, 5)
+  #define LED_RED_OFF()				palClearPad(GPIOC, 5)
 #endif
 /*
  * ADC Vector
- *
- * 0:	IN0		SENS3
- * 1:	IN1		SENS2
- * 2:	IN2		SENS1
- * 3:	IN8		CURR2
- * 4:	IN9		CURR1
- * 5:	IN3		TEMP_MOSFET
+ *      f407                  f401rE
+ * 0:	IN0		SENS3           IN7  PA7
+ * 1:	IN1		SENS2           IN8  PB0
+ * 2:	IN2		SENS1           IN13 PC3
+ * 3:	IN8		CURR2           IN10 PC0
+ * 4:	IN9		CURR1           IN11 PC1
+ * 5:	IN3		TEMP_MOSFET     IN12 PC2
  * 6:	Vrefint
  * 7:	IN6		ADC_EXT2
- * 8:	IN12	AN_IN
+ * 8:	IN12	AN_IN           IN1 PA1
  * 9:	IN4		TX_SDA_NSS
  * 10:	IN5     ADC_EXT
- * 11:	IN3 	TEMP_MOTOR
+ * 11:	IN10 	TEMP_MOTOR
  */
 
 #define HW_ADC_CHANNELS				12
 
 #ifdef STM32F401xE
 #define HW_ADC_NBR_CONV				12 // ADC1 emulates ADC2 and ADC3 so 3x4=12
-#else
-#define HW_ADC_NBR_CONV				4
-#endif
 
 // ADC Indexes
-#define ADC_IND_SENS1				2
-#define ADC_IND_SENS2				1
-#define ADC_IND_SENS3				0
-#define ADC_IND_CURR1				4
-#define ADC_IND_CURR2				3
-#define ADC_IND_VIN_SENS			8
-#define ADC_IND_EXT					10
-#define ADC_IND_EXT2				7
-#define ADC_IND_TEMP_MOS1			5
-#define ADC_IND_TEMP_MOS2			5
-#define ADC_IND_TEMP_MOS3			5
-#define ADC_IND_TEMP_MOS4			5
-#define ADC_IND_TEMP_MOS5			5
-#define ADC_IND_TEMP_MOS6			5
-#define ADC_IND_TEMP_PCB			5
-#define ADC_IND_VREFINT				6
+#define ADC_IND_SENS1               8
+#define ADC_IND_SENS2               4
+#define ADC_IND_SENS3               0
+#define ADC_IND_CURR1               1
+#define ADC_IND_CURR2               5
+#define ADC_IND_VIN_SENS            7
+#define ADC_IND_EXT                 10
+#define ADC_IND_EXT2                7
+#define ADC_IND_TEMP_MOS1           9
+#define ADC_IND_TEMP_MOS2           9
+#define ADC_IND_TEMP_MOS3           9
+#define ADC_IND_TEMP_MOS4           9
+#define ADC_IND_TEMP_MOS5           9
+#define ADC_IND_TEMP_MOS6           9
+#define ADC_IND_TEMP_PCB            9
+#define ADC_IND_VREFINT             2
+
+#else
+#define HW_ADC_NBR_CONV				4
+
+// ADC Indexes
+#define ADC_IND_SENS1               2
+#define ADC_IND_SENS2               1
+#define ADC_IND_SENS3               0
+#define ADC_IND_CURR1               4
+#define ADC_IND_CURR2               3
+#define ADC_IND_VIN_SENS            8
+#define ADC_IND_EXT                 10
+#define ADC_IND_EXT2                7
+#define ADC_IND_TEMP_MOS1           5
+#define ADC_IND_TEMP_MOS2           5
+#define ADC_IND_TEMP_MOS3           5
+#define ADC_IND_TEMP_MOS4           5
+#define ADC_IND_TEMP_MOS5           5
+#define ADC_IND_TEMP_MOS6           5
+#define ADC_IND_TEMP_PCB            5
+#define ADC_IND_VREFINT             6
+#endif
+
 
 // ADC macros and settings
 

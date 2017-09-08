@@ -270,7 +270,12 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	// Clock
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2 | RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC, ENABLE);
+
+#ifdef STM32F401xE
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+#else
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_ADC2 | RCC_APB2Periph_ADC3, ENABLE);
+#endif
 
 	dmaStreamAllocate(STM32_DMA_STREAM(STM32_DMA_STREAM_ID(2, 4)),
 			3,
@@ -304,9 +309,15 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	// ADC Common Init
 	// Note that the ADC is running at 42MHz, which is higher than the
 	// specified 36MHz in the data sheet, but it works.
-	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
+#ifdef STM32F401xE
+	ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
+	// no multi ADC mode for DMA on f401. without it, seeing overrun interrupts
+	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
+#else
+    ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
+    ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
+#endif
 	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
-	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
 	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 	ADC_CommonInit(&ADC_CommonInitStructure);
 
@@ -327,18 +338,21 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	ADC_Init(ADC1, &ADC_InitStructure);
 
 #ifdef STM32F401xE
+	ADC_DMACmd(ADC1,ENABLE); // caused Overrun interrupt on ADC. why ?
+	ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
 #else
     ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
     ADC_InitStructure.ADC_ExternalTrigConv = 0;
 
 	ADC_Init(ADC2, &ADC_InitStructure);
 	ADC_Init(ADC3, &ADC_InitStructure);
+
+    // Enable DMA request after last transfer (Multi-ADC mode)
+    ADC_MultiModeDMARequestAfterLastTransferCmd(ENABLE);
 #endif
 	// Enable Vrefint channel
 	ADC_TempSensorVrefintCmd(ENABLE);
 
-	// Enable DMA request after last transfer (Multi-ADC mode)
-	ADC_MultiModeDMARequestAfterLastTransferCmd(ENABLE);
 
 	// Injected channels for current measurement at end of cycle
 	ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_CC4);
@@ -362,6 +376,8 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	// Interrupt at end of injected conversion
 	ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE);
+	//ADC_ITConfig(ADC1, ADC_IT_EOC, ENABLE);
+	//ADC_ITConfig(ADC1, ADC_IT_OVR, ENABLE);
 	nvicEnableVector(ADC_IRQn, 6);
 
 	// Enable ADC1
@@ -403,6 +419,13 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	TIM_ARRPreloadConfig(TIMA, ENABLE);
 	TIM_CCPreloadControl(TIMA, ENABLE);
+	/*
+	TIM_ITConfig(TIMA, TIM_IT_Trigger, ENABLE);
+	TIM_ITConfig(TIMA, TIM_IT_Update, ENABLE);
+	TIM_ITConfig(TIMA, TIM_IT_CC1, ENABLE);
+    //NVIC_EnableIRQ(TIM5_IRQn);                 // Enable IRQ for TIM5 in NVIC
+	nvicEnableVector(TIM5_IRQn, 6);
+	*/
 
 	// PWM outputs have to be enabled in order to trigger ADC on CCx
 	TIM_CtrlPWMOutputs(TIMA, ENABLE);
@@ -450,7 +473,11 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	do_dc_cal();
 
 	// Various time measurements
+#ifdef STM32F401xE
+    RCC_APB1PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE);
+#else
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
+#endif
 	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1;
 
 	// Time base configuration
@@ -1052,6 +1079,9 @@ static void set_duty_cycle_ll(float dutyCycle) {
  * Lowest level (hardware) duty cycle setter. Will set the hardware timer to
  * the specified duty cycle and update the ADC sampling positions.
  *
+ * Motivation for changing PWM switching frequency :
+ *  Adaptive PWM frequency to get as good ADC measurements as possible
+ *
  * @param dutyCycle
  * The duty cycle in the range [MCPWM_MIN_DUTY_CYCLE  MCPWM_MAX_DUTY_CYCLE]
  * (Only positive)
@@ -1353,7 +1383,7 @@ static THD_FUNCTION(timer_thread, arg) {
 }
 
 void mcpwm_adc_inj_int_handler(void) {
-	TIM12->CNT = 0;
+	TIM12->CNT = 0; // various time measurements
 
 #ifdef STM32F401xE
 	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
@@ -2159,7 +2189,11 @@ static int read_hall(void) {
  * 5		-		+		0
  * 6		-		0		+
  */
-
+/**
+ *  Sets how the voltages and currents are sampled based on the current
+ *  timer state. Synchronizing all sampling for the best performance is
+ *  one of the major challenges.
+ */
 static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	volatile uint32_t duty = timer_tmp->duty;
 	volatile uint32_t top = timer_tmp->top;
@@ -2167,6 +2201,18 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	volatile uint32_t curr1_sample = timer_tmp->curr1_sample;
 	volatile uint32_t curr2_sample = timer_tmp->curr2_sample;
 
+	/*
+	 * In practise the if statement will not be entered while running,
+	 * it is only there for one particular reason. When initializing
+	 * everything, this is used to set up the adc sampling for
+	 * the first time, and then the duty cycle in the timer struct is
+	 * undefined since it does not matter at that point.
+	 * What can happen then is that the sampling time will be set after the
+	 * top value, and then no more sampling interrupts will occur and the
+	 * program will freeze. Instead of making sure that the duty cycle is
+	 * valid every time this function is called, I decided to add a
+	 * check in the function.
+	 * */
 	if (duty > (uint32_t)((float)top * conf->l_max_duty)) {
 		duty = (uint32_t)((float)top * conf->l_max_duty);
 	}
@@ -2533,32 +2579,39 @@ static void set_next_comm_step(int next_step) {
 
 	if (next_step == 1) {
 		if (direction) {
+
 			// 0
+		    DISABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
 
 			// +
+			ENABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
 
 			// -
+            ENABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
 		} else {
 			// 0
+		    DISABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
 
 			// -
+            ENABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
@@ -2566,31 +2619,37 @@ static void set_next_comm_step(int next_step) {
 	} else if (next_step == 2) {
 		if (direction) {
 			// 0
+		    DISABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
 
 			// -
+            ENABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
 		} else {
 			// 0
+		    DISABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
 
 			// -
+            ENABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
@@ -2598,31 +2657,37 @@ static void set_next_comm_step(int next_step) {
 	} else if (next_step == 3) {
 		if (direction) {
 			// 0
+		    DISABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
 
 			// -
+            ENABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
 		} else {
 			// 0
+		    DISABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
 
 			// -
+            ENABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
@@ -2630,31 +2695,37 @@ static void set_next_comm_step(int next_step) {
 	} else if (next_step == 4) {
 		if (direction) {
 			// 0
+		    DISABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
 
 			// -
+            ENABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
 		} else {
 			// 0
+            DISABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
 
 			// -
+            ENABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
@@ -2662,31 +2733,37 @@ static void set_next_comm_step(int next_step) {
 	} else if (next_step == 5) {
 		if (direction) {
 			// 0
+		    DISABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
 
 			// -
+            ENABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
 		} else {
 			// 0
+            DISABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
 
 			// -
+            ENABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
@@ -2694,37 +2771,48 @@ static void set_next_comm_step(int next_step) {
 	} else if (next_step == 6) {
 		if (direction) {
 			// 0
+            DISABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
 
 			// -
+            ENABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
 		} else {
 			// 0
+            DISABLE_CH2_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
 
 			// +
+            ENABLE_CH3_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
 
 			// -
+            ENABLE_CH1_L6230();
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
 		}
 	} else {
 		// Invalid phase.. stop PWM!
+#ifdef STM32F401xE
+	    DISABLE_CH1_L6230();
+	    DISABLE_CH2_L6230();
+        DISABLE_CH3_L6230();
+#endif
 		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 		TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 		TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);

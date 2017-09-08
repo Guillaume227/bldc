@@ -40,13 +40,34 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
 	// LEDs
-	palSetPadMode(GPIOC, 4,
+#ifdef STM32F401xE
+	palSetPadMode(GPIOA, GPIOA_LED_GREEN,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(GPIOC, 5,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
+#else
+    palSetPadMode(GPIOC, 4,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+    palSetPadMode(GPIOC, 5,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+#endif
 
+#ifdef STM32F401xE
+    palSetPadMode(GPIOC, 10,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+    palSetPadMode(GPIOC, 11,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+    palSetPadMode(GPIOC, 12,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+
+#else
 	// GPIOC (ENABLE_GATE)
 	palSetPadMode(GPIOC, 10,
 			PAL_MODE_OUTPUT_PUSHPULL |
@@ -57,6 +78,7 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOB, 12,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
+#endif
 
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
@@ -84,9 +106,11 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 
+#ifdef STM32F401xE
+#else
 	// Fault pin
 	palSetPadMode(GPIOC, 12, PAL_MODE_INPUT_PULLUP);
-
+#endif
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
@@ -110,30 +134,31 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 }
 
+
 void hw_setup_adc_channels(void) {
 #ifdef STM32F401xE
 	// regular channels
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 2, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_7,    1, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_11,   2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 4, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_4,    4, ADC_SampleTime_15Cycles);
 
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_1, 5, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_9, 6, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_6, 7, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 8, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_8,    5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10,   6, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_6,    7, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_1,    8, ADC_SampleTime_15Cycles);
 
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_2,  9,  ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_3,  10, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_12, 11, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_3,  12, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_13,   9,  ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_12,  10, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_1,   11, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_12,  12, ADC_SampleTime_15Cycles);
 
 	// Injected channels
 	// "serialization" of the simultaneous cross-read of the two channels
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_9, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_8, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_8, 3, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_9, 4, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 4, ADC_SampleTime_15Cycles);
 
 #else
 	/*
