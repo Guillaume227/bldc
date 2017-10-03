@@ -57,7 +57,8 @@
 //#define HW_VERSION_48
 //#define HW_VERSION_49
 //#define HW_VERSION_410 // Also for 4.11 and 4.12
-#define HW_VERSION_60
+//#define HW_VERSION_60
+#define HW_VERSION_ARA
 //#define HW_VERSION_R2
 //#define HW_VERSION_VICTOR_R1A
 //#define HW_VERSION_DAS_RS
@@ -88,7 +89,7 @@
 /*
  * Enable CAN-bus
  */
-#define CAN_ENABLE					1
+#define CAN_ENABLE					0
 
 /*
  * Settings for the external LEDs (hardcoded for now)

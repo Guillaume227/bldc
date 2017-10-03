@@ -48,6 +48,8 @@
 #include "hw_victor_r1a.h"
 #elif defined HW_VERSION_DAS_RS
 #include "hw_das_rs.h"
+#elif defined HW_VERSION_ARA
+#include "hw_ara.h"
 #elif defined HW_VERSION_PALTA
 #include "hw_palta.h"
 #elif defined HW_VERSION_RH
