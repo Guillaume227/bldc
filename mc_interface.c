@@ -67,6 +67,7 @@ static volatile float m_temp_motor;
 #define ADC_SAMPLE_MAX_LEN		2000
 __attribute__((section(".ram4"))) static volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
+__attribute__((section(".ram4"))) static volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
@@ -1259,6 +1260,7 @@ void mc_interface_mc_timer_isr(void) {
 			} else {
 				m_curr0_samples[m_sample_now] = ADC_curr_norm_value[0];
 				m_curr1_samples[m_sample_now] = ADC_curr_norm_value[1];
+                m_curr2_samples[m_sample_now] = ADC_curr_norm_value[2];
 
 				m_ph1_samples[m_sample_now] = ADC_V_L1 - zero;
 				m_ph2_samples[m_sample_now] = ADC_V_L2 - zero;
@@ -1296,7 +1298,7 @@ void mc_interface_adc_inj_int_handler(void) {
  * Update the override limits for a configuration based on MOSFET temperature etc.
  *
  * @param conf
- * The configaration to update.
+ * The configuration to update.
  */
 static void update_override_limits(volatile mc_configuration *conf) {
 	const float v_in = GET_INPUT_VOLTAGE();
@@ -1511,6 +1513,7 @@ static THD_FUNCTION(sample_send_thread, arg) {
 			buffer[index++] = COMM_SAMPLE_PRINT;
 			buffer_append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
 			buffer_append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
+            buffer_append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
 			buffer_append_float32_auto(buffer, ((float)m_ph1_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
 			buffer_append_float32_auto(buffer, ((float)m_ph2_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
 			buffer_append_float32_auto(buffer, ((float)m_ph3_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
