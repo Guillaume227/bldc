@@ -1728,7 +1728,11 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		 * Calculate the virtual ground, depending on the state.
 		 */
 		if (has_commutated && fabsf(dutycycle_now) > 0.2) {
+#ifdef HW_IS_IHM07M1
+            mcpwm_vzero = ADC_V_ZERO * ((VIN_R1 + VIN_R2) / VIN_R2) / ((R39_IHM07 + R36_IHM07) / R36_IHM07);
+#else
 			mcpwm_vzero = ADC_V_ZERO;
+#endif
 		} else {
 			mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
 		}
@@ -1880,7 +1884,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			pwm_cycles_sum += conf->m_bldc_f_sw_max / switching_frequency_now;
 			pwm_cycles++;
-		} else {
+		} else { // !sensorless_now
 			const int hall_phase = mcpwm_read_hall_phase();
 			if (comm_step != hall_phase) {
 				comm_step = hall_phase;

@@ -1543,9 +1543,15 @@ static THD_FUNCTION(sample_send_thread, arg) {
 			buffer_append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
 			buffer_append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
             buffer_append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
+#ifdef HW_IS_IHM07M1
+            buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((ADC_TO_VOLTS(m_ph1_samples[ind_samp]))), &index);
+            buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((ADC_TO_VOLTS(m_ph2_samples[ind_samp]))), &index);
+            buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((ADC_TO_VOLTS(m_ph3_samples[ind_samp]))), &index);
+#else
 			buffer_append_float32_auto(buffer, ((float)m_ph1_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
 			buffer_append_float32_auto(buffer, ((float)m_ph2_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
 			buffer_append_float32_auto(buffer, ((float)m_ph3_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
+#endif
 			buffer_append_float32_auto(buffer, ((float)m_vzero_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
 			buffer_append_float32_auto(buffer, (float)m_curr_fir_samples[ind_samp] / (8.0 / FAC_CURRENT), &index);
 			buffer_append_float32_auto(buffer, (float)m_f_sw_samples[ind_samp] * 10.0, &index);

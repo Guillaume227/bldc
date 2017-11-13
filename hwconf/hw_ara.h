@@ -23,7 +23,8 @@
 // HW properties
 #define HW_HAS_DRV8313
 #define HW_HAS_3_SHUNTS
-#define HW_HAS_PHASE_SHUNTS
+#define HW_HAS_PHASE_SHUNTS // used for FOC only
+#define HW_IS_IHM07M1
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
@@ -117,6 +118,12 @@
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
+
+// BEMF Voltage
+#define R39_IHM07 10.0 // 10k ohms
+#define R36_IHM07 2.2 // 2.2k ohms
+#define V_D_IHM07 0.3 // schotky BAT30kFILM typical voltage drop
+
 // NTC Termistors
 #define NTC_CONV(val)           (10 * val / (5.3 * val + 4.7))
 #define NTC_RES_2               4700.0
@@ -132,6 +139,9 @@
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
+#define ADC_TO_VOLTS(adc_val)   ((float)adc_val / 4096.0 * V_REG)
+
+#define GET_BEMF_VOLTAGE(volt) ((volt - V_D_IHM07 ) * ((R39_IHM07 + R36_IHM07) / R36_IHM07) + V_D_IHM07)
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
