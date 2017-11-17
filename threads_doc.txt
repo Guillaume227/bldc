@@ -1,0 +1,81 @@
+Vesc 6 threads
+
+1- Main 10ms
+
+2- DMA - ADC regular interrupt
+    period ?
+    * New ADC samples ready. Do commutation!
+    switching_frequency_now
+    
+    
+    mcpwm_adc_int_handler()
+    	// Set the next timer settings if an update is far enough away
+		  // Calculate the virtual ground, depending on the state.
+      commutate()
+      -> mc_interface_mc_timer_isr() // sample gathering, sends signal to thread SampleSender when done
+      set_duty_cycle_ll(dutycycle_now);
+
+
+3- ADC injected interrupt
+period ?
+  read (3) Shunt currents, populating mcpwm_detect_voltages
+  if detection:
+    sets duty cycle to 0.2
+    mcpwm_detect_voltages // back-emf detection
+
+"Main periodic" main.c 10ms
+- status LEDs
+- sends rotor pos in detecting state
+- sends rotor pos in FOC Observer modes
+
+"msec_timer" main.c 1ms
+  packet_timerfunc()
+  
+"Timeout" timeout.c 10ms
+- sets brake current on a timeout 
+		i.e. if (timeout_msec != 0 && chVTTimeElapsedSinceX(last_update_time) > MS2ST(timeout_msec)) 
+
+    
+"mcpwm timer" mcpwm.c 1ms
+		if (state == MC_STATE_OFF) {
+			// Track the motor back-emf and follow it with dutycycle_now. Also track
+			// the direction of the motor.
+    }
+    // Fill KV filter vector at 100Hz
+
+
+"rpm timer" mcpwm.c 1ms
+  run_pid_control_speed: asservissement PID current or speed (see macro BLDC_SPEED_CONTROL_CURRENT)
+  
+  
+"mcif timer" mcinterface.c loop 1ms
+  		// Decrease fault iterations
+      update_override_limits()
+      
+"SampleSender" mcinterface.c chEvtWaitAny
+    sends COMM_SAMPLE_PRINT message (current, voltage samples etc.) to vesc-tool
+  
+  
+"Detect" commands.c chEvtWaitAny  
+    conf_general_detect_motor_param
+    sends COMM_DETECT_MOTOR_PARAM message
+  
+"USD-serial read" comm_usb.c chEvtWaitAny
+
+"USD-serial write" comm_usb.c chEvtWaitAny
+
++ 3 CAN related threads in comm_can.c (read status process)
+
+"LEDs External" led_external.c 1ms
+  
+  
+****************  
+bugs potentiels:
+   - Not plotting actual 3rd shunt current data: it's available on chip but not serialized and not sent to vesc tool, which synthesizes it from the other two currents.
+   - TIM12 used and reset by both adc interrupts (reg and inj) so could give wrong interrupt duration for nested interrupts
+   
+**************** 
+ Questions :
+ where do the old values come from and why?
+ // Correction factor for computations that depend on the old resistor division factor
+#define VDIV_CORR					((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2 / (2.2 + 33.0)))
