@@ -22,6 +22,13 @@
 
 // HW properties
 #define HW_HAS_DRV8313
+
+/*
+ * Benjamin on March 7, 2015 at 12:04 said:
+ * when not using FOC one shunt on the input is actually better than using two
+ * on the phases since the software becomes simpler.
+ * Also, with only one shunt you can run at 100% duty cycle.
+ */
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS // used for FOC only
 #define HW_IS_IHM07M1
@@ -118,18 +125,21 @@
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
-
 // BEMF Voltage
 #define R39_IHM07 10.0 // 10k ohms
 #define R36_IHM07 2.2 // 2.2k ohms
 #define V_D_IHM07 0.3 // schotky BAT30kFILM typical voltage drop
+
+// converts straight adc reading to BEMF voltage
+#define GET_BEMF_VOLTAGE(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM07 ) * ((R39_IHM07 + R36_IHM07) / R36_IHM07) + V_D_IHM07)
+#define GET_BEMF_VOLTAGE_CH(adc_ch) (GET_BEMF_VOLTAGE(ADC_Value[adc_ch]))
 
 // NTC Termistors
 #define NTC_CONV(val)           (10 * val / (5.3 * val + 4.7))
 #define NTC_RES_2               4700.0
 #define NTC_RES(adc_val)		((4095.0 * NTC_RES_2) / adc_val - NTC_RES_2)
 #define NTC_BETA_TEMP           3380.0
-#define NTC_REF_RES             10000.0 // resistor value at REF_TEMP deg
+#define NTC_REF_RES             10000.0 // resistor value at NTC_REF_TEMP deg
 #define NTC_REF_TEMP            298.15 // 25 deg
 #define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / NTC_REF_RES) / NTC_BETA_TEMP) + (1.0 / NTC_REF_TEMP)) - 273.15)
 
@@ -138,10 +148,8 @@
 
 
 // Voltage on ADC channel
-#define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
 #define ADC_TO_VOLTS(adc_val)   ((float)adc_val / 4096.0 * V_REG)
-
-#define GET_BEMF_VOLTAGE(volt) ((volt - V_D_IHM07 ) * ((R39_IHM07 + R36_IHM07) / R36_IHM07) + V_D_IHM07)
+#define ADC_VOLTS(ch)			ADC_TO_VOLTS(ADC_Value[ch])
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
