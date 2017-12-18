@@ -4,18 +4,18 @@
 	This file is part of the VESC firmware.
 
 	The VESC firmware is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    The VESC firmware is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	The VESC firmware is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	*/
 
 #include "ch.h"
 #include "hal.h"
@@ -227,7 +227,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
+	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now; // ARR value
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -237,7 +237,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
+	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2; // Pulse (CCRx) == duty cycle
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -307,8 +307,8 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
 
 	// ADC Common Init
-	// Note that the ADC is running at 42MHz, which is higher than the
-	// specified 36MHz in the data sheet, but it works.
+	// Note that the ADC is running at 42MHz (= 84MHz (APHB2 freq) / Div2 (ADC prescaler))
+	// which is higher than the specified 36MHz in the data sheet, but it works.
 	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
 	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
 	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
@@ -1729,7 +1729,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		 */
 		if (has_commutated && fabsf(dutycycle_now) > 0.2) {
 #ifdef HW_IS_IHM07M1
-            mcpwm_vzero = ADC_V_ZERO * ((VIN_R1 + VIN_R2) / VIN_R2) / ((R39_IHM07 + R36_IHM07) / R36_IHM07);
+			mcpwm_vzero = ADC_V_ZERO * ((VIN_R1 + VIN_R2) / VIN_R2) / ((R39_IHM07 + R36_IHM07) / R36_IHM07);
 #else
 			mcpwm_vzero = ADC_V_ZERO;
 #endif
