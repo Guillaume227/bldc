@@ -16,10 +16,13 @@ Vesc 6 threads
       set_duty_cycle_ll(dutycycle_now);
 
 
-3- ADC injected interrupt
-period ?
+3- ADC injected interrupt   period ?
+
+  ** seulement en BLDC **
+  mc_interface_adc_inj_int_handler
+  
   read (3) Shunt currents, populating mcpwm_detect_voltages
-  if detection:
+  if in detection mode:
     sets duty cycle to 0.2
     mcpwm_detect_voltages // back-emf detection
 

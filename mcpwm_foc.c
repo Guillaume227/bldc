@@ -1568,7 +1568,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	float ia = ADC_curr_norm_value[0] * FAC_CURRENT;
 	float ib = ADC_curr_norm_value[1] * FAC_CURRENT;
-//	float ic = -(ia + ib);
+	float ic = -(ia + ib);
 
 	if (m_samples.measure_inductance_now) {
 		if (!is_v7) {
@@ -1654,12 +1654,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	if (m_state == MC_STATE_RUNNING) {
 		// Clarke transform assuming balanced currents
-		m_motor_state.i_alpha = ia;
-		m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
+//		m_motor_state.i_alpha = ia;
+//		m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
 
 		// Full Clarke transform in case there are current offsets
-//		m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
-//		m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
+		m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
+		m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
 
 		const float duty_abs = fabsf(m_motor_state.duty_now);
 		float id_set_tmp = m_id_set;

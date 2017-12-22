@@ -123,15 +123,21 @@
 #endif
 
 // Input voltage
-#define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
+#define V_IN_RATIO ((VIN_R1 + VIN_R2) / VIN_R2)
+
+#define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * (V_IN_RATIO))
 
 // BEMF Voltage
 #define R39_IHM07 10.0 // 10k ohms
 #define R36_IHM07 2.2 // 2.2k ohms
 #define V_D_IHM07 0.3 // schotky BAT30kFILM typical voltage drop
+#define V_PHASE_RATIO ((R39_IHM07 + R36_IHM07) / R36_IHM07)
+#define V_PHASE_IN_RATIO (V_IN_RATIO / V_PHASE_RATIO)
+
+#define ADC_VIN (ADC_Value[ADC_IND_VIN_SENS] * V_PHASE_IN_RATIO)
 
 // converts straight adc reading to BEMF voltage
-#define GET_BEMF_VOLTAGE(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM07 ) * ((R39_IHM07 + R36_IHM07) / R36_IHM07) + V_D_IHM07)
+#define GET_BEMF_VOLTAGE(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM07 ) * V_PHASE_RATIO + V_D_IHM07)
 #define GET_BEMF_VOLTAGE_CH(adc_ch) (GET_BEMF_VOLTAGE(ADC_Value[adc_ch]))
 
 // NTC Termistors
@@ -233,7 +239,7 @@
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
 #define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
+#define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2) * V_PHASE_IN_RATIO
 
 // Macros
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)

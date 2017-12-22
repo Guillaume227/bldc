@@ -1262,9 +1262,12 @@ void mc_interface_mc_timer_isr(void) {
 				m_curr1_samples[m_sample_now] = ADC_curr_norm_value[1];
                 m_curr2_samples[m_sample_now] = ADC_curr_norm_value[2];
 
-				m_ph1_samples[m_sample_now] = ADC_V_L1 - zero;
-				m_ph2_samples[m_sample_now] = ADC_V_L2 - zero;
-				m_ph3_samples[m_sample_now] = ADC_V_L3 - zero;
+                int16_t v1 = ADC_V_L1;
+                int16_t v2 = ADC_V_L2;
+                int16_t v3 = ADC_V_L3;
+				m_ph1_samples[m_sample_now] = v1 - zero;
+				m_ph2_samples[m_sample_now] = v2 - zero;
+				m_ph3_samples[m_sample_now] = v3 - zero;
 			}
 
 			m_vzero_samples[m_sample_now] = zero;

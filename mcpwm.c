@@ -1289,12 +1289,12 @@ static THD_FUNCTION(rpm_thread, arg) {
 
 		// Update the cycle integrator limit
 		rpm_dep.cycle_int_limit = conf->sl_cycle_int_limit;
-		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
+		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_VIN *
 				conf->sl_bemf_coupling_k / (rpm_abs > conf->sl_min_erpm ? rpm_abs : conf->sl_min_erpm);
 		rpm_dep.cycle_int_limit_running = utils_map(rpm_abs, 0,
 				conf->sl_cycle_int_rpm_br, rpm_dep.cycle_int_limit_running,
 				rpm_dep.cycle_int_limit_running * conf->sl_phase_advance_at_br);
-		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
+		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)ADC_VIN *
 				conf->sl_bemf_coupling_k / conf->sl_min_erpm_cycle_int_limit;
 
 		if (rpm_dep.cycle_int_limit_running < 1.0) {
@@ -1395,9 +1395,9 @@ static THD_FUNCTION(timer_thread, arg) {
 			}
 
 			if (direction == 1) {
-				dutycycle_now = amp / (float)ADC_Value[ADC_IND_VIN_SENS];
+				dutycycle_now = amp / (float)ADC_VIN;
 			} else {
-				dutycycle_now = -amp / (float)ADC_Value[ADC_IND_VIN_SENS];
+				dutycycle_now = -amp / (float)ADC_VIN;
 			}
 			utils_truncate_number((float*)&dutycycle_now, -conf->l_max_duty, conf->l_max_duty);
 		} else {
@@ -1728,11 +1728,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		 * Calculate the virtual ground, depending on the state.
 		 */
 		if (has_commutated && fabsf(dutycycle_now) > 0.2) {
-#ifdef HW_IS_IHM07M1
-			mcpwm_vzero = ADC_V_ZERO * ((VIN_R1 + VIN_R2) / VIN_R2) / ((R39_IHM07 + R36_IHM07) / R36_IHM07);
-#else
 			mcpwm_vzero = ADC_V_ZERO;
-#endif
 		} else {
 			mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
 		}
@@ -1758,7 +1754,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		float amp = 0.0;
 
 		if (has_commutated) {
-			amp = fabsf(dutycycle_now) * (float)ADC_Value[ADC_IND_VIN_SENS];
+			amp = fabsf(dutycycle_now) * (float)ADC_VIN;
 		} else {
 			amp = sqrtf((float)(ph1*ph1 + ph2*ph2 + ph3*ph3)) * sqrtf(2.0);
 		}
@@ -1834,13 +1830,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				if (v_diff > 0) {
 					// TODO!
 					//					const int min = 100;
-					int min = (int)((1.0 - fabsf(dutycycle_now)) * (float)ADC_Value[ADC_IND_VIN_SENS] * 0.3);
-					if (min > ADC_Value[ADC_IND_VIN_SENS] / 4) {
-						min = ADC_Value[ADC_IND_VIN_SENS] / 4;
+					int min = (int)((1.0 - fabsf(dutycycle_now)) * (float)ADC_VIN * 0.3);
+					if (min > ADC_VIN / 4) {
+						min = ADC_VIN / 4;
 					}
 
 					if (pwm_cycles_sum > (last_pwm_cycles_sum / 2.0) ||
-							!has_commutated || (ph_now_raw > min && ph_now_raw < (ADC_Value[ADC_IND_VIN_SENS] - min))) {
+							!has_commutated || (ph_now_raw > min && ph_now_raw < (ADC_VIN - min))) {
 						cycle_integrator += (float)v_diff / switching_frequency_now;
 					}
 				}
@@ -1904,7 +1900,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		float amp = 0.0;
 
 		if (has_commutated) {
-			amp = dutycycle_now * (float)ADC_Value[ADC_IND_VIN_SENS];
+			amp = dutycycle_now * (float)ADC_VIN;
 		} else {
 			amp = ADC_V_L3 - ADC_V_L1;
 		}
