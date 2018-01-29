@@ -53,7 +53,7 @@ static THD_FUNCTION(serial_read_thread, arg) {
 	int had_data = 0;
 
 	for(;;) {
-		len = chSequentialStreamRead(&SDU1, (uint8_t*) buffer, 1);
+		len = streamRead(&SDU1, (uint8_t*) buffer, 1);
 
 		for (i = 0;i < len;i++) {
 			serial_rx_buffer[serial_rx_write_pos++] = buffer[i];
@@ -104,7 +104,7 @@ static void send_packet_wrapper(unsigned char *data, unsigned int len) {
 }
 
 static void send_packet(unsigned char *buffer, unsigned int len) {
-	chSequentialStreamWrite(&SDU1, buffer, len);
+	streamWrite(&SDU1, buffer, len);
 }
 
 void comm_usb_init(void) {
