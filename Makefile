@@ -109,8 +109,8 @@ include applications/applications.mk
 include nrf/nrf.mk
 
 # Define linker script file here
-#LDSCRIPT= ld_eeprom_emu.ld
-LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
+LDSCRIPT= ld_eeprom_emu.ld
+#LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
