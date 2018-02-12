@@ -18,7 +18,7 @@
 #ifndef HW_ARA_H_
 #define HW_ARA_H_
 
-#define HW_NAME					"ARA"
+#define HW_NAME					"ARA_F446_IHM07"
 
 // HW properties
 #define HW_HAS_DRV8313
@@ -40,28 +40,28 @@
 #define DCCAL_OFF()
 #define IS_DRV_FAULT()			(!palReadPad(GPIOD, 2))
 
-#define LED_GREEN_ON()			palSetPad(GPIOB, 0)
-#define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
-#define LED_RED_ON()			palSetPad(GPIOB, 1)
-#define LED_RED_OFF()			palClearPad(GPIOB, 1)
+#define LED_GREEN_ON()			palSetPad(GPIOA, 5)
+#define LED_GREEN_OFF()			palClearPad(GPIOA, 5)
+#define LED_RED_ON()			palSetPad(GPIOB, 2)
+#define LED_RED_OFF()			palClearPad(GPIOB, 2)
 
 // For power stages with enable pins (e.g. DRV8313)
-#define ENABLE_BR1()			palSetPad(GPIOB, 13)
-#define ENABLE_BR2()			palSetPad(GPIOB, 14)
-#define ENABLE_BR3()			palSetPad(GPIOB, 15)
-#define DISABLE_BR1()			palClearPad(GPIOB, 13)
-#define DISABLE_BR2()			palClearPad(GPIOB, 14)
-#define DISABLE_BR3()			palClearPad(GPIOB, 15)
-#define ENABLE_BR()				palWriteGroup(GPIOB, PAL_GROUP_MASK(3), 13, 7)
-#define DISABLE_BR()			palWriteGroup(GPIOB, PAL_GROUP_MASK(3), 13, 0)
+#define ENABLE_BR1()			palSetPad(GPIOC, 10)
+#define ENABLE_BR2()			palSetPad(GPIOC, 11)
+#define ENABLE_BR3()			palSetPad(GPIOC, 12)
+#define DISABLE_BR1()			palClearPad(GPIOC, 10)
+#define DISABLE_BR2()			palClearPad(GPIOC, 11)
+#define DISABLE_BR3()			palClearPad(GPIOC, 12)
+#define ENABLE_BR()				palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 7)
+#define DISABLE_BR()			palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 0)
 
-#define INIT_BR()				palSetPadMode(GPIOB, 13, \
+#define INIT_BR()				palSetPadMode(GPIOC, 10, \
 								PAL_MODE_OUTPUT_PUSHPULL | \
 								PAL_STM32_OSPEED_HIGHEST); \
-								palSetPadMode(GPIOB, 14, \
+								palSetPadMode(GPIOC, 11, \
 								PAL_MODE_OUTPUT_PUSHPULL | \
 								PAL_STM32_OSPEED_HIGHEST); \
-								palSetPadMode(GPIOB, 15, \
+								palSetPadMode(GPIOC, 12, \
 								PAL_MODE_OUTPUT_PUSHPULL | \
 								PAL_STM32_OSPEED_HIGHEST); \
 								DISABLE_BR();
@@ -168,11 +168,11 @@
 
 // UART Peripheral
 #define HW_UART_DEV				UARTD3
-#define HW_UART_GPIO_AF			GPIO_AF_USART3
-#define HW_UART_TX_PORT			GPIOB
-#define HW_UART_TX_PIN			10 // PC_6 sur Nucleo / Morpho IHM07
-#define HW_UART_RX_PORT			GPIOB
-#define HW_UART_RX_PIN			11 // PC_7 sur Nucleo / Morpho IHM07
+#define HW_UART_GPIO_AF			GPIO_AF_USART6
+#define HW_UART_TX_PORT			GPIOC
+#define HW_UART_TX_PIN			6 // PC_6 sur Nucleo / Morpho IHM07
+#define HW_UART_RX_PORT			GPIOC
+#define HW_UART_RX_PIN			7 // PC_7 sur Nucleo / Morpho IHM07
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_DEV				ICUD4
