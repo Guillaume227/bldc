@@ -262,7 +262,7 @@ ifeq ($(USE_FWLIB),yes)
   include $(CHIBIOS)/ext/stdperiph_stm32f4/stm32lib.mk
   CSRC += $(STM32SRC)
   INCDIR += $(STM32INC)
-  USE_OPT += -DUSE_STDPERIPH_DRIVER
+  USE_OPT += -DUSE_STDPERIPH_DRIVER -DSTM32F446xx
 endif
 
 build/$(PROJECT).bin: build/$(PROJECT).elf 

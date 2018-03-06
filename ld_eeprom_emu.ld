@@ -15,7 +15,7 @@
 */
 
 /*
- * STM32F407xG memory setup.
+ * ST32F446xE memory setup.
  * Note: Use of ram1 and ram2 is mutually exclusive with use of ram0.
  */
 MEMORY

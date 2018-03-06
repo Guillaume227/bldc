@@ -41,11 +41,19 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 
-	// LEDs
+    // LEDs
+    palSetPadMode(GPIOC, GPIOC_BUTTON,
+                  PAL_MODE_INPUT_PULLUP);
 
-	palSetPadMode(GPIOB, 1,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
+	// LEDs
+	palSetPadMode(GPIOA, 5,
+	            PAL_MODE_OUTPUT_PUSHPULL |
+	            PAL_STM32_OSPEED_HIGHEST);
+
+	palSetPadMode(GPIOB, 2,
+	                PAL_MODE_OUTPUT_PUSHPULL |
+	                PAL_STM32_OSPEED_HIGHEST);
+
 
 	// ENABLE_GATE
 	palSetPadMode(GPIOB, 5,
@@ -73,6 +81,14 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 #endif
+
+	// For IHM07 GPIO BEMF sensing:
+    palSetPadMode(GPIOC, 9,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+    // set to GND for IHM07 sensing
+    palClearPad(GPIOC, 9);
+
 	// Fault pin
 	palSetPadMode(GPIOD, 2, PAL_MODE_INPUT_PULLUP);
 
@@ -83,8 +99,9 @@ void hw_init_gpio(void) {
 	//palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
-    palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
-    palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG); // potentiometer
 
 	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
@@ -106,7 +123,7 @@ void hw_setup_adc_channels(void) {
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_8, 1, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_9, 4, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_13, 5, ADC_SampleTime_15Cycles);
 
 	// ADC3 regular channels

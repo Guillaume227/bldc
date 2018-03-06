@@ -69,18 +69,18 @@
 /*
  * ADC Vector
  *
- * 0:	IN0		SENS1
- * 1:	IN1		SENS2
- * 2:	IN2		SENS3
- * 3:	IN10	CURR1
- * 4:	IN11	CURR2
- * 5:	IN12	CURR3
+ * 0:	IN0		SENS1       IN13
+ * 1:	IN1		SENS2       IN8
+ * 2:	IN2		SENS3       IN7
+ * 3:	IN10	CURR1       IN0
+ * 4:	IN11	CURR2       IN11
+ * 5:	IN12	CURR3       IN10
  * 6:	IN5		ADC_EXT1
  * 7:	IN6		ADC_EXT2
- * 8:	IN3		TEMP_PCB
+ * 8:	IN3		TEMP_PCB    IN12
  * 9:	IN14	TEMP_MOTOR
- * 10:	IN15	ADC_EXT3
- * 11:	IN13	AN_IN
+ * 10:	IN9	    ADC_EXT3    IN9
+ * 11:	IN13	AN_IN       IN1
  * 12:	Vrefint
  * 13:	IN0		SENS1
  * 14:	IN1		SENS2
@@ -99,6 +99,7 @@
 #define ADC_IND_CURR3			5
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
+#define ADC_IND_POT             10
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
@@ -167,7 +168,7 @@
 #define HW_SERVO_NUM			2
 
 // UART Peripheral
-#define HW_UART_DEV				UARTD3
+#define HW_UART_DEV				UARTD6
 #define HW_UART_GPIO_AF			GPIO_AF_USART6
 #define HW_UART_TX_PORT			GPIOC
 #define HW_UART_TX_PIN			6 // PC_6 sur Nucleo / Morpho IHM07
@@ -190,12 +191,12 @@
 #define HW_I2C_SDA_PIN			11
 
 // Hall/encoder pins
-#define HW_HALL_ENC_GPIO1		GPIOC
-#define HW_HALL_ENC_PIN1		7
-#define HW_HALL_ENC_GPIO2		GPIOC
-#define HW_HALL_ENC_PIN2		8
-#define HW_HALL_ENC_GPIO3		GPIOC
-#define HW_HALL_ENC_PIN3		6
+#define HW_HALL_ENC_GPIO1		GPIOA
+#define HW_HALL_ENC_PIN1		15
+#define HW_HALL_ENC_GPIO2		GPIOB
+#define HW_HALL_ENC_PIN2		3
+#define HW_HALL_ENC_GPIO3		GPIOB
+#define HW_HALL_ENC_PIN3		10
 #define HW_ENC_TIM				TIM3
 #define HW_ENC_TIM_AF			GPIO_AF_TIM3
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
