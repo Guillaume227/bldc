@@ -1265,7 +1265,7 @@ void mc_interface_mc_timer_isr(void) {
 			} else {
 				m_curr0_samples[m_sample_now] = ADC_curr_norm_value[0];
 				m_curr1_samples[m_sample_now] = ADC_curr_norm_value[1];
-                m_curr2_samples[m_sample_now] = ADC_curr_norm_value[2];
+				m_curr2_samples[m_sample_now] = ADC_curr_norm_value[2];
 
 				m_ph1_samples[m_sample_now] = ADC_V_L1 - zero;
 				m_ph2_samples[m_sample_now] = ADC_V_L2 - zero;
@@ -1274,13 +1274,7 @@ void mc_interface_mc_timer_isr(void) {
 
 			m_vzero_samples[m_sample_now] = zero;
 			m_curr_fir_samples[m_sample_now] = (int16_t)(mc_interface_get_tot_current() * (8.0 / FAC_CURRENT));
-			int volatile uuu = (int16_t)(f_samp / 10.0);
-            m_f_sw_samples[m_sample_now] = uuu;
-			//m_f_sw_samples[m_sample_now];
-			if(uuu != 0){
-			  m_sample_now += m_sample_now;
-			  m_sample_now /= 2;
-			}
+			m_f_sw_samples[m_sample_now] = (int16_t)(f_samp / 10.0);
 			m_status_samples[m_sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
 
 			m_sample_now++;
