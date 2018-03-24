@@ -32,6 +32,7 @@
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS // used for FOC only
 #define HW_IS_IHM07M1
+#define HW_NO_CCM_RAM
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
@@ -78,7 +79,7 @@
  * 6:	IN5		ADC_EXT1
  * 7:	IN6		ADC_EXT2
  * 8:	IN3		TEMP_PCB    IN12
- * 9:	IN14	TEMP_MOTOR
+ * 9:	IN14	TEMP_MOTOR  IN14 // not read, no temp probe on chip presently
  * 10:	IN9	    ADC_EXT3    IN9
  * 11:	IN13	AN_IN       IN1
  * 12:	Vrefint
