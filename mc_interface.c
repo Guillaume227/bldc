@@ -64,18 +64,23 @@ static volatile float m_temp_fet;
 static volatile float m_temp_motor;
 
 // Sampling variables
-#define ADC_SAMPLE_MAX_LEN		2000
-__attribute__((section(".ram4"))) static volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_vzero_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile uint8_t m_status_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int8_t m_phase_samples[ADC_SAMPLE_MAX_LEN];
+#ifdef HW_NO_CCM_RAM
+#define CCM_SECTION
+#else
+#define CCM_SECTION __attribute__((section(".ram4")))
+#endif
+#define ADC_SAMPLE_MAX_LEN      2000
+CCM_SECTION static volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_vzero_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile uint8_t m_status_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int8_t m_phase_samples[ADC_SAMPLE_MAX_LEN];
 static volatile int m_sample_len;
 static volatile int m_sample_int;
 static volatile debug_sampling_mode m_sample_mode;
@@ -130,7 +135,7 @@ void mc_interface_init(mc_configuration *configuration) {
 
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
-	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO - 1, sample_send_thread, NULL);
+	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO, sample_send_thread, NULL);
 
 #ifdef HW_HAS_DRV8301
 	drv8301_set_oc_mode(configuration->m_drv8301_oc_mode);
@@ -1269,7 +1274,13 @@ void mc_interface_mc_timer_isr(void) {
 
 			m_vzero_samples[m_sample_now] = zero;
 			m_curr_fir_samples[m_sample_now] = (int16_t)(mc_interface_get_tot_current() * (8.0 / FAC_CURRENT));
-			m_f_sw_samples[m_sample_now] = (int16_t)(f_samp / 10.0);
+			int volatile uuu = (int16_t)(f_samp / 10.0);
+            m_f_sw_samples[m_sample_now] = uuu;
+			//m_f_sw_samples[m_sample_now];
+			if(uuu != 0){
+			  m_sample_now += m_sample_now;
+			  m_sample_now /= 2;
+			}
 			m_status_samples[m_sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
 
 			m_sample_now++;
