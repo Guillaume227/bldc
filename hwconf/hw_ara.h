@@ -83,8 +83,8 @@
  * 10:	IN9	    ADC_EXT3    IN9
  * 11:	IN13	AN_IN       IN1
  * 12:	Vrefint
- * 13:	IN0		SENS1
- * 14:	IN1		SENS2
+ * 13:	IN0		SENS1       IN13
+ * 14:	IN1		SENS2       IN8
  */
 
 #define HW_ADC_CHANNELS			15
@@ -92,9 +92,9 @@
 #define HW_ADC_NBR_CONV			5
 
 // ADC Indexes
-#define ADC_IND_SENS1			0
+#define ADC_IND_SENS1			2
 #define ADC_IND_SENS2			1
-#define ADC_IND_SENS3			2
+#define ADC_IND_SENS3			0
 #define ADC_IND_CURR1			3
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
