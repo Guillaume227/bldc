@@ -1143,7 +1143,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 }
 
 /**
- * Lock the motor with a current and sample the voiltage and current to
+ * Lock the motor with a current and sample the voltage and current to
  * calculate the motor resistance.
  *
  * @param current
@@ -1891,7 +1891,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// Calculate duty cycle
 	m_motor_state.duty_now = SIGN(m_motor_state.vq) *
 			sqrtf(m_motor_state.mod_d * m_motor_state.mod_d +
-					m_motor_state.mod_q * m_motor_state.mod_q) / SQRT3_BY_2;
+                  m_motor_state.mod_q * m_motor_state.mod_q) / SQRT3_BY_2;
 
 	// Run PLL for speed estimation
 	pll_run(m_motor_state.phase, dt, &m_pll_phase, &m_pll_speed);
@@ -2114,7 +2114,7 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 			gamma_tmp *= 10.0;
 		}
 		float x1_dot = -R_ia + v_alpha + gamma_tmp * (*x1 - L_ia) * err;
-		float x2_dot = -R_ib + v_beta + gamma_tmp * (*x2 - L_ib) * err;
+		float x2_dot = -R_ib + v_beta  + gamma_tmp * (*x2 - L_ib) * err;
 
 		*x1 += x1_dot * dt_iteration;
 		*x2 += x2_dot * dt_iteration;
@@ -2227,7 +2227,7 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 
 	// Deadtime compensation
 	const float i_alpha_filter = c * state_m->id_target - s * state_m->iq_target;
-	const float i_beta_filter = c * state_m->iq_target + s * state_m->id_target;
+	const float i_beta_filter  = c * state_m->iq_target + s * state_m->id_target;
 	const float ia_filter = i_alpha_filter;
 	const float ib_filter = -0.5 * i_alpha_filter + SQRT3_BY_2 * i_beta_filter;
 	const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
@@ -2235,7 +2235,7 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	const float mod_beta_filter_sgn = ONE_BY_SQRT3 * SIGN(ib_filter) - ONE_BY_SQRT3 * SIGN(ic_filter);
 	const float mod_comp_fact = m_conf->foc_dt_us * 1e-6 * m_conf->foc_f_sw;
 	const float mod_alpha_comp = mod_alpha_filter_sgn * mod_comp_fact;
-	const float mod_beta_comp = mod_beta_filter_sgn * mod_comp_fact;
+	const float mod_beta_comp  = mod_beta_filter_sgn * mod_comp_fact;
 
 	// Apply compensation here so that 0 duty cycle has no glitches.
 	state_m->v_alpha = (mod_alpha - mod_alpha_comp) * (2.0 / 3.0) * state_m->v_bus;
@@ -2300,7 +2300,7 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	case 1: {
 		// Vector on-times
 		uint32_t t1 = (alpha - ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
-		uint32_t t2 = (TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t2 = (        TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
 
 		// PWM timings
 		tA = (PWMHalfPeriod - t1 - t2) / 2;
@@ -2313,7 +2313,7 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	// sector 2-3
 	case 2: {
 		// Vector on-times
-		uint32_t t2 = (alpha + ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t2 = ( alpha + ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
 		uint32_t t3 = (-alpha + ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
 
 		// PWM timings
@@ -2327,7 +2327,7 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	// sector 3-4
 	case 3: {
 		// Vector on-times
-		uint32_t t3 = (TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t3 = (         TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
 		uint32_t t4 = (-alpha - ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
 
 		// PWM timings
@@ -2342,7 +2342,7 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	case 4: {
 		// Vector on-times
 		uint32_t t4 = (-alpha + ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
-		uint32_t t5 = (-TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t5 = (        -TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
 
 		// PWM timings
 		tC = (PWMHalfPeriod - t4 - t5) / 2;
@@ -2356,7 +2356,7 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	case 5: {
 		// Vector on-times
 		uint32_t t5 = (-alpha - ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
-		uint32_t t6 = (alpha - ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t6 = ( alpha - ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
 
 		// PWM timings
 		tC = (PWMHalfPeriod - t5 - t6) / 2;
@@ -2369,7 +2369,7 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	// sector 6-1
 	case 6: {
 		// Vector on-times
-		uint32_t t6 = (-TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t6 = (       -TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
 		uint32_t t1 = (alpha + ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
 
 		// PWM timings
@@ -2409,7 +2409,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 		}
 	}
 
-	p_term = error * m_conf->p_pid_kp;
+	p_term  = error *  m_conf->p_pid_kp;
 	i_term += error * (m_conf->p_pid_ki * dt);
 
 	// Average DT for the D term when the error does not change. This likely
@@ -2441,7 +2441,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 			m_iq_set = output * m_conf->lo_current_max;
 		} else {
 			// Rotate the motor with 40 % power until the encoder index is found.
-			m_iq_set = 0.4 * m_conf->lo_current_max;
+			m_iq_set =    0.4 * m_conf->lo_current_max;
 		}
 	} else {
 		m_iq_set = output * m_conf->lo_current_max;
@@ -2472,9 +2472,9 @@ static void run_pid_control_speed(float dt) {
 	}
 
 	// Compute parameters
-	p_term = error * m_conf->s_pid_kp * (1.0 / 20.0);
+	p_term  = error * m_conf->s_pid_kp * (1.0 / 20.0);
 	i_term += error * (m_conf->s_pid_ki * dt) * (1.0 / 20.0);
-	d_term = (error - prev_error) * (m_conf->s_pid_kd / dt) * (1.0 / 20.0);
+	d_term  =(error - prev_error) * (m_conf->s_pid_kd / dt) * (1.0 / 20.0);
 
 	// I-term wind-up protection
 	utils_truncate_number(&i_term, -1.0, 1.0);
@@ -2502,16 +2502,16 @@ static void run_pid_control_speed(float dt) {
 
 static void stop_pwm_hw(void) {
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
+	TIM_CCxCmd(    TIM1, TIM_Channel_1, TIM_CCx_Enable);
+	TIM_CCxNCmd(   TIM1, TIM_Channel_1, TIM_CCxN_Disable);
 
 	TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
+	TIM_CCxCmd(    TIM1, TIM_Channel_2, TIM_CCx_Enable);
+	TIM_CCxNCmd(   TIM1, TIM_Channel_2, TIM_CCxN_Disable);
 
 	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
+	TIM_CCxCmd(    TIM1, TIM_Channel_3, TIM_CCx_Enable);
+	TIM_CCxNCmd(   TIM1, TIM_Channel_3, TIM_CCxN_Disable);
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
@@ -2523,16 +2523,16 @@ static void stop_pwm_hw(void) {
 
 static void start_pwm_hw(void) {
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_PWM1);
-	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
+	TIM_CCxCmd(    TIM1, TIM_Channel_1, TIM_CCx_Enable);
+	TIM_CCxNCmd(   TIM1, TIM_Channel_1, TIM_CCxN_Enable);
 
 	TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_PWM1);
-	TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
+	TIM_CCxCmd(    TIM1, TIM_Channel_2, TIM_CCx_Enable);
+	TIM_CCxNCmd(   TIM1, TIM_Channel_2, TIM_CCxN_Enable);
 
 	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_PWM1);
-	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
+	TIM_CCxCmd(    TIM1, TIM_Channel_3, TIM_CCx_Enable);
+	TIM_CCxNCmd(   TIM1, TIM_Channel_3, TIM_CCxN_Enable);
 
 	// Generate COM event in ADC interrupt to get better synchronization
 //	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
@@ -2557,8 +2557,8 @@ static int read_hall(void) {
 	int h3_3 = READ_HALL3();
 
 	return utils_middle_of_3_int(h1_1, h1_2, h1_3) |
-			(utils_middle_of_3_int(h2_1, h2_2, h2_3) << 1) |
-			(utils_middle_of_3_int(h3_1, h3_2, h3_3) << 2);
+          (utils_middle_of_3_int(h2_1, h2_2, h2_3) << 1) |
+          (utils_middle_of_3_int(h3_1, h3_2, h3_3) << 2);
 }
 
 static float correct_encoder(float obs_angle, float enc_angle, float speed) {
