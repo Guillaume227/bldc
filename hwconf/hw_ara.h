@@ -33,6 +33,7 @@
 #define HW_HAS_PHASE_SHUNTS // used for FOC only
 #define HW_IS_IHM07M1
 #define HW_NO_CCM_RAM
+#define HW_HAS_POTENTIOMETER
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
@@ -80,7 +81,7 @@
  * 7:	IN6		ADC_EXT2
  * 8:	IN3		TEMP_PCB    IN12
  * 9:	IN14	TEMP_MOTOR  IN14 // not read, no temp probe on chip presently
- * 10:	IN9	    ADC_EXT3    IN9
+ * 10:	IN9	    ADC_EXT3    IN9  // potentiometer
  * 11:	IN13	AN_IN       IN1
  * 12:	Vrefint
  * 13:	IN0		SENS1       IN13
@@ -124,8 +125,9 @@
 #define CURRENT_SHUNT_RES		0.33
 #endif
 
+#define ADC_RES 4095.0
 // Input voltage
-#define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
+#define GET_INPUT_VOLTAGE()		((V_REG / ADC_RES) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // BEMF Voltage
 #define R39_IHM07 10.0 // 10k ohms
@@ -139,18 +141,18 @@
 // NTC Termistors
 #define NTC_CONV(val)           (10 * val / (5.3 * val + 4.7))
 #define NTC_RES_2               4700.0
-#define NTC_RES(adc_val)		((4095.0 * NTC_RES_2) / adc_val - NTC_RES_2)
+#define NTC_RES(adc_val)		((ADC_RES * NTC_RES_2) / adc_val - NTC_RES_2)
 #define NTC_BETA_TEMP           3380.0
 #define NTC_REF_RES             10000.0 // resistor value at NTC_REF_TEMP deg
 #define NTC_REF_TEMP            298.15 // 25 deg
 #define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / NTC_REF_RES) / NTC_BETA_TEMP) + (1.0 / NTC_REF_TEMP)) - 273.15)
 
-#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
+#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((ADC_RES / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)    (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 
 // Voltage on ADC channel
-#define ADC_TO_VOLTS(adc_val)   ((float)adc_val / 4096.0 * V_REG)
+#define ADC_TO_VOLTS(adc_val)   ((float)adc_val / ADC_RES * V_REG)
 #define ADC_VOLTS(ch)			ADC_TO_VOLTS(ADC_Value[ch])
 
 // Double samples in beginning and end for positive current measurement.
@@ -172,9 +174,9 @@
 #define HW_UART_DEV				UARTD6
 #define HW_UART_GPIO_AF			GPIO_AF_USART6
 #define HW_UART_TX_PORT			GPIOC
-#define HW_UART_TX_PIN			6 // PC_6 sur Nucleo / Morpho IHM07
+#define HW_UART_TX_PIN			6
 #define HW_UART_RX_PORT			GPIOC
-#define HW_UART_RX_PIN			7 // PC_7 sur Nucleo / Morpho IHM07
+#define HW_UART_RX_PIN			7
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_DEV				ICUD4

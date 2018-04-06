@@ -1567,3 +1567,58 @@ static THD_FUNCTION(sample_send_thread, arg) {
 		}
 	}
 }
+
+/**
+ * sets the dutycycle from the potentiometer
+ */
+void mc_interface_set_duty_from_potentiometer(void){
+
+#ifdef HW_HAS_POTENTIOMETER
+
+    // Threshold to allow for a safe zone at the start
+    // of the potentiometer range where duty is always set to zero
+    float POT_THRESHOLD = 0.025;
+    static float valPct = 0;
+    static float dutyCycle = 0;
+
+    valPct = .90 * valPct + .10 * ADC_Value[ADC_IND_POT]/ADC_RES; // 0 to 100
+
+    // flag to detect whether dutycycle was set from this method.
+    // Only stops if it was started here, so we allow setting dutycle
+    // in other ways (e.g. vesc tool)
+    static bool enabled = false;
+
+    if((POT_THRESHOLD > valPct || valPct > (1. - POT_THRESHOLD))) {
+      if(enabled){
+        if(dutyCycle < .1){
+          enabled = false;
+          dutyCycle = 0;
+        } else {
+          dutyCycle /= 1.1;
+        }
+        mc_interface_set_duty(dutyCycle);
+      }
+    } else if(fabsf(valPct - .5) < POT_THRESHOLD) {
+        enabled = true;
+        if(mc_interface_get_duty_cycle_set() != 0)
+          mc_interface_set_duty(0.);
+    } else {
+      // valPct in 2.5 - 47.5 or 52.5 - 97.5
+      if(enabled){
+
+        m_conf.m_invert_direction = valPct > .5;
+
+        float newPct = fabsf(valPct - 0.5)*2; // 5 to 95
+        if(newPct < .1){
+          dutyCycle = .18;
+        } else {
+          dutyCycle = newPct + 0.08 * (1 - (newPct - .1)/.85);
+        }
+
+        if((int)(100*dutyCycle) != (int) (100*mc_interface_get_duty_cycle_set())){
+          mc_interface_set_duty(dutyCycle);
+        }
+      }
+    }
+#endif
+}

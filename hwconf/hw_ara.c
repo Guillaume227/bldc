@@ -82,13 +82,6 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 #endif
 
-	// For IHM07 GPIO BEMF sensing:
-    palSetPadMode(GPIOC, 9,
-            PAL_MODE_OUTPUT_PUSHPULL |
-            PAL_STM32_OSPEED_HIGHEST);
-    // set to GND for IHM07 sensing
-    palClearPad(GPIOC, 9);
-
 	// Fault pin
 	palSetPadMode(GPIOD, 2, PAL_MODE_INPUT_PULLUP);
 
@@ -101,7 +94,6 @@ void hw_init_gpio(void) {
 	//palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG); // potentiometer
 
 	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
@@ -109,6 +101,18 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+
+#ifdef HW_IS_IHM07M1
+    palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG); // potentiometer
+    palSetPadMode(GPIOC, 13, PAL_MODE_INPUT_ANALOG); // blue button
+
+    // For IHM07 GPIO BEMF sensing:
+    palSetPadMode(GPIOC, 9,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+    // set to GND for IHM07 voltage sensing (see schematics in user manual)
+    palClearPad(GPIOC, 9);
+#endif
 }
 
 void hw_setup_adc_channels(void) {
