@@ -1619,6 +1619,7 @@ void mc_interface_set_duty_from_potentiometer(void){
           mc_interface_set_duty(dutyCycle);
         }
       }
+      timeout_reset();
     }
 #endif
 }
