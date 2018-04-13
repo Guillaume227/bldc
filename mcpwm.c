@@ -1729,7 +1729,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		 */
 		if (has_commutated && fabsf(dutycycle_now) > 0.2) {
 #ifdef HW_IS_IHM07M1
-			mcpwm_vzero = ADC_V_ZERO * ((VIN_R1 + VIN_R2) / VIN_R2) / ((R39_IHM07 + R36_IHM07) / R36_IHM07);
+			mcpwm_vzero = ADC_V_ZERO * VOLTAGE_DIVIDER / PHASE_DIVIDER;
 #else
 			mcpwm_vzero = ADC_V_ZERO;
 #endif
@@ -1938,10 +1938,11 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 #if BLDC_SPEED_CONTROL_CURRENT
 		if (control_mode == CONTROL_MODE_CURRENT ||
-				control_mode == CONTROL_MODE_POS ||
-				control_mode == CONTROL_MODE_SPEED) {
+			control_mode == CONTROL_MODE_POS ||
+			control_mode == CONTROL_MODE_SPEED) {
 #else
-		if (control_mode == CONTROL_MODE_CURRENT || control_mode == CONTROL_MODE_POS) {
+		if (control_mode == CONTROL_MODE_CURRENT ||
+			control_mode == CONTROL_MODE_POS) {
 #endif
 			// Compute error
 			const float error = current_set - (direction ? current_nofilter : -current_nofilter);

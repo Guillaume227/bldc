@@ -21,7 +21,6 @@
 #define HW_NAME					"ARA_F446_IHM07"
 
 // HW properties
-#define HW_HAS_DRV8313
 
 /*
  * Benjamin on March 7, 2015 at 12:04 said:
@@ -32,6 +31,15 @@
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS // used for FOC only
 #define HW_IS_IHM07M1
+
+#if defined(HW_IS_IHM07M1) || defined(HW_IS_IHM08M1)
+#define HW_IS_IHM0xM1
+#endif
+
+#ifdef HW_IS_IHM07M1
+#define HW_HAS_DRV8313
+#endif
+
 #define HW_NO_CCM_RAM
 #define HW_HAS_POTENTIOMETER
 
@@ -70,10 +78,10 @@
 
 /*
  * ADC Vector
- *
- * 0:	IN0		SENS1       IN13
- * 1:	IN1		SENS2       IN8
- * 2:	IN2		SENS3       IN7
+ *      VESC                IHM07    IHM08
+ * 0:	IN0		SENS1/3     IN13     IN13
+ * 1:	IN1		SENS2       IN8      IN14/ADC12
+ * 2:	IN2		SENS3/1     IN7      IN15/ADC12
  * 3:	IN10	CURR1       IN0
  * 4:	IN11	CURR2       IN11
  * 5:	IN12	CURR3       IN10
@@ -81,13 +89,12 @@
  * 7:	IN6		ADC_EXT2
  * 8:	IN3		TEMP_PCB    IN12
  * 9:	IN14	TEMP_MOTOR  IN14 // not read, no temp probe on chip presently
- * 10:	IN9	    ADC_EXT3    IN9  // potentiometer
- * 11:	IN13	AN_IN       IN1
+ * 10:	IN9	    ADC_EXT3    IN9      IN4/ADC12 // potentiometer
+ * 11:	IN13	AN_IN       IN1  // VBUS sens
  * 12:	Vrefint
  * 13:	IN0		SENS1       IN13
  * 14:	IN1		SENS2       IN8
  */
-
 #define HW_ADC_CHANNELS			15
 #define HW_ADC_INJ_CHANNELS		3
 #define HW_ADC_NBR_CONV			5
@@ -126,16 +133,23 @@
 #endif
 
 #define ADC_RES 4095.0
+
+// Voltage on ADC channel
+#define ADC_TO_VOLTS(adc_val)   ((float)adc_val / ADC_RES * V_REG)
+#define ADC_VOLTS(ch)           ADC_TO_VOLTS(ADC_Value[ch])
+
 // Input voltage
-#define GET_INPUT_VOLTAGE()		((V_REG / ADC_RES) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
+#define VOLTAGE_DIVIDER        ((VIN_R1 + VIN_R2) / VIN_R2)
+#define GET_INPUT_VOLTAGE()		((V_REG / ADC_RES) * (float)ADC_Value[ADC_IND_VIN_SENS] * VOLTAGE_DIVIDER)
 
 // BEMF Voltage
 #define R39_IHM07 10.0 // 10k ohms
 #define R36_IHM07 2.2 // 2.2k ohms
 #define V_D_IHM07 0.3 // schotky BAT30kFILM typical voltage drop
+#define PHASE_DIVIDER ((R39_IHM07 + R36_IHM07) / R36_IHM07)
 
 // converts straight adc reading to BEMF voltage
-#define GET_BEMF_VOLTAGE(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM07 ) * ((R39_IHM07 + R36_IHM07) / R36_IHM07) + V_D_IHM07)
+#define GET_BEMF_VOLTAGE(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM07 ) * PHASE_DIVIDER + V_D_IHM07)
 #define GET_BEMF_VOLTAGE_CH(adc_ch) (GET_BEMF_VOLTAGE(ADC_Value[adc_ch]))
 
 // NTC Termistors
@@ -150,10 +164,6 @@
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((ADC_RES / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)    (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
-
-// Voltage on ADC channel
-#define ADC_TO_VOLTS(adc_val)   ((float)adc_val / ADC_RES * V_REG)
-#define ADC_VOLTS(ch)			ADC_TO_VOLTS(ADC_Value[ch])
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.

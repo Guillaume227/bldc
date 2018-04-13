@@ -47,20 +47,21 @@ void hw_init_gpio(void) {
 
 	// LEDs
 	palSetPadMode(GPIOA, 5,
-	            PAL_MODE_OUTPUT_PUSHPULL |
-	            PAL_STM32_OSPEED_HIGHEST);
+                  PAL_MODE_OUTPUT_PUSHPULL |
+                  PAL_STM32_OSPEED_HIGHEST);
 
 	palSetPadMode(GPIOB, 2,
-	                PAL_MODE_OUTPUT_PUSHPULL |
-	                PAL_STM32_OSPEED_HIGHEST);
+                  PAL_MODE_OUTPUT_PUSHPULL |
+                  PAL_STM32_OSPEED_HIGHEST);
 
-
+#ifndef HW_IS_IHM0xM1
 	// ENABLE_GATE
 	palSetPadMode(GPIOB, 5,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
 	ENABLE_GATE();
+#endif
 
 	// Motor PWM configuration. The DRV8313 has three enable pins and 3 pwm pins.
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
@@ -73,7 +74,20 @@ void hw_init_gpio(void) {
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUPDR_FLOATING);
 
+#ifdef HW_HAS_DRV8313
 	INIT_BR();
+#elif defined(HW_IS_IHM08M1)
+	// Motor PWM configuration
+    palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
+            PAL_STM32_OSPEED_HIGHEST |
+            PAL_STM32_PUPDR_FLOATING);
+    palSetPadMode(GPIOB, 0, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
+            PAL_STM32_OSPEED_HIGHEST |
+            PAL_STM32_PUPDR_FLOATING);
+    palSetPadMode(GPIOB, 1, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
+            PAL_STM32_OSPEED_HIGHEST |
+            PAL_STM32_PUPDR_FLOATING);
+#endif
 
 	// Hall sensors
 #ifdef USE_HALL
@@ -92,18 +106,27 @@ void hw_init_gpio(void) {
 	//palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
 
 	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
-	//palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 
 #ifdef HW_IS_IHM07M1
+	// Strange: PC4 is not used but commenting the line below
+	// causes some sort of fault (blinking red light on the IHM and motor doesn't run
+    palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG); // not assigned?
+
     palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG); // potentiometer
+    palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG); // BEMF2
+    palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG); // BEMF3
+#elif defined(HW_IS_IHM08M1)
+    palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG); // potentiometer
+    palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG); // BEMF2
+    palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG); // BEMF3
+#endif
+
+#ifdef HW_IS_IHM0xM1
     palSetPadMode(GPIOC, 13, PAL_MODE_INPUT_ANALOG); // blue button
 
     // For IHM07 GPIO BEMF sensing:
@@ -115,27 +138,39 @@ void hw_init_gpio(void) {
 #endif
 }
 
+#ifdef HW_IS_IHM07M1
+#define ADC_CHAN_SENS1 ADC_Channel_13
+#define ADC_CHAN_SENS2 ADC_Channel_8
+#define ADC_CHAN_SENS3 ADC_Channel_7
+#define ADC_CHAN_POT   ADC_Channel_9
+#elif defined(HW_IS_IHM08M1)
+#define ADC_CHAN_SENS1 ADC_Channel_13
+#define ADC_CHAN_SENS2 ADC_Channel_14
+#define ADC_CHAN_SENS3 ADC_Channel_15
+#define ADC_CHAN_POT   ADC_Channel_4
+#endif
+
 void hw_setup_adc_channels(void) {
 	// ADC1 regular channels
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_7,       1, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_CHAN_SENS3,      1, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0,       2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_5,       3, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_14,      4, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);
 
 	// ADC2 regular channels
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_8,  1, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_CHAN_SENS2, 1, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_6,  3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_9,  4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_8,  5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_CHAN_POT,   4, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_CHAN_SENS2, 5, ADC_SampleTime_15Cycles);
 
 	// ADC3 regular channels
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 1, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_CHAN_SENS1, 1, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_1,  4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_CHAN_SENS1, 5, ADC_SampleTime_15Cycles);
 
 	// Injected channels
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  1, ADC_SampleTime_15Cycles);
