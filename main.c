@@ -142,6 +142,8 @@ static THD_FUNCTION(periodic_thread, arg) {
 		}
 		}
 
+		mc_interface_set_duty_from_potentiometer();
+
 		chThdSleepMilliseconds(10);
 
 //		chThdSleepMilliseconds(40);

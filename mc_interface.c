@@ -64,18 +64,23 @@ static volatile float m_temp_fet;
 static volatile float m_temp_motor;
 
 // Sampling variables
-#define ADC_SAMPLE_MAX_LEN		2000
-__attribute__((section(".ram4"))) static volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_vzero_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile uint8_t m_status_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
-__attribute__((section(".ram4"))) static volatile int8_t m_phase_samples[ADC_SAMPLE_MAX_LEN];
+#ifdef HW_NO_CCM_RAM
+#define CCM_SECTION
+#else
+#define CCM_SECTION __attribute__((section(".ram4")))
+#endif
+#define ADC_SAMPLE_MAX_LEN      2000
+CCM_SECTION static volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_vzero_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile uint8_t m_status_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION static volatile int8_t m_phase_samples[ADC_SAMPLE_MAX_LEN];
 static volatile int m_sample_len;
 static volatile int m_sample_int;
 static volatile debug_sampling_mode m_sample_mode;
@@ -130,7 +135,7 @@ void mc_interface_init(mc_configuration *configuration) {
 
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
-	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO - 1, sample_send_thread, NULL);
+	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO, sample_send_thread, NULL);
 
 #ifdef HW_HAS_DRV8301
 	drv8301_set_oc_mode(configuration->m_drv8301_oc_mode);
@@ -1260,7 +1265,7 @@ void mc_interface_mc_timer_isr(void) {
 			} else {
 				m_curr0_samples[m_sample_now] = ADC_curr_norm_value[0];
 				m_curr1_samples[m_sample_now] = ADC_curr_norm_value[1];
-                m_curr2_samples[m_sample_now] = ADC_curr_norm_value[2];
+				m_curr2_samples[m_sample_now] = ADC_curr_norm_value[2];
 
 				m_ph1_samples[m_sample_now] = ADC_V_L1 - zero;
 				m_ph2_samples[m_sample_now] = ADC_V_L2 - zero;
@@ -1561,4 +1566,60 @@ static THD_FUNCTION(sample_send_thread, arg) {
 			commands_send_packet(buffer, index);
 		}
 	}
+}
+
+/**
+ * sets the dutycycle from the potentiometer
+ */
+void mc_interface_set_duty_from_potentiometer(void){
+
+#ifdef HW_HAS_POTENTIOMETER
+
+    // Threshold to allow for a safe zone at the start
+    // of the potentiometer range where duty is always set to zero
+    float POT_THRESHOLD = 0.025;
+    static float valPct = 0;
+    static float dutyCycle = 0;
+
+    valPct = .90 * valPct + .10 * ADC_Value[ADC_IND_POT]/ADC_RES; // 0 to 100
+
+    // flag to detect whether dutycycle was set from this method.
+    // Only stops if it was started here, so we allow setting dutycle
+    // in other ways (e.g. vesc tool)
+    static bool enabled = false;
+
+    if((POT_THRESHOLD > valPct || valPct > (1. - POT_THRESHOLD))) {
+      if(enabled){
+        if(dutyCycle < .1){
+          enabled = false;
+          dutyCycle = 0;
+        } else {
+          dutyCycle /= 1.1;
+        }
+        mc_interface_set_duty(dutyCycle);
+      }
+    } else if(fabsf(valPct - .5) < POT_THRESHOLD) {
+        enabled = true;
+        if(mc_interface_get_duty_cycle_set() != 0)
+          mc_interface_set_duty(0.);
+    } else {
+      // valPct in 2.5 - 47.5 or 52.5 - 97.5
+      if(enabled){
+
+        m_conf.m_invert_direction = valPct > .5;
+
+        float newPct = fabsf(valPct - 0.5)*2; // 5 to 95
+        if(newPct < .1){
+          dutyCycle = .18;
+        } else {
+          dutyCycle = newPct + 0.08 * (1 - (newPct - .1)/.85);
+        }
+
+        if((int)(100*dutyCycle) != (int) (100*mc_interface_get_duty_cycle_set())){
+          mc_interface_set_duty(dutyCycle);
+        }
+      }
+      timeout_reset();
+    }
+#endif
 }

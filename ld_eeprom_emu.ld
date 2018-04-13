@@ -1,42 +1,71 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
 
-    This file is part of ChibiOS.
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-    ChibiOS is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
+        http://www.apache.org/licenses/LICENSE-2.0
 
-    ChibiOS is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 */
 
 /*
- * STM32F407xG memory setup.
+ * ST32F446xE memory setup.
  * Note: Use of ram1 and ram2 is mutually exclusive with use of ram0.
  */
 MEMORY
 {
-    flash : org = 0x08000000, len = 16k
-    flash2 : org = 0x0800C000, len = 480k
-    ram0  : org = 0x20000000, len = 128k    /* SRAM1 + SRAM2 */
-    ram1  : org = 0x20000000, len = 112k    /* SRAM1 */
-    ram2  : org = 0x2001C000, len = 16k     /* SRAM2 */
-    ram3  : org = 0x00000000, len = 0
-    ram4  : org = 0x10000000, len = 64k     /* CCM SRAM */
-    ram5  : org = 0x40024000, len = 4k      /* BCKP SRAM */
-    ram6  : org = 0x00000000, len = 0
-    ram7  : org = 0x00000000, len = 0
+    flash0  : org = 0x08000000, len = 16k
+    flash1  : org = 0x00000000, len = 0
+    flash2  : org = 0x0800C000, len = 480k
+    flash3  : org = 0x00000000, len = 0
+    flash4  : org = 0x00000000, len = 0
+    flash5  : org = 0x00000000, len = 0
+    flash6  : org = 0x00000000, len = 0
+    flash7  : org = 0x00000000, len = 0
+    ram0    : org = 0x20000000, len = 128k      /* SRAM1 + SRAM2 */
+    ram1    : org = 0x20000000, len = 112k      /* SRAM1 */
+    ram2    : org = 0x2001C000, len = 16k       /* SRAM2 */
+    ram3    : org = 0x00000000, len = 0
+    ram4    : org = 0x10000000, len = 0       	/* CCM SRAM */
+    ram5    : org = 0x40024000, len = 4k        /* BCKP SRAM */
+    ram6    : org = 0x00000000, len = 0
+    ram7    : org = 0x00000000, len = 0
 }
 
+/* For each data/text section two region are defined, a virtual region
+   and a load region (_LMA suffix).*/
+
+/* Flash region to be used for exception vectors.*/
+REGION_ALIAS("VECTORS_FLASH", flash0);
+REGION_ALIAS("VECTORS_FLASH_LMA", flash0);
+
+/* Flash region to be used for constructors and destructors.*/
+REGION_ALIAS("XTORS_FLASH", flash2);
+REGION_ALIAS("XTORS_FLASH_LMA", flash2);
+
+/* Flash region to be used for code text.*/
+REGION_ALIAS("TEXT_FLASH", flash2);
+REGION_ALIAS("TEXT_FLASH_LMA", flash2);
+
+/* Flash region to be used for read only data.*/
+REGION_ALIAS("RODATA_FLASH", flash2);
+REGION_ALIAS("RODATA_FLASH_LMA", flash2);
+
+/* Flash region to be used for various.*/
+REGION_ALIAS("VARIOUS_FLASH", flash2);
+REGION_ALIAS("VARIOUS_FLASH_LMA", flash2);
+
+/* Flash region to be used for RAM(n) initialization data.*/
+REGION_ALIAS("RAM_INIT_FLASH_LMA", flash2);
+
 /* RAM region to be used for Main stack. This stack accommodates the processing
-   of all exceptions and interrupts*/
+   of all exceptions and interrupts.*/
 REGION_ALIAS("MAIN_STACK_RAM", ram0);
 
 /* RAM region to be used for the process stack. This is the stack used by
@@ -45,9 +74,14 @@ REGION_ALIAS("PROCESS_STACK_RAM", ram0);
 
 /* RAM region to be used for data segment.*/
 REGION_ALIAS("DATA_RAM", ram0);
+REGION_ALIAS("DATA_RAM_LMA", flash2);
 
 /* RAM region to be used for BSS segment.*/
 REGION_ALIAS("BSS_RAM", ram0);
+
+/* RAM region to be used for the default heap.*/
+REGION_ALIAS("HEAP_RAM", ram0);
+
 
 __ram0_start__          = ORIGIN(ram0);
 __ram0_size__           = LENGTH(ram0);
@@ -78,71 +112,66 @@ ENTRY(Reset_Handler)
 
 SECTIONS
 {
-    . = 0;
-    _text = .;
-
-    startup : ALIGN(16) SUBALIGN(16)
+    .vectors : ALIGN(16)
     {
         KEEP(*(.vectors))
-    } > flash
+    } > VECTORS_FLASH AT > VECTORS_FLASH_LMA
 
-    constructors : ALIGN(4) SUBALIGN(4)
+    .xtors : ALIGN(4)
     {
-        PROVIDE(__init_array_start = .);
+        __init_array_start = .;
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array))
-        PROVIDE(__init_array_end = .);
-    } > flash2
-
-    destructors : ALIGN(4) SUBALIGN(4)
-    {
-        PROVIDE(__fini_array_start = .);
+        __init_array_end = .;
+        __fini_array_start = .;
         KEEP(*(.fini_array))
         KEEP(*(SORT(.fini_array.*)))
-        PROVIDE(__fini_array_end = .);
-    } > flash2
+        __fini_array_end = .;
+    } > XTORS_FLASH AT > XTORS_FLASH_LMA
 
-    .text : ALIGN(16) SUBALIGN(16)
+    .text ALIGN(16) : ALIGN(16)
     {
         *(.text)
         *(.text.*)
-        *(.rodata)
-        *(.rodata.*)
         *(.glue_7t)
         *(.glue_7)
         *(.gcc*)
-    } > flash2
+    } > TEXT_FLASH AT > TEXT_FLASH_LMA
+
+    .rodata : ALIGN(4)
+    {
+        . = ALIGN(4);
+        __rodata_base__ = .;
+        *(.rodata)
+        *(.rodata.*)
+        . = ALIGN(4);
+        __rodata_end__ = .;
+    } > RODATA_FLASH AT > RODATA_FLASH_LMA
 
     .ARM.extab :
     {
         *(.ARM.extab* .gnu.linkonce.armextab.*)
-    } > flash2
+    } > VARIOUS_FLASH AT > VARIOUS_FLASH_LMA
 
     .ARM.exidx : {
-        PROVIDE(__exidx_start = .);
+        __exidx_start = .;
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-        PROVIDE(__exidx_end = .);
-     } > flash2
+        __exidx_end = .;
+     } > VARIOUS_FLASH AT > VARIOUS_FLASH_LMA
 
     .eh_frame_hdr :
     {
         *(.eh_frame_hdr)
-    } > flash2
+    } > VARIOUS_FLASH AT > VARIOUS_FLASH_LMA
 
     .eh_frame : ONLY_IF_RO
     {
         *(.eh_frame)
-    } > flash2
-    
-    .textalign : ONLY_IF_RO
-    {
-        . = ALIGN(8);
-    } > flash2
-
-    . = ALIGN(4);
-    _etext = .;
-    _textdata = _etext;
-
+    } > VARIOUS_FLASH AT > VARIOUS_FLASH_LMA
+}
+SECTIONS
+{
+    /* Special section for exceptions stack.*/
     .mstack :
     {
         . = ALIGN(8);
@@ -152,6 +181,7 @@ SECTIONS
         __main_stack_end__ = .;
     } > MAIN_STACK_RAM
 
+    /* Special section for process stack.*/
     .pstack :
     {
         __process_stack_base__ = .;
@@ -161,104 +191,240 @@ SECTIONS
         __process_stack_end__ = .;
         __main_thread_stack_end__ = .;
     } > PROCESS_STACK_RAM
+}
 
+
+
+ENTRY(Reset_Handler)
+
+SECTIONS
+{
     .data : ALIGN(4)
     {
         . = ALIGN(4);
+        PROVIDE(_textdata = LOADADDR(.data));
         PROVIDE(_data = .);
+        _textdata_start = LOADADDR(.data);
+        _data_start = .;
         *(.data)
         *(.data.*)
         *(.ramtext)
         . = ALIGN(4);
         PROVIDE(_edata = .);
-    } > DATA_RAM AT > flash2
+        _data_end = .;
+    } > DATA_RAM AT > DATA_RAM_LMA
 
-    .bss : ALIGN(4)
+    .bss (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
-        PROVIDE(_bss_start = .);
+        _bss_start = .;
         *(.bss)
         *(.bss.*)
         *(COMMON)
         . = ALIGN(4);
-        PROVIDE(_bss_end = .);
+        _bss_end = .;
         PROVIDE(end = .);
-    } > BSS_RAM    
+    } > BSS_RAM
+
+    .ram0_init : ALIGN(4)
+    {
+        . = ALIGN(4);
+        __ram0_init_text__ = LOADADDR(.ram0_init);
+        __ram0_init__ = .;
+        KEEP(*(.ram0_init))
+        KEEP(*(.ram0_init.*))
+        . = ALIGN(4);
+    } > ram0 AT > RAM_INIT_FLASH_LMA
 
     .ram0 (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
+        __ram0_clear__ = .;
+        *(.ram0_clear)
+        *(.ram0_clear.*)
+        . = ALIGN(4);
+        __ram0_noinit__ = .;
         *(.ram0)
         *(.ram0.*)
         . = ALIGN(4);
         __ram0_free__ = .;
     } > ram0
 
+    .ram1_init : ALIGN(4)
+    {
+        . = ALIGN(4);
+        __ram1_init_text__ = LOADADDR(.ram1_init);
+        __ram1_init__ = .;
+        KEEP(*(.ram1_init))
+        KEEP(*(.ram1_init.*))
+        . = ALIGN(4);
+    } > ram1 AT > RAM_INIT_FLASH_LMA
+
     .ram1 (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
+        __ram1_clear__ = .;
+        *(.ram1_clear)
+        *(.ram1_clear.*)
+        . = ALIGN(4);
+        __ram1_noinit__ = .;
         *(.ram1)
         *(.ram1.*)
         . = ALIGN(4);
         __ram1_free__ = .;
     } > ram1
 
+    .ram2_init : ALIGN(4)
+    {
+        . = ALIGN(4);
+        __ram2_init_text__ = LOADADDR(.ram2_init);
+        __ram2_init__ = .;
+        KEEP(*(.ram2_init))
+        KEEP(*(.ram2_init.*))
+        . = ALIGN(4);
+    } > ram2 AT > RAM_INIT_FLASH_LMA
+
     .ram2 (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
+        __ram2_clear__ = .;
+        *(.ram2_clear)
+        *(.ram2_clear.*)
+        . = ALIGN(4);
+        __ram2_noinit__ = .;
         *(.ram2)
         *(.ram2.*)
         . = ALIGN(4);
         __ram2_free__ = .;
     } > ram2
 
+    .ram3_init : ALIGN(4)
+    {
+        . = ALIGN(4);
+        __ram3_init_text__ = LOADADDR(.ram3_init);
+        __ram3_init__ = .;
+        KEEP(*(.ram3_init))
+        KEEP(*(.ram3_init.*))
+        . = ALIGN(4);
+    } > ram3 AT > RAM_INIT_FLASH_LMA
+
     .ram3 (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
+        __ram3_clear__ = .;
+        *(.ram3_clear)
+        *(.ram3_clear.*)
+        . = ALIGN(4);
+        __ram3_noinit__ = .;
         *(.ram3)
         *(.ram3.*)
         . = ALIGN(4);
         __ram3_free__ = .;
     } > ram3
 
+    .ram4_init : ALIGN(4)
+    {
+        . = ALIGN(4);
+        __ram4_init_text__ = LOADADDR(.ram4_init);
+        __ram4_init__ = .;
+        KEEP(*(.ram4_init))
+        KEEP(*(.ram4_init.*))
+        . = ALIGN(4);
+    } > ram4 AT > RAM_INIT_FLASH_LMA
+
     .ram4 (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
+        __ram4_clear__ = .;
+        *(.ram4_clear)
+        *(.ram4_clear.*)
+        . = ALIGN(4);
+        __ram4_noinit__ = .;
         *(.ram4)
         *(.ram4.*)
         . = ALIGN(4);
         __ram4_free__ = .;
     } > ram4
 
+    .ram5_init : ALIGN(4)
+    {
+        . = ALIGN(4);
+        __ram5_init_text__ = LOADADDR(.ram5_init);
+        __ram5_init__ = .;
+        KEEP(*(.ram5_init))
+        KEEP(*(.ram5_init.*))
+        . = ALIGN(4);
+    } > ram5 AT > RAM_INIT_FLASH_LMA
+
     .ram5 (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
+        __ram5_clear__ = .;
+        *(.ram5_clear)
+        *(.ram5_clear.*)
+        . = ALIGN(4);
+        __ram5_noinit__ = .;
         *(.ram5)
         *(.ram5.*)
         . = ALIGN(4);
         __ram5_free__ = .;
     } > ram5
 
+    .ram6_init : ALIGN(4)
+    {
+        . = ALIGN(4);
+        __ram6_init_text__ = LOADADDR(.ram6_init);
+        __ram6_init__ = .;
+        KEEP(*(.ram6_init))
+        KEEP(*(.ram6_init.*))
+        . = ALIGN(4);
+    } > ram6 AT > RAM_INIT_FLASH_LMA
+
     .ram6 (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
+        __ram6_clear__ = .;
+        *(.ram6_clear)
+        *(.ram6_clear.*)
+        . = ALIGN(4);
+        __ram6_noinit__ = .;
         *(.ram6)
         *(.ram6.*)
         . = ALIGN(4);
         __ram6_free__ = .;
     } > ram6
 
+    .ram7_init : ALIGN(4)
+    {
+        . = ALIGN(4);
+        __ram7_init_text__ = LOADADDR(.ram7_init);
+        __ram7_init__ = .;
+        KEEP(*(.ram7_init))
+        KEEP(*(.ram7_init.*))
+        . = ALIGN(4);
+    } > ram7 AT > RAM_INIT_FLASH_LMA
+
     .ram7 (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
+        __ram7_clear__ = .;
+        *(.ram7_clear)
+        *(.ram7_clear.*)
+        . = ALIGN(4);
+        __ram7_noinit__ = .;
         *(.ram7)
         *(.ram7.*)
         . = ALIGN(4);
         __ram7_free__ = .;
     } > ram7
+
+    /* The default heap uses the (statically) unused part of a RAM section.*/
+    .heap (NOLOAD) :
+    {
+        . = ALIGN(8);
+        __heap_base__ = .;
+        . = ORIGIN(HEAP_RAM) + LENGTH(HEAP_RAM);
+        __heap_end__ = .;
+    } > HEAP_RAM
 }
 
-/* Heap default boundaries, it is defaulted to be the non-used part
-   of ram0 region.*/
-__heap_base__   = __ram0_free__;
-__heap_end__    = __ram0_end__;

@@ -18,10 +18,10 @@
 #ifndef HW_ARA_H_
 #define HW_ARA_H_
 
-#define HW_NAME					"ARA"
+#define HW_NAME					"ARA_F446_IHM07"
 
 // HW properties
-#define HW_HAS_DRV8313
+//#define HW_HAS_DRV8313
 
 /*
  * Benjamin on March 7, 2015 at 12:04 said:
@@ -31,7 +31,10 @@
  */
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS // used for FOC only
-#define HW_IS_IHM07M1
+//#define HW_IS_IHM07M1
+#define HW_IS_IHM08M1
+#define HW_NO_CCM_RAM
+#define HW_HAS_POTENTIOMETER
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
@@ -40,28 +43,28 @@
 #define DCCAL_OFF()
 #define IS_DRV_FAULT()			(!palReadPad(GPIOD, 2))
 
-#define LED_GREEN_ON()			palSetPad(GPIOB, 0)
-#define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
-#define LED_RED_ON()			palSetPad(GPIOB, 1)
-#define LED_RED_OFF()			palClearPad(GPIOB, 1)
+#define LED_GREEN_ON()			palSetPad(GPIOA, 5)
+#define LED_GREEN_OFF()			palClearPad(GPIOA, 5)
+#define LED_RED_ON()			palSetPad(GPIOB, 2)
+#define LED_RED_OFF()			palClearPad(GPIOB, 2)
 
 // For power stages with enable pins (e.g. DRV8313)
-#define ENABLE_BR1()			palSetPad(GPIOB, 13)
-#define ENABLE_BR2()			palSetPad(GPIOB, 14)
-#define ENABLE_BR3()			palSetPad(GPIOB, 15)
-#define DISABLE_BR1()			palClearPad(GPIOB, 13)
-#define DISABLE_BR2()			palClearPad(GPIOB, 14)
-#define DISABLE_BR3()			palClearPad(GPIOB, 15)
-#define ENABLE_BR()				palWriteGroup(GPIOB, PAL_GROUP_MASK(3), 13, 7)
-#define DISABLE_BR()			palWriteGroup(GPIOB, PAL_GROUP_MASK(3), 13, 0)
+#define ENABLE_BR1()			palSetPad(GPIOC, 10)
+#define ENABLE_BR2()			palSetPad(GPIOC, 11)
+#define ENABLE_BR3()			palSetPad(GPIOC, 12)
+#define DISABLE_BR1()			palClearPad(GPIOC, 10)
+#define DISABLE_BR2()			palClearPad(GPIOC, 11)
+#define DISABLE_BR3()			palClearPad(GPIOC, 12)
+#define ENABLE_BR()				palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 7)
+#define DISABLE_BR()			palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 0)
 
-#define INIT_BR()				palSetPadMode(GPIOB, 13, \
+#define INIT_BR()				palSetPadMode(GPIOC, 10, \
 								PAL_MODE_OUTPUT_PUSHPULL | \
 								PAL_STM32_OSPEED_HIGHEST); \
-								palSetPadMode(GPIOB, 14, \
+								palSetPadMode(GPIOC, 11, \
 								PAL_MODE_OUTPUT_PUSHPULL | \
 								PAL_STM32_OSPEED_HIGHEST); \
-								palSetPadMode(GPIOB, 15, \
+								palSetPadMode(GPIOC, 12, \
 								PAL_MODE_OUTPUT_PUSHPULL | \
 								PAL_STM32_OSPEED_HIGHEST); \
 								DISABLE_BR();
@@ -69,21 +72,21 @@
 /*
  * ADC Vector
  *
- * 0:	IN0		SENS1
- * 1:	IN1		SENS2
- * 2:	IN2		SENS3
- * 3:	IN10	CURR1
- * 4:	IN11	CURR2
- * 5:	IN12	CURR3
+ * 0:	IN0		SENS1       IN13 (IHM7)   IN13  (IHM8)
+ * 1:	IN1		SENS2       IN8  (IHM7)   IN14  (IHM8)
+ * 2:	IN2		SENS3       IN7  (IHM7)   IN15  (IHM8)
+ * 3:	IN10	CURR1       IN0
+ * 4:	IN11	CURR2       IN11
+ * 5:	IN12	CURR3       IN10
  * 6:	IN5		ADC_EXT1
  * 7:	IN6		ADC_EXT2
- * 8:	IN3		TEMP_PCB
- * 9:	IN14	TEMP_MOTOR
- * 10:	IN15	ADC_EXT3
- * 11:	IN13	AN_IN
+ * 8:	IN3		TEMP_PCB    IN12
+ * 9:	IN14	TEMP_MOTOR  IN14 // not read, no temp probe on chip presently
+ * 10:	IN9	    ADC_EXT3    IN9  // potentiometer
+ * 11:	IN13	AN_IN       IN1
  * 12:	Vrefint
- * 13:	IN0		SENS1
- * 14:	IN1		SENS2
+ * 13:	IN0		SENS1       IN13
+ * 14:	IN1		SENS2       IN8
  */
 
 #define HW_ADC_CHANNELS			15
@@ -91,14 +94,15 @@
 #define HW_ADC_NBR_CONV			5
 
 // ADC Indexes
-#define ADC_IND_SENS1			0
+#define ADC_IND_SENS1			2    // (BEMF1)
 #define ADC_IND_SENS2			1
-#define ADC_IND_SENS3			2
+#define ADC_IND_SENS3			0
 #define ADC_IND_CURR1			3
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
+#define ADC_IND_POT             10
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
@@ -122,8 +126,9 @@
 #define CURRENT_SHUNT_RES		0.33
 #endif
 
+#define ADC_RES 4095.0
 // Input voltage
-#define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
+#define GET_INPUT_VOLTAGE()		((V_REG / ADC_RES) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // BEMF Voltage
 #define R39_IHM07 10.0 // 10k ohms
@@ -137,18 +142,18 @@
 // NTC Termistors
 #define NTC_CONV(val)           (10 * val / (5.3 * val + 4.7))
 #define NTC_RES_2               4700.0
-#define NTC_RES(adc_val)		((4095.0 * NTC_RES_2) / adc_val - NTC_RES_2)
+#define NTC_RES(adc_val)		((ADC_RES * NTC_RES_2) / adc_val - NTC_RES_2)
 #define NTC_BETA_TEMP           3380.0
 #define NTC_REF_RES             10000.0 // resistor value at NTC_REF_TEMP deg
 #define NTC_REF_TEMP            298.15 // 25 deg
 #define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / NTC_REF_RES) / NTC_BETA_TEMP) + (1.0 / NTC_REF_TEMP)) - 273.15)
 
-#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
+#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((ADC_RES / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)    (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 
 // Voltage on ADC channel
-#define ADC_TO_VOLTS(adc_val)   ((float)adc_val / 4096.0 * V_REG)
+#define ADC_TO_VOLTS(adc_val)   ((float)adc_val / ADC_RES * V_REG)
 #define ADC_VOLTS(ch)			ADC_TO_VOLTS(ADC_Value[ch])
 
 // Double samples in beginning and end for positive current measurement.
@@ -167,12 +172,12 @@
 #define HW_SERVO_NUM			2
 
 // UART Peripheral
-#define HW_UART_DEV				UARTD3
-#define HW_UART_GPIO_AF			GPIO_AF_USART3
-#define HW_UART_TX_PORT			GPIOB
-#define HW_UART_TX_PIN			10 // PC_6 sur Nucleo / Morpho IHM07
-#define HW_UART_RX_PORT			GPIOB
-#define HW_UART_RX_PIN			11 // PC_7 sur Nucleo / Morpho IHM07
+#define HW_UART_DEV				UARTD6
+#define HW_UART_GPIO_AF			GPIO_AF_USART6
+#define HW_UART_TX_PORT			GPIOC
+#define HW_UART_TX_PIN			6
+#define HW_UART_RX_PORT			GPIOC
+#define HW_UART_RX_PIN			7
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_DEV				ICUD4
@@ -190,12 +195,12 @@
 #define HW_I2C_SDA_PIN			11
 
 // Hall/encoder pins
-#define HW_HALL_ENC_GPIO1		GPIOC
-#define HW_HALL_ENC_PIN1		7
-#define HW_HALL_ENC_GPIO2		GPIOC
-#define HW_HALL_ENC_PIN2		8
-#define HW_HALL_ENC_GPIO3		GPIOC
-#define HW_HALL_ENC_PIN3		6
+#define HW_HALL_ENC_GPIO1		GPIOA
+#define HW_HALL_ENC_PIN1		15
+#define HW_HALL_ENC_GPIO2		GPIOB
+#define HW_HALL_ENC_PIN2		3
+#define HW_HALL_ENC_GPIO3		GPIOB
+#define HW_HALL_ENC_PIN3		10
 #define HW_ENC_TIM				TIM3
 #define HW_ENC_TIM_AF			GPIO_AF_TIM3
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)

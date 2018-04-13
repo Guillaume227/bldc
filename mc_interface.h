@@ -78,6 +78,8 @@ void mc_interface_fault_stop(mc_fault_code fault);
 int mc_interface_try_input(void);
 void mc_interface_mc_timer_isr(void);
 
+void mc_interface_set_duty_from_potentiometer(void);
+
 // Interrupt handlers
 void mc_interface_adc_inj_int_handler(void);
 

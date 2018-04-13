@@ -41,11 +41,19 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 
-	// LEDs
+    // LEDs
+    palSetPadMode(GPIOC, GPIOC_BUTTON,
+                  PAL_MODE_INPUT_PULLUP);
 
-	palSetPadMode(GPIOB, 1,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
+	// LEDs
+	palSetPadMode(GPIOA, 5,
+	            PAL_MODE_OUTPUT_PUSHPULL |
+	            PAL_STM32_OSPEED_HIGHEST);
+
+	palSetPadMode(GPIOB, 2,
+	                PAL_MODE_OUTPUT_PUSHPULL |
+	                PAL_STM32_OSPEED_HIGHEST);
+
 
 	// ENABLE_GATE
 	palSetPadMode(GPIOB, 5,
@@ -54,23 +62,40 @@ void hw_init_gpio(void) {
 
 	ENABLE_GATE();
 
-	// Motor PWM configuration. The DRV8313 has three enable pins and 3 pwm pins.
+	// Motor PWM configuration. The DRV8313 has three enable pins and 3 pwm pins.        
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
 			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
+			PAL_STM32_PUPDR_FLOATING);
 	palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
 			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
+			PAL_STM32_PUPDR_FLOATING);
 	palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
 			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
-
+			PAL_STM32_PUPDR_FLOATING);
+#ifdef HW_HAS_DRV8313
 	INIT_BR();
+#endif
+
+#ifdef HW_IS_IHM08M1
+        palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
+                        PAL_STM32_OSPEED_HIGHEST |
+                        PAL_STM32_PUPDR_FLOATING);
+        palSetPadMode(GPIOB, 0, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
+                        PAL_STM32_OSPEED_HIGHEST |
+                        PAL_STM32_PUPDR_FLOATING);
+        palSetPadMode(GPIOB, 1, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
+                        PAL_STM32_OSPEED_HIGHEST |
+                        PAL_STM32_PUPDR_FLOATING);
+#endif
+
+
 
 	// Hall sensors
+#ifdef USE_HALL
 	palSetPadMode(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
+#endif
 
 	// Fault pin
 	palSetPadMode(GPIOD, 2, PAL_MODE_INPUT_PULLUP);
@@ -78,51 +103,82 @@ void hw_init_gpio(void) {
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
+	//palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
+	//palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
+	//palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+	//palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
 
+#ifdef HW_IS_IHM07M1
+        palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
+#endif
+#ifdef HW_IS_IHM08M1
+        palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
+        palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+#endif
 	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+	//palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+
+#if defined HW_IS_IHM07M1 || defined HW_IS_IHM08M1
+    palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG); // potentiometer
+    palSetPadMode(GPIOC, 13, PAL_MODE_INPUT_ANALOG); // blue button
+
+    // For IHM07 GPIO BEMF sensing:
+    palSetPadMode(GPIOC, 9,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+    // set to GND for IHM07 voltage sensing (see schematics in user manual)
+    palClearPad(GPIOC, 9);
+#endif
+
 }
 
 void hw_setup_adc_channels(void) {
 	// ADC1 regular channels
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, ADC_SampleTime_15Cycles);
+#ifdef HW_IS_IHM07M1
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_7,       1, ADC_SampleTime_15Cycles);
+#endif
+#ifdef HW_IS_IHM08M1
+        ADC_RegularChannelConfig(ADC1, ADC_Channel_15,       1, ADC_SampleTime_15Cycles);
+#endif
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_0,       2, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_5,       3, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_14,      4, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);
 
 	// ADC2 regular channels
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 1, ADC_SampleTime_15Cycles);
+#ifdef HW_IS_IHM07M1
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_8,  1, ADC_SampleTime_15Cycles);
+#endif
+#ifdef HW_IS_IHM08M1
+        ADC_RegularChannelConfig(ADC2, ADC_Channel_14,  1, ADC_SampleTime_15Cycles);
+#endif
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_6,  3, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_9,  4, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_8,  5, ADC_SampleTime_15Cycles);
 
 	// ADC3 regular channels
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_1, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 1, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_1,  4, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 5, ADC_SampleTime_15Cycles);
 
 	// Injected channels
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  1, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC3, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  2, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC3, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC3, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
 }
 
 void hw_setup_servo_outputs(void) {
@@ -149,12 +205,12 @@ void hw_start_i2c(void) {
 				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
 				PAL_STM32_OTYPE_OPENDRAIN |
 				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+				PAL_STM32_PUPDR_PULLUP);
 		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
 				PAL_STM32_OTYPE_OPENDRAIN |
 				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+				PAL_STM32_PUPDR_PULLUP);
 
 		i2cStart(&HW_I2C_DEV, &i2cfg);
 		i2c_running = true;
@@ -188,12 +244,12 @@ void hw_try_restore_i2c(void) {
 		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
 				PAL_STM32_OTYPE_OPENDRAIN |
 				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+				PAL_STM32_PUPDR_PULLUP);
 
 		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				PAL_STM32_OTYPE_OPENDRAIN |
 				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+				PAL_STM32_PUPDR_PULLUP);
 
 		palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 		palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
@@ -220,13 +276,13 @@ void hw_try_restore_i2c(void) {
 				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
 				PAL_STM32_OTYPE_OPENDRAIN |
 				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+				PAL_STM32_PUPDR_PULLUP);
 
 		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
 				PAL_STM32_OTYPE_OPENDRAIN |
 				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+				PAL_STM32_PUPDR_PULLUP);
 
 		HW_I2C_DEV.state = I2C_STOP;
 		i2cStart(&HW_I2C_DEV, &i2cfg);
