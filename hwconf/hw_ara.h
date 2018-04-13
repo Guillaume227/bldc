@@ -18,10 +18,10 @@
 #ifndef HW_ARA_H_
 #define HW_ARA_H_
 
-#define HW_NAME					"ARA_F446_IHM07"
+#define HW_NAME					"ARA_F446_IHM08"
 
 // HW properties
-#define HW_HAS_DRV8313
+//#define HW_HAS_DRV8313
 
 /*
  * Benjamin on March 7, 2015 at 12:04 said:
@@ -31,7 +31,8 @@
  */
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS // used for FOC only
-#define HW_IS_IHM07M1
+//#define HW_IS_IHM07M1
+#define HW_IS_IHM08M1
 #define HW_NO_CCM_RAM
 #define HW_HAS_POTENTIOMETER
 
@@ -71,9 +72,9 @@
 /*
  * ADC Vector
  *
- * 0:	IN0		SENS1       IN13
- * 1:	IN1		SENS2       IN8
- * 2:	IN2		SENS3       IN7
+ * 0:	IN0		SENS1       IN13 (IHM7)   IN13  (IHM8)
+ * 1:	IN1		SENS2       IN8  (IHM7)   IN14  (IHM8)
+ * 2:	IN2		SENS3       IN7  (IHM7)   IN15  (IHM8)
  * 3:	IN10	CURR1       IN0
  * 4:	IN11	CURR2       IN11
  * 5:	IN12	CURR3       IN10
@@ -93,7 +94,7 @@
 #define HW_ADC_NBR_CONV			5
 
 // ADC Indexes
-#define ADC_IND_SENS1			2
+#define ADC_IND_SENS1			2    // (BEMF1)
 #define ADC_IND_SENS2			1
 #define ADC_IND_SENS3			0
 #define ADC_IND_CURR1			3

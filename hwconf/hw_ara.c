@@ -62,7 +62,7 @@ void hw_init_gpio(void) {
 
 	ENABLE_GATE();
 
-	// Motor PWM configuration. The DRV8313 has three enable pins and 3 pwm pins.
+	// Motor PWM configuration. The DRV8313 has three enable pins and 3 pwm pins.        
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUPDR_FLOATING);
@@ -72,8 +72,23 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUPDR_FLOATING);
-
+#ifdef HW_HAS_DRV8313
 	INIT_BR();
+#endif
+
+#ifdef HW_IS_IHM08M1
+        palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
+                        PAL_STM32_OSPEED_HIGHEST |
+                        PAL_STM32_PUPDR_FLOATING);
+        palSetPadMode(GPIOB, 0, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
+                        PAL_STM32_OSPEED_HIGHEST |
+                        PAL_STM32_PUPDR_FLOATING);
+        palSetPadMode(GPIOB, 1, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
+                        PAL_STM32_OSPEED_HIGHEST |
+                        PAL_STM32_PUPDR_FLOATING);
+#endif
+
+
 
 	// Hall sensors
 #ifdef USE_HALL
@@ -92,9 +107,15 @@ void hw_init_gpio(void) {
 	//palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
 
+#ifdef HW_IS_IHM07M1
+        palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
+#endif
+#ifdef HW_IS_IHM08M1
+        palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
+        palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+#endif
 	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
@@ -102,7 +123,7 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 
-#ifdef HW_IS_IHM07M1
+#if defined HW_IS_IHM07M1 || defined HW_IS_IHM08M1
     palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG); // potentiometer
     palSetPadMode(GPIOC, 13, PAL_MODE_INPUT_ANALOG); // blue button
 
@@ -113,18 +134,29 @@ void hw_init_gpio(void) {
     // set to GND for IHM07 voltage sensing (see schematics in user manual)
     palClearPad(GPIOC, 9);
 #endif
+
 }
 
 void hw_setup_adc_channels(void) {
 	// ADC1 regular channels
+#ifdef HW_IS_IHM07M1
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_7,       1, ADC_SampleTime_15Cycles);
+#endif
+#ifdef HW_IS_IHM08M1
+        ADC_RegularChannelConfig(ADC1, ADC_Channel_15,       1, ADC_SampleTime_15Cycles);
+#endif
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0,       2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_5,       3, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_14,      4, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);
 
 	// ADC2 regular channels
+#ifdef HW_IS_IHM07M1
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_8,  1, ADC_SampleTime_15Cycles);
+#endif
+#ifdef HW_IS_IHM08M1
+        ADC_RegularChannelConfig(ADC2, ADC_Channel_14,  1, ADC_SampleTime_15Cycles);
+#endif
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_6,  3, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_9,  4, ADC_SampleTime_15Cycles);
