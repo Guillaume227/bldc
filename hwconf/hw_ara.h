@@ -18,7 +18,7 @@
 #ifndef HW_ARA_H_
 #define HW_ARA_H_
 
-#define HW_NAME					"ARA_F446_IHM07"
+#define HW_NAME					"ARA_F446_IHM08"
 
 // HW properties
 //#define HW_HAS_DRV8313
