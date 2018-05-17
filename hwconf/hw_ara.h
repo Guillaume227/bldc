@@ -31,6 +31,8 @@
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS // used for FOC only
 #define HW_IS_IHM07M1
+//#define HW_IS_IHM08M1
+
 
 #if defined(HW_IS_IHM07M1) || defined(HW_IS_IHM08M1)
 #define HW_IS_IHM0xM1
@@ -88,9 +90,9 @@
  * 6:	IN5		ADC_EXT1
  * 7:	IN6		ADC_EXT2
  * 8:	IN3		TEMP_PCB    IN12
- * 9:	IN14	TEMP_MOTOR  IN14 // not read, no temp probe on chip presently
+ * 9:	IN14	TEMP_MOTOR  IN14               // not read, no temp probe on chip presently
  * 10:	IN9	    ADC_EXT3    IN9      IN4/ADC12 // potentiometer
- * 11:	IN13	AN_IN       IN1  // VBUS sens
+ * 11:	IN13	AN_IN       IN1                // VBUS sens
  * 12:	Vrefint
  * 13:	IN0		SENS1       IN13
  * 14:	IN1		SENS2       IN8
@@ -135,21 +137,22 @@
 #define ADC_RES 4095.0
 
 // Voltage on ADC channel
-#define ADC_TO_VOLTS(adc_val)   ((float)adc_val / ADC_RES * V_REG)
+#define ADC_TO_VOLTS(adc_val)   ((float)(adc_val) / ADC_RES * V_REG)
+#define VOLTS_TO_ADC(volts)     ((int16_t)((volts)/ V_REG   * ADC_RES ))
 #define ADC_VOLTS(ch)           ADC_TO_VOLTS(ADC_Value[ch])
 
 // Input voltage
 #define VOLTAGE_DIVIDER        ((VIN_R1 + VIN_R2) / VIN_R2)
-#define GET_INPUT_VOLTAGE()		((V_REG / ADC_RES) * (float)ADC_Value[ADC_IND_VIN_SENS] * VOLTAGE_DIVIDER)
+#define GET_INPUT_VOLTAGE()	   (ADC_VOLTS(ADC_IND_VIN_SENS) * VOLTAGE_DIVIDER)
 
 // BEMF Voltage
-#define R39_IHM07 10.0 // 10k ohms
-#define R36_IHM07 2.2 // 2.2k ohms
-#define V_D_IHM07 0.3 // schotky BAT30kFILM typical voltage drop
-#define PHASE_DIVIDER ((R39_IHM07 + R36_IHM07) / R36_IHM07)
+#define R39_IHM0X 10.0 // 10k ohms
+#define R36_IHM0X 2.2  // 2.2k ohms
+#define V_D_IHM0X 0.3  // schotky BAT30kFILM typical voltage drop
+#define PHASE_DIVIDER ((R39_IHM0X + R36_IHM0X) / R36_IHM0X)
 
 // converts straight adc reading to BEMF voltage
-#define GET_BEMF_VOLTAGE(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM07 ) * PHASE_DIVIDER + V_D_IHM07)
+#define GET_BEMF_VOLTAGE(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM0X ) * PHASE_DIVIDER + V_D_IHM0X)
 #define GET_BEMF_VOLTAGE_CH(adc_ch) (GET_BEMF_VOLTAGE(ADC_Value[adc_ch]))
 
 // NTC Termistors

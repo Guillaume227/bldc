@@ -1728,7 +1728,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		 * Calculate the virtual ground, depending on the state.
 		 */
 		if (has_commutated && fabsf(dutycycle_now) > 0.2) {
-#ifdef HW_IS_IHM07M1
+#ifdef HW_IS_IHM0xM1
 			mcpwm_vzero = ADC_V_ZERO * VOLTAGE_DIVIDER / PHASE_DIVIDER;
 #else
 			mcpwm_vzero = ADC_V_ZERO;

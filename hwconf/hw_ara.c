@@ -54,12 +54,13 @@ void hw_init_gpio(void) {
                   PAL_MODE_OUTPUT_PUSHPULL |
                   PAL_STM32_OSPEED_HIGHEST);
 
-#ifndef HW_IS_IHM0xM1
 	// ENABLE_GATE
 	palSetPadMode(GPIOB, 5,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
-
+#ifdef HW_IS_IHM0xM1
+	DISABLE_GATE();
+#else
 	ENABLE_GATE();
 #endif
 
@@ -129,11 +130,11 @@ void hw_init_gpio(void) {
 #ifdef HW_IS_IHM0xM1
     palSetPadMode(GPIOC, 13, PAL_MODE_INPUT_ANALOG); // blue button
 
-    // For IHM07 GPIO BEMF sensing:
+    // For IHM0xM1 GPIO BEMF sensing:
     palSetPadMode(GPIOC, 9,
             PAL_MODE_OUTPUT_PUSHPULL |
             PAL_STM32_OSPEED_HIGHEST);
-    // set to GND for IHM07 voltage sensing (see schematics in user manual)
+    // set to GND for IHM0x voltage sensing (see schematics in user manual)
     palClearPad(GPIOC, 9);
 #endif
 }

@@ -1548,7 +1548,7 @@ static THD_FUNCTION(sample_send_thread, arg) {
 			buffer_append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
 			buffer_append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
             buffer_append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
-#ifdef HW_IS_IHM07M1
+#ifdef HW_IS_IHM0xM1
             buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph1_samples[ind_samp])), &index);
             buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph2_samples[ind_samp])), &index);
             buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph3_samples[ind_samp])), &index);
