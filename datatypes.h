@@ -212,16 +212,19 @@ typedef struct {
 	float foc_sat_comp;
 	bool foc_temp_comp;
 	float foc_temp_comp_base_temp;
+	float foc_current_filter_const;
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;
 	float s_pid_kd;
+	float s_pid_kd_filter;
 	float s_pid_min_erpm;
 	bool s_pid_allow_braking;
 	// Pos PID
 	float p_pid_kp;
 	float p_pid_ki;
 	float p_pid_kd;
+	float p_pid_kd_filter;
 	float p_pid_ang_div;
 	// Current controller
 	float cc_startup_boost_duty;
@@ -369,7 +372,8 @@ typedef enum {
 	NRF_POWER_M18DBM = 0,
 	NRF_POWER_M12DBM,
 	NRF_POWER_M6DBM,
-	NRF_POWER_0DBM
+	NRF_POWER_0DBM,
+  NRF_POWER_OFF
 } NRF_POWER;
 
 typedef enum {
@@ -497,7 +501,9 @@ typedef enum {
 	CAN_PACKET_PROCESS_SHORT_BUFFER,
 	CAN_PACKET_STATUS,
 	CAN_PACKET_SET_CURRENT_REL,
-	CAN_PACKET_SET_CURRENT_BRAKE_REL
+	CAN_PACKET_SET_CURRENT_BRAKE_REL,
+	CAN_PACKET_SET_CURRENT_HANDBRAKE,
+	CAN_PACKET_SET_CURRENT_HANDBRAKE_REL
 } CAN_PACKET_ID;
 
 // Logged fault data
