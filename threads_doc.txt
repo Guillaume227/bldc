@@ -23,12 +23,12 @@ period ?
     sets duty cycle to 0.2
     mcpwm_detect_voltages // back-emf detection
 
-"Main periodic" main.c 10ms
+periodic_thread "Main periodic" main.c 10ms
 - status LEDs
 - sends rotor pos in detecting state
 - sends rotor pos in FOC Observer modes
 
-"msec_timer" main.c 1ms
+timer_thread "msec_timer" main.c 1ms
   packet_timerfunc()
   
 "Timeout" timeout.c 10ms
