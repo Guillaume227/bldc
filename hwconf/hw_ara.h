@@ -1,19 +1,19 @@
 /*
-	Copyright 2012-2016 Benjamin Vedder	benjamin@vedder.se
+ Copyright 2012-2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef HW_ARA_H_
 #define HW_ARA_H_
@@ -32,7 +32,6 @@
 #define HW_HAS_PHASE_SHUNTS // used for FOC only
 #define HW_IS_IHM07M1
 //#define HW_IS_IHM08M1
-
 
 #if defined(HW_IS_IHM07M1) || defined(HW_IS_IHM08M1)
 #define HW_IS_IHM0xM1
@@ -128,10 +127,19 @@
 #define VIN_R2					9310.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		1.53
+#ifdef HW_IS_IHM07M1
+#define CURRENT_AMP_GAIN		1.528
+#elif defined(HW_IS_IHM08M1)
+#define CURRENT_AMP_GAIN		5.18
 #endif
+#endif
+
 #ifndef CURRENT_SHUNT_RES
+#ifdef HW_IS_IHM07M1
 #define CURRENT_SHUNT_RES		0.33
+#elif defined(HW_IS_IHM08M1)
+#define CURRENT_SHUNT_RES		0.01
+#endif
 #endif
 
 #define ADC_RES 4095.0
@@ -166,7 +174,6 @@
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((ADC_RES / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)    (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
-
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
@@ -313,5 +320,15 @@
 #ifndef MCCONF_FOC_SL_OPENLOOP_TIME
 #define MCCONF_FOC_SL_OPENLOOP_TIME			0.3
 #endif
+
+// Setting limits
+#define HW_LIM_CURRENT          -120.0, 120.0
+#define HW_LIM_CURRENT_IN       -120.0, 120.0
+#define HW_LIM_CURRENT_ABS      0.0, 160.0
+#define HW_LIM_VIN              6.0, 57.0
+#define HW_LIM_ERPM             -200e3, 200e3
+#define HW_LIM_DUTY_MIN         0.0, 0.1
+#define HW_LIM_DUTY_MAX         0.0, 0.99
+#define HW_LIM_TEMP_FET         -40.0, 110.0
 
 #endif /* HW_ARA_H_ */
