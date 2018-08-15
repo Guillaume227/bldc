@@ -257,8 +257,14 @@
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
 #define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
+#ifdef HW_IS_IHM0xM1
+#define CONV_ADC_V(V)             ((V) * VOLTAGE_DIVIDER / PHASE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1) / PHASE_DIVIDER)
+#define ADC_V_ZERO              CONV_ADC_V((ADC_Value[ADC_IND_VIN_SENS] / 2))
+#else
+#define CONV_ADC_V(V)             (V)
+#define ADC_V_ZERO              (ADC_Value[ADC_IND_VIN_SENS] / 2)
+#endif
 // Macros
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
