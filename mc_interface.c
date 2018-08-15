@@ -27,6 +27,7 @@
 #include "utils.h"
 #include "ch.h"
 #include "hal.h"
+#include "timeout.h" // for timeout_reset() in potentiometer function
 #include "commands.h"
 #include "encoder.h"
 #include "drv8301.h"
@@ -1606,20 +1607,21 @@ void mc_interface_set_duty_from_potentiometer(void){
 
 #ifdef HW_HAS_POTENTIOMETER
 
-    // Threshold to allow for a safe zone at the start
-    // of the potentiometer range where duty is always set to zero
-    float POT_THRESHOLD = 0.025;
-    static float valPct = 0;
+    // margin to allow for a safe zone at the start
+    // of the potentiometer range and around the middle position
+    // where duty is always set to zero
+    float POT_MARGIN = 0.025;
+    static float potVal = 0; // potentiometer position 0 to 100
     static float dutyCycle = 0;
 
-    valPct = .90 * valPct + .10 * ADC_Value[ADC_IND_POT]/ADC_RES; // 0 to 100
+    potVal = .90 * potVal + .10 * ADC_Value[ADC_IND_POT]/ADC_RES; // 0 to 100
 
     // flag to detect whether dutycycle was set from this method.
     // Only stops if it was started here, so we allow setting dutycle
     // in other ways (e.g. vesc tool)
     static bool enabled = false;
 
-    if((POT_THRESHOLD > valPct || valPct > (1. - POT_THRESHOLD))) {
+    if((POT_MARGIN > potVal || potVal > (1. - POT_MARGIN))) {
       if(enabled){
         if(dutyCycle < .1){
           enabled = false;
@@ -1629,22 +1631,20 @@ void mc_interface_set_duty_from_potentiometer(void){
         }
         mc_interface_set_duty(dutyCycle);
       }
-    } else if(fabsf(valPct - .5) < POT_THRESHOLD) {
+
+    } else if(fabsf(potVal - .5) < POT_MARGIN) {
         enabled = true;
         if(mc_interface_get_duty_cycle_set() != 0)
           mc_interface_set_duty(0.);
+
     } else {
       // valPct in 2.5 - 47.5 or 52.5 - 97.5
       if(enabled){
 
-        m_conf.m_invert_direction = valPct > .5;
+        m_conf.m_invert_direction = potVal > .5;
 
-        float newPct = fabsf(valPct - 0.5)*2; // 5 to 95
-        if(newPct < .1){
-          dutyCycle = .18;
-        } else {
-          dutyCycle = newPct + 0.08 * (1 - (newPct - .1)/.85);
-        }
+        float ratio = (fabsf(potVal - 0.5)- POT_MARGIN) / (0.5 - 2*POT_MARGIN);
+        dutyCycle = m_conf.l_min_duty + ratio * (m_conf.l_max_duty - m_conf.l_min_duty);
 
         if((int)(100*dutyCycle) != (int) (100*mc_interface_get_duty_cycle_set())){
           mc_interface_set_duty(dutyCycle);
