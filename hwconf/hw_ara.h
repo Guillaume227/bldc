@@ -18,18 +18,8 @@
 #ifndef HW_ARA_H_
 #define HW_ARA_H_
 
-#define HW_NAME					"ARA_F446_IHM07"
-
 // HW properties
 
-/*
- * Benjamin on March 7, 2015 at 12:04 said:
- * when not using FOC one shunt on the input is actually better than using two
- * on the phases since the software becomes simpler.
- * Also, with only one shunt you can run at 100% duty cycle.
- */
-#define HW_HAS_3_SHUNTS
-#define HW_HAS_PHASE_SHUNTS // used for FOC only
 #define HW_IS_IHM07M1
 //#define HW_IS_IHM08M1
 
@@ -38,10 +28,23 @@
 #endif
 
 #ifdef HW_IS_IHM07M1
-#define HW_HAS_DRV8313
+	#define HW_NAME			"ARA_F446_IHM07"
+	/*
+	* Benjamin on March 7, 2015 at 12:04 said:
+	* when not using FOC one shunt on the input is actually better than using two
+	* on the phases since the software becomes simpler.
+	* Also, with only one shunt you can run at 100% duty cycle.
+	*/
+	#define HW_HAS_3_SHUNTS
+	#define HW_HAS_PHASE_SHUNTS // used for FOC only
+	#define HW_HAS_DRV8313
+#else
+	#define HW_NAME			"ARA_F446_IHM08"
+//#define HW_HAS_PHASE_SHUNTS // used for FOC only
 #endif
 
-#define HW_NO_CCM_RAM
+
+#define HW_NO_CCM_RAM           // F446 specific
 #define HW_HAS_POTENTIOMETER
 
 // Macros
@@ -49,34 +52,40 @@
 #define DISABLE_GATE()			palClearPad(GPIOB, 5)
 #define DCCAL_ON()
 #define DCCAL_OFF()
-#define IS_DRV_FAULT()			(!palReadPad(GPIOD, 2))
+
+#ifdef HW_IS_IHM0xM1 
+	#define IS_DRV_FAULT()			FALSE
+#else
+	#define IS_DRV_FAULT()			(!palReadPad(GPIOD, 2))
+#endif
 
 #define LED_GREEN_ON()			palSetPad(GPIOA, 5)
 #define LED_GREEN_OFF()			palClearPad(GPIOA, 5)
 #define LED_RED_ON()			palSetPad(GPIOB, 2)
 #define LED_RED_OFF()			palClearPad(GPIOB, 2)
 
-// For power stages with enable pins (e.g. DRV8313)
-#define ENABLE_BR1()			palSetPad(GPIOC, 10)
-#define ENABLE_BR2()			palSetPad(GPIOC, 11)
-#define ENABLE_BR3()			palSetPad(GPIOC, 12)
-#define DISABLE_BR1()			palClearPad(GPIOC, 10)
-#define DISABLE_BR2()			palClearPad(GPIOC, 11)
-#define DISABLE_BR3()			palClearPad(GPIOC, 12)
-#define ENABLE_BR()				palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 7)
-#define DISABLE_BR()			palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 0)
+#ifdef HW_HAS_DRV8313
+	// For power stages with enable pins (e.g. DRV8313)
+	#define ENABLE_BR1()			palSetPad(GPIOC, 10)
+	#define ENABLE_BR2()			palSetPad(GPIOC, 11)
+	#define ENABLE_BR3()			palSetPad(GPIOC, 12)
+	#define DISABLE_BR1()			palClearPad(GPIOC, 10)
+	#define DISABLE_BR2()			palClearPad(GPIOC, 11)
+	#define DISABLE_BR3()			palClearPad(GPIOC, 12)
+	#define ENABLE_BR()				palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 7)
+	#define DISABLE_BR()			palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 0)
 
-#define INIT_BR()				palSetPadMode(GPIOC, 10, \
-								PAL_MODE_OUTPUT_PUSHPULL | \
-								PAL_STM32_OSPEED_HIGHEST); \
-								palSetPadMode(GPIOC, 11, \
-								PAL_MODE_OUTPUT_PUSHPULL | \
-								PAL_STM32_OSPEED_HIGHEST); \
-								palSetPadMode(GPIOC, 12, \
-								PAL_MODE_OUTPUT_PUSHPULL | \
-								PAL_STM32_OSPEED_HIGHEST); \
-								DISABLE_BR();
-
+	#define INIT_BR()				palSetPadMode(GPIOC, 10, \
+									PAL_MODE_OUTPUT_PUSHPULL | \
+									PAL_STM32_OSPEED_HIGHEST); \
+									palSetPadMode(GPIOC, 11, \
+									PAL_MODE_OUTPUT_PUSHPULL | \
+									PAL_STM32_OSPEED_HIGHEST); \
+									palSetPadMode(GPIOC, 12, \
+									PAL_MODE_OUTPUT_PUSHPULL | \
+									PAL_STM32_OSPEED_HIGHEST); \
+									DISABLE_BR();
+#endif
 /*
  * ADC Vector
  *      VESC                IHM07    IHM08
@@ -118,28 +127,28 @@
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG					3.3
+	#define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1					169000.0
+	#define VIN_R1					169.000 // kOhm
 #endif
 #ifndef VIN_R2
-#define VIN_R2					9310.0
+	#define VIN_R2					9.310 // kOhm
 #endif
 #ifndef CURRENT_AMP_GAIN
-#ifdef HW_IS_IHM07M1
-#define CURRENT_AMP_GAIN		1.528
-#elif defined(HW_IS_IHM08M1)
-#define CURRENT_AMP_GAIN		5.18
-#endif
+	#ifdef HW_IS_IHM07M1
+		#define CURRENT_AMP_GAIN		1.528
+	#elif defined(HW_IS_IHM08M1)
+		#define CURRENT_AMP_GAIN		5.18
+	#endif
 #endif
 
 #ifndef CURRENT_SHUNT_RES
-#ifdef HW_IS_IHM07M1
-#define CURRENT_SHUNT_RES		0.33
-#elif defined(HW_IS_IHM08M1)
-#define CURRENT_SHUNT_RES		0.01
-#endif
+	#ifdef HW_IS_IHM07M1
+		#define CURRENT_SHUNT_RES		0.33
+	#elif defined(HW_IS_IHM08M1)
+		#define CURRENT_SHUNT_RES		0.01
+	#endif
 #endif
 
 #define ADC_RES 4095.0
@@ -178,13 +187,13 @@
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
 #ifndef CURR1_DOUBLE_SAMPLE
-#define CURR1_DOUBLE_SAMPLE		0
+	#define CURR1_DOUBLE_SAMPLE		FALSE
 #endif
 #ifndef CURR2_DOUBLE_SAMPLE
-#define CURR2_DOUBLE_SAMPLE		0
+	#define CURR2_DOUBLE_SAMPLE		FALSE
 #endif
 #ifndef CURR3_DOUBLE_SAMPLE
-#define CURR3_DOUBLE_SAMPLE		0
+	#define CURR3_DOUBLE_SAMPLE		FALSE
 #endif
 
 // Number of servo outputs
@@ -259,11 +268,11 @@
 #define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
 
 #ifdef HW_IS_IHM0xM1
-#define CONV_ADC_V(V)             ((V) * VOLTAGE_DIVIDER / PHASE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1) / PHASE_DIVIDER)
-#define ADC_V_ZERO              CONV_ADC_V((ADC_Value[ADC_IND_VIN_SENS] / 2))
+#define CONV_ADC_V(V)	((V) * VOLTAGE_DIVIDER / PHASE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1) / PHASE_DIVIDER)
+#define ADC_V_ZERO		CONV_ADC_V((ADC_Value[ADC_IND_VIN_SENS] / 2))
 #else
-#define CONV_ADC_V(V)             (V)
-#define ADC_V_ZERO              (ADC_Value[ADC_IND_VIN_SENS] / 2)
+#define CONV_ADC_V(V)	(V)
+#define ADC_V_ZERO		(ADC_Value[ADC_IND_VIN_SENS] / 2)
 #endif
 // Macros
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)

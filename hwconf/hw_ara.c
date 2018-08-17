@@ -40,26 +40,36 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 
-    // LEDs
+#ifdef HW_IS_IHM0xM1
+    // Nucleo Blue Button
     palSetPadMode(GPIOC, GPIOC_BUTTON,
                   PAL_MODE_INPUT_PULLUP);
+#endif
 
-	// LEDs
+	// LED green
 	palSetPadMode(GPIOA, 5,
                   PAL_MODE_OUTPUT_PUSHPULL |
                   PAL_STM32_OSPEED_HIGHEST);
-
+	// LED red
 	palSetPadMode(GPIOB, 2,
                   PAL_MODE_OUTPUT_PUSHPULL |
                   PAL_STM32_OSPEED_HIGHEST);
 
+#ifdef HW_IS_IHM0xM1
+    // For IHM0xM1 GPIO BEMF sensing:
+    palSetPadMode(GPIOC, 9,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+    // set to GND for IHM0x voltage sensing (see schematics in user manual)
+    palClearPad(GPIOC, 9);
+#endif
+
+
+#ifndef HW_IS_IHM0xM1
 	// ENABLE_GATE
 	palSetPadMode(GPIOB, 5,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
-#ifdef HW_IS_IHM0xM1
-	DISABLE_GATE();
-#else
 	ENABLE_GATE();
 #endif
 
@@ -96,21 +106,23 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 #endif
 
+#ifndef HW_IS_IHM0xM1
 	// Fault pin
 	palSetPadMode(GPIOD, 2, PAL_MODE_INPUT_PULLUP);
+#endif
 
 	// ADC Pins
-	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG); // CURRENT1
+	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG); // VBUS
 	//palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	//palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
 
-	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG); // CURRENT3
+	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG); // CURRENT2
+	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG); // ADC_TEMP
+	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG); // BEMF1
 
 #ifdef HW_IS_IHM07M1
 	// Strange: PC4 is not used but commenting the line below
@@ -124,17 +136,6 @@ void hw_init_gpio(void) {
     palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG); // potentiometer
     palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG); // BEMF2
     palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG); // BEMF3
-#endif
-
-#ifdef HW_IS_IHM0xM1
-    palSetPadMode(GPIOC, 13, PAL_MODE_INPUT_ANALOG); // blue button
-
-    // For IHM0xM1 GPIO BEMF sensing:
-    palSetPadMode(GPIOC, 9,
-            PAL_MODE_OUTPUT_PUSHPULL |
-            PAL_STM32_OSPEED_HIGHEST);
-    // set to GND for IHM0x voltage sensing (see schematics in user manual)
-    palClearPad(GPIOC, 9);
 #endif
 }
 
