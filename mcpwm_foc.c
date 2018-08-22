@@ -434,7 +434,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 
 	// Time base configuration
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
-	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1);
+	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(((SYSTEM_CORE_CLOCK / 2) / TIM12_FREQ) - 1);
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM12, &TIM_TimeBaseStructure);
@@ -1822,7 +1822,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		m_motor_state.iq_target = iq_set_tmp;
 
 		control_current(&m_motor_state, dt);
-	} else {
+	} else { // m_state != MC_STATE_RUNNING
 		// Track back emf
 #ifdef HW_HAS_3_SHUNTS
 		float Va = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS1);
@@ -1941,7 +1941,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// MCIF handler
 	mc_interface_mc_timer_isr();
 
-	last_inj_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
+	last_inj_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
 }
 
 // Private functions

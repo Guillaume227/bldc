@@ -443,7 +443,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	// Various time measurements
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
-	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1;
+	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / TIM12_FREQ) - 1;
 
 	// Time base configuration
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -1274,6 +1274,7 @@ static THD_FUNCTION(rpm_thread, arg) {
 		}
 
 		if (rpm_dep.comms != 0) {
+			// GG: commutations occurred since previous rpm measure
 			utils_sys_lock_cnt();
 			const float comms = (float)rpm_dep.comms;
 			const float time_at_comm = (float)rpm_dep.time_at_comm;
@@ -1283,6 +1284,7 @@ static THD_FUNCTION(rpm_thread, arg) {
 
 			rpm_now = (comms * MCPWM_RPM_TIMER_FREQ * 60.0) / (time_at_comm * 6.0);
 		} else {
+		    // GG: still on the same commutation as in previous rpm evaluation
 			// In case we have slowed down
 			float rpm_tmp = (MCPWM_RPM_TIMER_FREQ * 60.0) / ((float) TIM2 ->CNT * 6.0);
 
@@ -1710,7 +1712,7 @@ void mcpwm_adc_inj_int_handler(void) {
 			(float*) current_fir_samples, (float*) current_fir_coeffs,
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
-	last_inj_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
+	last_inj_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
 }
 
 /*
@@ -1914,7 +1916,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				commutate(0);
 			}
 		}
-	} else {
+	} else { // MOTOR_TYPE_DC
 		float amp = 0.0;
 
 		if (has_commutated) {
@@ -2087,7 +2089,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		run_pid_control_pos(1.0 / switching_frequency_now);
 	}
 
-	last_adc_isr_duration = (float)TIM12->CNT / 10000000.0;
+	last_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
 }
 
 void mcpwm_set_detect(void) {
