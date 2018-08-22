@@ -983,7 +983,7 @@ float mc_interface_temp_motor_filtered(void) {
  * the motor. If the state is detecting, the detection will be stopped.
  *
  * @return
- * The amount if milliseconds left until user commands are allowed again.
+ * The amount of milliseconds left until user commands are allowed again.
  *
  */
 int mc_interface_try_input(void) {
@@ -1579,17 +1579,20 @@ static THD_FUNCTION(sample_send_thread, arg) {
 			buffer[index++] = COMM_SAMPLE_PRINT;
 			buffer_append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
 			buffer_append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
-            buffer_append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
+			buffer_append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
 #ifdef HW_IS_IHM0xM1
-            buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph1_samples[ind_samp])), &index);
-            buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph2_samples[ind_samp])), &index);
-            buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph3_samples[ind_samp])), &index);
+			int16_t zero = m_vzero_samples[ind_samp];
+			float zeroV = GET_BEMF_VOLTAGE(zero);
+			buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph1_samples[ind_samp]+zero))-zeroV, &index);
+			buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph2_samples[ind_samp]+zero))-zeroV, &index);
+			buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph3_samples[ind_samp]+zero))-zeroV, &index);
+			buffer_append_float32_auto(buffer, zeroV, &index);
 #else
 			buffer_append_float32_auto(buffer, ((float)m_ph1_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
 			buffer_append_float32_auto(buffer, ((float)m_ph2_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
 			buffer_append_float32_auto(buffer, ((float)m_ph3_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
-#endif
 			buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE(m_vzero_samples[ind_samp]), &index);
+#endif
 			buffer_append_float32_auto(buffer, (float)m_curr_fir_samples[ind_samp] / (8.0 / FAC_CURRENT), &index);
 			buffer_append_float32_auto(buffer, (float)m_f_sw_samples[ind_samp] * 10.0, &index);
 			buffer[index++] = m_status_samples[ind_samp];
