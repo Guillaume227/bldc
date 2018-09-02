@@ -125,30 +125,19 @@
 
 // ADC macros and settings
 
-// Component parameters (can be overridden)
-#ifndef V_REG
-	#define V_REG					3.3
-#endif
-#ifndef VIN_R1
-	#define VIN_R1					169.000 // kOhm
-#endif
-#ifndef VIN_R2
-	#define VIN_R2					9.310 // kOhm
-#endif
-#ifndef CURRENT_AMP_GAIN
-	#ifdef HW_IS_IHM07M1
-		#define CURRENT_AMP_GAIN		1.528
-	#elif defined(HW_IS_IHM08M1)
-		#define CURRENT_AMP_GAIN		5.18
-	#endif
+#define V_REG					3.3
+#define VIN_R1					169.000 // kOhm
+#define VIN_R2					9.310 // kOhm
+#ifdef HW_IS_IHM07M1
+    #define CURRENT_AMP_GAIN		1.528
+#elif defined(HW_IS_IHM08M1)
+    #define CURRENT_AMP_GAIN		5.18
 #endif
 
-#ifndef CURRENT_SHUNT_RES
-	#ifdef HW_IS_IHM07M1
-		#define CURRENT_SHUNT_RES		0.33
-	#elif defined(HW_IS_IHM08M1)
-		#define CURRENT_SHUNT_RES		0.01
-	#endif
+#ifdef HW_IS_IHM07M1
+    #define CURRENT_SHUNT_RES		0.33
+#elif defined(HW_IS_IHM08M1)
+    #define CURRENT_SHUNT_RES		0.01
 #endif
 
 #define ADC_RES 4095.0
@@ -169,6 +158,14 @@
 #define PHASE_DIVIDER ((R39_IHM0X + R36_IHM0X) / R36_IHM0X)
 
 // converts straight adc reading to BEMF voltage
+#ifdef HW_IS_IHM0xM1
+#define SCALE_V_P(V)    (V * VOLTAGE_DIVIDER / PHASE_DIVIDER)
+#define CONV_ADC_V(V)   (((V) * VOLTAGE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1)) / PHASE_DIVIDER)
+#else
+#define SCALE_V_P(V)    (V)
+#define CONV_ADC_V(V)   (V)
+#endif
+
 #define GET_BEMF_VOLTAGE(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM0X ) * PHASE_DIVIDER + V_D_IHM0X)
 #define GET_BEMF_VOLTAGE_CH(adc_ch) (GET_BEMF_VOLTAGE(ADC_Value[adc_ch]))
 
@@ -268,10 +265,8 @@
 #define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
 
 #ifdef HW_IS_IHM0xM1
-#define CONV_ADC_V(V)	((V) * VOLTAGE_DIVIDER / PHASE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1) / PHASE_DIVIDER)
 #define ADC_V_ZERO		CONV_ADC_V((ADC_Value[ADC_IND_VIN_SENS] / 2))
 #else
-#define CONV_ADC_V(V)	(V)
 #define ADC_V_ZERO		(ADC_Value[ADC_IND_VIN_SENS] / 2)
 #endif
 // Macros
@@ -345,5 +340,3 @@
 #define HW_LIM_DUTY_MIN         0.0, 0.1
 #define HW_LIM_DUTY_MAX         0.0, 0.99
 #define HW_LIM_TEMP_FET         -40.0, 110.0
-
-#endif /* HW_ARA_H_ */

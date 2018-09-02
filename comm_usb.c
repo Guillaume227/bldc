@@ -114,6 +114,6 @@ void comm_usb_init(void) {
 	chMtxObjectInit(&send_mutex);
 
 	// Threads
-	chThdCreateStatic(serial_read_thread_wa, sizeof(serial_read_thread_wa), NORMALPRIO, serial_read_thread, NULL);
+	chThdCreateStatic(serial_read_thread_wa,    sizeof(serial_read_thread_wa),    NORMALPRIO, serial_read_thread, NULL);
 	chThdCreateStatic(serial_process_thread_wa, sizeof(serial_process_thread_wa), NORMALPRIO, serial_process_thread, NULL);
 }

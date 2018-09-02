@@ -158,7 +158,7 @@
  *	controller dynamics in between. FOC on the other hand is inherently based on current
  *	control.
  */
-#define BLDC_SPEED_CONTROL_CURRENT	1
+#define BLDC_SPEED_CONTROL_CURRENT	TRUE
 
 // Global configuration variables
 extern bool conf_general_permanent_nrf_found;
@@ -168,9 +168,9 @@ void conf_general_init(void);
 void conf_general_get_default_app_configuration(app_configuration *conf);
 void conf_general_get_default_mc_configuration(mc_configuration *conf);
 void conf_general_read_app_configuration(app_configuration *conf);
-bool conf_general_store_app_configuration(app_configuration *conf);
+bool conf_general_store_app_configuration(app_configuration const*conf);
 void conf_general_read_mc_configuration(mc_configuration *conf);
-bool conf_general_store_mc_configuration(mc_configuration *conf);
+bool conf_general_store_mc_configuration(mc_configuration const*conf);
 bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,
 		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
 bool conf_general_measure_flux_linkage(float current, float duty,

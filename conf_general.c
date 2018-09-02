@@ -323,7 +323,7 @@ void conf_general_read_app_configuration(app_configuration *conf) {
  * @param conf
  * A pointer to the configuration that should be stored.
  */
-bool conf_general_store_app_configuration(app_configuration *conf) {
+bool conf_general_store_app_configuration(app_configuration const*conf) {
 	mc_interface_unlock();
 	mc_interface_release_motor();
 
@@ -390,7 +390,7 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
  * @param conf
  * A pointer to the configuration that should be stored.
  */
-bool conf_general_store_mc_configuration(mc_configuration *conf) {
+bool conf_general_store_mc_configuration(mc_configuration const*conf) {
 	mc_interface_unlock();
 	mc_interface_release_motor();
 
@@ -624,7 +624,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
  * Try to measure the motor flux linkage.
  *
  * @param current
- * The current so spin up the motor with.
+ * The current to spin up the motor with.
  *
  * @param duty
  * The duty cycle to maintain.
@@ -666,7 +666,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	}
 
 	// Wait one second for things to get ready after
-	// the fault disapears. (will fry things otherwise...)
+	// the fault disappears. (will fry things otherwise...)
 	// TODO: Add FAULT_INIT_NOT_DONE
 	chThdSleepMilliseconds(1000);
 

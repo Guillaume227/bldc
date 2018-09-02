@@ -105,7 +105,7 @@ typedef struct {
 	float comm_time_sum;
 	float comm_time_sum_min_rpm;
 	int32_t comms;
-	uint32_t time_at_comm;
+	uint32_t time_at_comm; // number of ticks spent at commutation step (6 step only)?
 } mc_rpm_dep_struct;
 
 typedef enum {
@@ -175,9 +175,25 @@ typedef struct {
 	float sl_min_erpm;
 	float sl_min_erpm_cycle_int_limit;
 	float sl_max_fullbreak_current_dir_change;
+	/*Cycle ingegrator limit. This is how much area will be integrated
+	 * under the back EMF after a zero crossing before doing a commutation.
+	 * A too low value will cause a too early commutation, and a too high value
+	 * will cause a too late commutation.
+	 * A too late commutation will cause more problems than too early commutations.
+	 */
 	float sl_cycle_int_limit;
 	float sl_phase_advance_at_br;
 	float sl_cycle_int_rpm_br;
+	/*
+     BEMF coupling. Roughly describes how much of the input voltage is seen on
+     the BEMF at low modulation. Compensating for that at low speed helps the startup a lot.
+	 parameter that defines the voltage coupling between the windings
+	 when measuring the back-emf. This make a huge difference when running
+	 at low speeds with low duty cycle.
+	 This compensation has a RPM dependence though, which is something
+	 I tried to avoid where possible because the RPM estimation has a delay
+	 and thus causes problems during acceleration.
+	 */
 	float sl_bemf_coupling_k;
 	// Hall sensor
 	int8_t hall_table[8];

@@ -69,7 +69,17 @@ static volatile float last_current_sample;
 static volatile float last_current_sample_filtered;
 static volatile float mcpwm_detect_currents_avg[6];
 static volatile float mcpwm_detect_avg_samples[6];
-static volatile float switching_frequency_now;
+
+/*To get better voltage samples, the switching frequency is adaptive and proportional
+ * to the duty cycle. This is because the back-EMF only can be sampled
+ * during the ON-time of the PWM cycle and low duty cycles have short ON time.
+ * Since the motor is running slowly on low duty cycles, sampling and switching
+ * does not have to be as fast to keep up with the motor
+ * which makes this less of a problem.
+ * Lower switching frequency also decreases switching losses,
+ * which is a positive side-effect.
+ */
+static volatile float switching_frequency_now; // PWM switching frequency
 static volatile int ignore_iterations;
 static volatile mc_timer_struct timer_struct;
 static volatile int curr_samp_volt; // Use the voltage-synchronized samples for this current sample
@@ -144,7 +154,7 @@ static void update_sensor_mode(void);
 static int read_hall(void);
 static void update_adc_sample_pos(mc_timer_struct *timer_tmp);
 static void commutate(int steps);
-static void set_next_timer_settings(mc_timer_struct *settings);
+static void set_next_timer_settings(mc_timer_struct const*settings);
 static void update_timer_attempt(void);
 static void set_switching_frequency(float frequency);
 static void do_dc_cal(void);
@@ -1010,10 +1020,11 @@ static void set_duty_cycle_ll(float dutyCycle) {
 		float max_erpm_fbrake;
 #if BLDC_SPEED_CONTROL_CURRENT
 		if (control_mode == CONTROL_MODE_CURRENT ||
-				control_mode == CONTROL_MODE_CURRENT_BRAKE ||
-				control_mode == CONTROL_MODE_SPEED) {
+			control_mode == CONTROL_MODE_CURRENT_BRAKE ||
+			control_mode == CONTROL_MODE_SPEED) {
 #else
-		if (control_mode == CONTROL_MODE_CURRENT || control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+		if (control_mode == CONTROL_MODE_CURRENT ||
+			control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 #endif
 			max_erpm_fbrake = conf->l_max_erpm_fbrake_cc;
 		} else {
@@ -1049,7 +1060,7 @@ static void set_duty_cycle_ll(float dutyCycle) {
 		state = MC_STATE_RUNNING;
 		set_next_comm_step(comm_step);
 		commutate(1);
-	} else {
+	} else { // MOTOR_TYPE_BLDC
 		if (sensorless_now) {
 			if (state != MC_STATE_RUNNING) {
 				if (state == MC_STATE_OFF) {
@@ -1303,9 +1314,13 @@ static THD_FUNCTION(rpm_thread, arg) {
 		rpm_dep.cycle_int_limit = conf->sl_cycle_int_limit;
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) *
 				conf->sl_bemf_coupling_k / (rpm_abs > conf->sl_min_erpm ? rpm_abs : conf->sl_min_erpm);
-		rpm_dep.cycle_int_limit_running = utils_map(rpm_abs, 0,
-				conf->sl_cycle_int_rpm_br, rpm_dep.cycle_int_limit_running,
-				rpm_dep.cycle_int_limit_running * conf->sl_phase_advance_at_br);
+
+		rpm_dep.cycle_int_limit_running = utils_map(rpm_abs,
+													0,
+													conf->sl_cycle_int_rpm_br,
+													rpm_dep.cycle_int_limit_running,
+													rpm_dep.cycle_int_limit_running * conf->sl_phase_advance_at_br);
+
 		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) *
 				conf->sl_bemf_coupling_k / conf->sl_min_erpm_cycle_int_limit;
 
@@ -1407,7 +1422,7 @@ static THD_FUNCTION(timer_thread, arg) {
 			}
 
 			if (direction == 1) {
-				dutycycle_now = amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
+				dutycycle_now =  amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
 			} else {
 				dutycycle_now = -amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
 			}
@@ -1871,7 +1886,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					}
 
 					if (cycle_integrator >= (rpm_dep.cycle_int_limit_max * (0.0005 * VDIV_CORR)) ||
-							cycle_integrator >= limit) {
+						cycle_integrator >= limit) {
 						commutate(1);
 						cycle_integrator = 0.0;
 						cycle_sum = 0.0;
@@ -2326,7 +2341,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 		//		} else {
 		//			val_sample = duty / 2;
 		//		}
-	} else {
+	} else { // MOTOR_TYPE_BLDC
 		// Sample the ADC at an appropriate time during the pwm cycle
 		if (IS_DETECTING()) {
 			// Voltage samples
@@ -2422,7 +2437,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 					}
 					break;
 				}
-			} else {
+			} else { // PWM_MODE_SYNCHRONOUS
 				// Voltage samples
 				val_sample = duty / 2;
 
@@ -2557,7 +2572,9 @@ static void update_sensor_mode(void) {
 		sensorless_now = false;
 	}
 }
-
+/*
+ * @steps: how many steps to commutate forward. Typically 1 or, if motor is stuck, 2.
+ */
 static void commutate(int steps) {
 	last_pwm_cycles_sum = pwm_cycles_sum;
 	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
@@ -2598,7 +2615,7 @@ static void commutate(int steps) {
 	conf->comm_mode = comm_mode_next;
 }
 
-static void set_next_timer_settings(mc_timer_struct *settings) {
+static void set_next_timer_settings(mc_timer_struct const*settings) {
 	utils_sys_lock_cnt();
 	timer_struct = *settings;
 	timer_struct.updated = false;
@@ -2654,6 +2671,9 @@ static void set_switching_frequency(float frequency) {
 	set_next_timer_settings(&timer_tmp);
 }
 
+/**
+ * @next_step: step number in [1,6] to move to
+ */
 static void set_next_comm_step(int next_step) {
 	if (conf->motor_type == MOTOR_TYPE_DC) {
 		// 0

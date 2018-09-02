@@ -37,7 +37,8 @@ typedef struct {
 static PACKET_STATE_t handler_states[PACKET_HANDLERS];
 
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
-		void (*p_func)(unsigned char *data, unsigned int len), int handler_num) {
+				 void (*p_func)(unsigned char *data, unsigned int len),
+				 int handler_num) {
 	handler_states[handler_num].send_func = s_func;
 	handler_states[handler_num].process_func = p_func;
 }
@@ -145,11 +146,11 @@ void packet_process_byte(uint8_t rx_data, int handler_num) {
 		if (rx_data == 3) {
 			if (crc16(handler_states[handler_num].rx_buffer, handler_states[handler_num].payload_length)
 					== ((unsigned short)handler_states[handler_num].crc_high << 8
-							| (unsigned short)handler_states[handler_num].crc_low)) {
+					   |(unsigned short)handler_states[handler_num].crc_low)) {
 				// Packet received!
 				if (handler_states[handler_num].process_func) {
 					handler_states[handler_num].process_func(handler_states[handler_num].rx_buffer,
-							handler_states[handler_num].payload_length);
+							                                 handler_states[handler_num].payload_length);
 				}
 			}
 		}
