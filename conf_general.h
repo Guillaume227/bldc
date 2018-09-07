@@ -145,7 +145,7 @@
 /*
  * MCU
  */
-#define SYSTEM_CORE_CLOCK			168000000
+#define SYSTEM_CORE_CLOCK			STM32_HCLK //168'000'000 Hz, on F407, 180 MHz on F446
 #define STM32_UUID					((uint32_t*)0x1FFF7A10)
 #define STM32_UUID_8				((uint8_t*)0x1FFF7A10)
 
