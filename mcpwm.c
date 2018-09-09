@@ -247,7 +247,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2; // Pulse (CCRx) == duty cycle
+	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2; // Pulse (CCRx): the duty cycle - ARR/2 = 50% duty	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -317,7 +317,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
 
 	// ADC Common Init
-	// Note that the ADC is running at 42MHz (= 84MHz (APHB2 freq) / Div2 (ADC prescaler))
+    // Note that the ADC is running at 45MHz (= 90MHz (APHB2 freq on F446) / Div2 (ADC prescaler))
 	// which is higher than the specified 36MHz in the data sheet, but it works.
 	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
 	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
@@ -468,7 +468,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	timer_thd_stop = false;
 	rpm_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
-	chThdCreateStatic(rpm_thread_wa, sizeof(rpm_thread_wa), NORMALPRIO, rpm_thread, NULL);
+	chThdCreateStatic(rpm_thread_wa,   sizeof(rpm_thread_wa),   NORMALPRIO, rpm_thread,   NULL);
 
 	// WWDG configuration
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);

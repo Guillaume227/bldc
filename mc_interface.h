@@ -93,6 +93,6 @@ extern volatile int ADC_curr_norm_value[];
 #define HW_DEAD_TIME_VALUE	60 // Dead time
 #endif
 
-#define TIM12_FREQ 10000000 // MHz
+#define TIM12_FREQ 10000000 // 10 MHz / 100ns
 
 #endif /* MC_INTERFACE_H_ */
