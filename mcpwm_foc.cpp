@@ -187,7 +187,7 @@ static volatile bool timer_thd_stop;
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
 #endif
 
-void mcpwm_foc_init(volatile mc_configuration *configuration) {
+void mcpwm_foc_init(mc_configuration *configuration) {
 	utils_sys_lock_cnt();
 
 	m_init_done = false;
@@ -476,7 +476,7 @@ bool mcpwm_foc_init_done(void) {
 	return m_init_done;
 }
 
-void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
+void mcpwm_foc_set_configuration(mc_configuration *configuration) {
 	m_conf = configuration;
 
 	m_control_mode = CONTROL_MODE_NONE;

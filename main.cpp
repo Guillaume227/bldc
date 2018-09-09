@@ -244,7 +244,7 @@ int main(void) {
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
-	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
+	chThdCreateStatic(timer_thread_wa,    sizeof(timer_thread_wa),    NORMALPRIO, timer_thread,    NULL);
 
 #if WS2811_TEST
 	unsigned int color_ind = 0;

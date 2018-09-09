@@ -47,9 +47,9 @@ static THD_WORKING_AREA(output_thread_wa, 1024);
 // Private variables
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
-static volatile chuck_data chuck_d;
+static chuck_data chuck_d;
 static volatile int chuck_error = 0;
-static volatile chuk_config config;
+static chuk_config config;
 static volatile bool output_running = false;
 static volatile systime_t last_update_time;
 

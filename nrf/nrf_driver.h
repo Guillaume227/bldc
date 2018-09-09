@@ -20,8 +20,6 @@
 #ifndef NRF_NRF_DRIVER_H_
 #define NRF_NRF_DRIVER_H_
 
-#include <stdbool.h>
-
 // Functions
 bool nrf_driver_init(void);
 void nrf_driver_stop(void);

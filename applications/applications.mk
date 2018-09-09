@@ -1,9 +1,9 @@
-APPSRC =	applications/app.c \
-			applications/app_ppm.c \
-			applications/app_adc.c \
-			applications/app_sten.c \
-			applications/app_uartcomm.c \
-			applications/app_nunchuk.c \
-			applications/app_custom.c
+APPSRC =	applications/app.cpp \
+			applications/app_ppm.cpp \
+			applications/app_adc.cpp \
+			applications/app_sten.cpp \
+			applications/app_uartcomm.cpp \
+			applications/app_nunchuk.cpp \
+			applications/app_custom.cpp
 
 APPINC = applications

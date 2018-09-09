@@ -48,7 +48,7 @@ static void servodec_func(void);
 // Private variables
 static volatile bool is_running = false;
 static volatile bool stop_now = true;
-static volatile ppm_config config;
+static ppm_config config;
 static volatile int pulses_without_power = 0;
 static float input_val = 0.0;
 
@@ -140,7 +140,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			return;
 		}
 
-		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+		const mc_configuration *mcconf = mc_interface_get_configuration();
 		const float rpm_now = mc_interface_get_rpm();
 		float servo_val = servodec_get_servo(0);
 		float servo_ms = utils_map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);

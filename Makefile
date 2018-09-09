@@ -5,20 +5,21 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O1 -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99 -D_GNU_SOURCE
+  #USE_OPT = -O1 -ggdb -fomit-frame-pointer -falign-functions=16 -D_GNU_SOURCE
+  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -D_GNU_SOURCE
   USE_OPT += -DBOARD_OTG_NOVBUSSENS $(build_args)
-  USE_OPT += -fsingle-precision-constant -Wdouble-promotion
+  USE_OPT += -fsingle-precision-constant -Wdouble-promotion #-D__cplusplus
 endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = 
+  USE_COPT = -std=gnu99 
 endif
 
 # C++ specific options here (added to USE_OPT).
 ifeq ($(USE_CPPOPT),)
-  USE_CPPOPT = -fno-rtti
-endif
+  USE_CPPOPT = -fno-rtti -std=c++17 -fpermissive
+endif	
 
 # Enable this if you want the linker to remove unused code and data
 ifeq ($(USE_LINK_GC),)
@@ -104,6 +105,7 @@ include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Other files (optional).
+include $(CHIBIOS)/os/various/cpp_wrappers/chcpp.mk
 include hwconf/hwconf.mk
 include applications/applications.mk
 include nrf/nrf.mk
@@ -123,38 +125,39 @@ CSRC = $(STARTUPSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
        board.c \
-       main.c \
-       comm_usb_serial.c \
-       irq_handlers.c \
-       buffer.c \
-       comm_usb.c \
-       crc.c \
-       digital_filter.c \
-       ledpwm.c \
-       mcpwm.c \
-       servo_dec.c \
-       utils.c \
-       servo_simple.c \
-       packet.c \
-       terminal.c \
-       conf_general.c \
-       eeprom.c \
-       commands.c \
-       timeout.c \
-       comm_can.c \
-       ws2811.c \
-       led_external.c \
-       encoder.c \
-       flash_helper.c \
-       mc_interface.c \
-       mcpwm_foc.c \
-       $(HWSRC) \
-       $(APPSRC) \
-       $(NRFSRC)
-
+       ws2811.c
+       
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC =
+CPPSRC = $(CHCPPSRC) \
+         digital_filter.cpp \
+         servo_dec.cpp \
+         buffer.cpp \
+         crc.cpp \
+         flash_helper.cpp \
+         encoder.cpp \
+         led_external.cpp \
+         ledpwm.cpp \
+         servo_simple.cpp \
+         comm_usb_serial.cpp \
+         irq_handlers.cpp \
+      	 utils.cpp \
+      	 packet.cpp \
+         eeprom.cpp \
+         comm_can.cpp \
+         comm_usb.cpp \
+         commands.cpp \
+         timeout.cpp \
+         terminal.cpp \
+         conf_general.cpp \
+         mc_interface.cpp \
+         mcpwm_foc.cpp \
+         mcpwm.cpp \
+         $(APPSRC) \
+         $(NRFSRC) \
+         $(HWSRC) \
+         main.cpp
+         
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
@@ -185,6 +188,7 @@ INCDIR = $(CHIBIOS)/os/license \
          $(HALINC) $(PLATFORMINC) \
          $(CHIBIOS)/os/various \
          $(CHIBIOS)/os/hal/lib/streams \
+         $(CHCPPINC) \
          mcconf \
          appconf \
          $(HWINC) \
@@ -228,7 +232,7 @@ TOPT = -mthumb -DTHUMB
 CWARN = -Wall -Wextra -Wundef -Wstrict-prototypes
 
 # Define C++ warning options here
-CPPWARN = -Wall -Wextra -Wundef
+CPPWARN = -Wall -Wextra -Wundef #-Weffc++
 
 #
 # Compiler settings

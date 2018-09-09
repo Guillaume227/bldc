@@ -26,6 +26,7 @@
 #include "hw.h"
 #include "encoder.h"
 
+extern "C" {
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
 	ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
@@ -58,4 +59,6 @@ CH_IRQ_HANDLER(TIM8_CC_IRQHandler) {
 		// Clear the IT pending bit
 		TIM_ClearITPendingBit(TIM8, TIM_IT_CC1);
 	}
+}
+
 }

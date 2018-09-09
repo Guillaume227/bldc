@@ -23,10 +23,10 @@
 #include "conf_general.h"
 
 // Functions
-void mcpwm_init(volatile mc_configuration *configuration);
+void mcpwm_init(mc_configuration *configuration);
 void mcpwm_deinit(void);
 bool mcpwm_init_done(void);
-void mcpwm_set_configuration(volatile mc_configuration *configuration);
+void mcpwm_set_configuration(mc_configuration *configuration);
 void mcpwm_init_hall_table(int8_t *table);
 void mcpwm_set_duty(float dutyCycle);
 void mcpwm_set_duty_noramp(float dutyCycle);

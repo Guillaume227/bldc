@@ -43,7 +43,7 @@ volatile uint16_t ADC_Value[HW_ADC_CHANNELS];
 volatile int ADC_curr_norm_value[3];
 
 // Private variables
-static volatile mc_configuration m_conf;
+static /*volatile*/ mc_configuration m_conf;
 static mc_fault_code m_fault_now;
 static int m_ignore_iterations;
 static volatile unsigned int m_cycles_running;
@@ -179,7 +179,7 @@ void mc_interface_init(mc_configuration *configuration) {
 	}
 }
 
-const volatile mc_configuration* mc_interface_get_configuration(void) {
+const mc_configuration* mc_interface_get_configuration(void) {
 	return &m_conf;
 }
 

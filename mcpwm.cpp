@@ -81,15 +81,15 @@ static volatile float mcpwm_detect_avg_samples[6];
  */
 static volatile float switching_frequency_now; // PWM switching frequency
 static volatile int ignore_iterations;
-static volatile mc_timer_struct timer_struct;
+static mc_timer_struct timer_struct;
 static volatile int curr_samp_volt; // Use the voltage-synchronized samples for this current sample
 static int hall_to_phase_table[16];
 static volatile unsigned int slow_ramping_cycles;
 static volatile int has_commutated;
-static volatile mc_rpm_dep_struct rpm_dep;
+static mc_rpm_dep_struct rpm_dep;
 static volatile float cycle_integrator_sum;
 static volatile float cycle_integrator_iterations;
-static volatile mc_configuration *conf;
+static mc_configuration *conf;
 static volatile float pwm_cycles_sum;
 static volatile int pwm_cycles;
 static volatile float last_pwm_cycles_sum;
@@ -170,7 +170,7 @@ static THD_FUNCTION(rpm_thread, arg);
 static volatile bool timer_thd_stop;
 static volatile bool rpm_thd_stop;
 
-void mcpwm_init(volatile mc_configuration *configuration) {
+void mcpwm_init(mc_configuration *configuration) {
 	utils_sys_lock_cnt();
 
 	init_done= false;
@@ -509,7 +509,7 @@ bool mcpwm_init_done(void) {
 	return init_done;
 }
 
-void mcpwm_set_configuration(volatile mc_configuration *configuration) {
+void mcpwm_set_configuration(mc_configuration *configuration) {
 	// Stop everything first to be safe
 	control_mode = CONTROL_MODE_NONE;
 	stop_pwm_ll();

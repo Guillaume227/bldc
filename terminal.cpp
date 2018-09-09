@@ -50,7 +50,7 @@ typedef struct _terminal_callback_struct {
 } terminal_callback_struct;
 
 // Private variables
-static volatile fault_data fault_vec[FAULT_VEC_LEN];
+static fault_data fault_vec[FAULT_VEC_LEN];
 static volatile int fault_vec_write = 0;
 static terminal_callback_struct callbacks[CALLBACK_LEN];
 static int callback_write = 0;

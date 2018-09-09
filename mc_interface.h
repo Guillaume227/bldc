@@ -25,7 +25,7 @@
 
 // Functions
 void mc_interface_init(mc_configuration *configuration);
-const volatile mc_configuration* mc_interface_get_configuration(void);
+const mc_configuration* mc_interface_get_configuration(void);
 void mc_interface_set_configuration(mc_configuration *configuration);
 void mc_interface_set_pwm_callback(void (*p_func)(void));
 void mc_interface_lock(void);

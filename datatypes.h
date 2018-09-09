@@ -21,7 +21,6 @@
 #define DATATYPES_H_
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "ch.h"
 
 // Data types

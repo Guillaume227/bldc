@@ -20,8 +20,6 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include <stdbool.h>
-
 void utils_step_towards(float *value, float goal, float step);
 float utils_calc_ratio(float low, float high, float val);
 void utils_norm_angle(float *angle);

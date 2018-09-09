@@ -20,7 +20,6 @@
 #ifndef RFHELP_H_
 #define RFHELP_H_
 
-#include <stdbool.h>
 #include "datatypes.h"
 
 // Functions

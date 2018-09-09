@@ -40,7 +40,7 @@ static THD_FUNCTION(adc_thread, arg);
 static THD_WORKING_AREA(adc_thread_wa, 1024);
 
 // Private variables
-static volatile adc_config config;
+static adc_config config;
 static volatile float ms_without_power = 0.0;
 static volatile float decoded_level = 0.0;
 static volatile float read_voltage = 0.0;
