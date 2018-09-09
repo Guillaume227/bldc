@@ -90,7 +90,7 @@ endif
 #
 
 # Define project name here
-PROJECT = BLDC_4_ChibiOS
+PROJECT = mcara
 
 # Imported source files and paths
 CHIBIOS = ChibiOS_4

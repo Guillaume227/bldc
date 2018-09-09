@@ -1,0 +1,40 @@
+Fin août 2018
+Essai de compilation avec différents niveaux d'optimisation:
+Compilation with 00
+   text	   data	    bss	    dec	    hex	filename
+ 202728	   3132	 128384	 334244	  519a4	build/BLDC_4_ChibiOS.elf
+ 
+Compilation with 01
+   text	   data	    bss	    dec	    hex	filename
+ 150560	   3068	 128448	 282076	  44ddc	build/BLDC_4_ChibiOS.elf
+ 
+Compilation with 02
+   text	   data	    bss	    dec	    hex	filename
+ 149400	   3068	 128448	 280916	  44954	build/BLDC_4_ChibiOS.elf
+ 
+Compilation with 03
+   text	   data	    bss	    dec	    hex	filename
+ 162680	   3068	 128448	 294196	  47d34	build/BLDC_4_ChibiOS.elf
+ 
+ 
+ Vendredi 17 août 2018, dans l'avion ORD-LHR
+journal ARA 
+Observe un bon fonctinonement en BLDC, toujours problème en FOC.
+Remarque que les courbes de phase BEMF ne sont toujours pas symétriques autour de 0.
+Si j'annule Vd elles le deviennent mais le fonctionnement est dégradé : 
+retour à l'impossibilité de démarrer de 0 au dessus de D=0.21
+Quelque chose ne va toujours pas avec les formules et le code.
+
+J'observe que le moteur démarre jusquà D=0.10.
+En descendant progressivement le moteur tourne jusqu'à D=0.08, et toussote à 0.07.
+
+
+Mardi 21 août
+
+tests non concluant sur le petit moteur, je n'arrive toujours pas à le faire tourner même après les derniers développements.
+
+bidouille les conversions de Voltage dans mcpwm.c. 
+Plus très sûr de toutes les conversions CONV_ADC_V appliquées vendredi.
+En particulier, difficultés de calibration BLDC.
+Obtiens systématiquement un BEMF coupling dans les 2500, or le VESC tool le plafonne à 900, ce qui semble indiquer une valeur abhérente.
+Difficulté de compréhension du code: measure flux linkage utilise GET_INPUT_VOLTAGE quand le code rpm_dep.cycle_int_limit_running= utilise directement ADC_VALUE[].
