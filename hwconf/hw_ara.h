@@ -19,6 +19,7 @@
 #define HW_ARA_H_
 
 // HW properties
+//assert(defined(BOARD_ST_NUCLEO64_F446RE))
 
 #define HW_IS_IHM07M1
 //#define HW_IS_IHM08M1
@@ -340,3 +341,5 @@
 #define HW_LIM_DUTY_MIN         0.0, 0.1
 #define HW_LIM_DUTY_MAX         0.0, 0.99
 #define HW_LIM_TEMP_FET         -40.0, 110.0
+
+#endif
