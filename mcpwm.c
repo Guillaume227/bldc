@@ -424,7 +424,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	// 32-bit timer for RPM measurement
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-	uint16_t PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / MCPWM_RPM_TIMER_FREQ) - 1;
+	uint16_t PrescalerValue = (uint16_t) (TIM2_CLOCK / MCPWM_RPM_TIMER_FREQ) - 1;
 
 	// Time base configuration
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -453,7 +453,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	// Various time measurements
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
-	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / TIM12_FREQ) - 1;
+	PrescalerValue = (uint16_t) (TIM12_CLOCK / TIM12_FREQ) - 1;
 
 	// Time base configuration
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -1546,8 +1546,8 @@ void mcpwm_adc_inj_int_handler(void) {
 
 #ifdef HW_IS_IHM0xM1
 	ADC_curr_norm_value[0] *= -1;
-    ADC_curr_norm_value[1] *= -1;
-    ADC_curr_norm_value[2] *= -1;
+	ADC_curr_norm_value[1] *= -1;
+	ADC_curr_norm_value[2] *= -1;
 #endif
 
 	float curr_tot_sample = 0;

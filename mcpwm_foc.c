@@ -196,8 +196,6 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
 
-	m_conf = configuration;
-
 	// Initialize variables
 	m_conf = configuration;
 	m_state = MC_STATE_OFF;
@@ -434,7 +432,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 
 	// Time base configuration
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
-	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(((SYSTEM_CORE_CLOCK / 2) / TIM12_FREQ) - 1);
+	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)((TIM12_CLOCK / TIM12_FREQ) - 1);
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM12, &TIM_TimeBaseStructure);

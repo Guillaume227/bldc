@@ -145,7 +145,9 @@
 /*
  * MCU
  */
-#define SYSTEM_CORE_CLOCK			STM32_HCLK //168'000'000 Hz, on F407, 180 MHz on F446
+#define SYSTEM_CORE_CLOCK           STM32_HCLK // TIM1, TIM8 clock //168'000'000 Hz, on F407, 180 MHz on F446
+#define TIM2_CLOCK                  (SYSTEM_CORE_CLOCK / 2) // assumes TIM2 clocks at half TIM1
+#define TIM12_CLOCK                 (SYSTEM_CORE_CLOCK / 2) // assumes TIM12 clocks at half TIM1
 #define STM32_UUID					((uint32_t*)0x1FFF7A10)
 #define STM32_UUID_8				((uint8_t*)0x1FFF7A10)
 
