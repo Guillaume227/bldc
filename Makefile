@@ -124,13 +124,13 @@ CSRC = $(STARTUPSRC) \
        $(PLATFORMSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
-       board.c \
-       ws2811.c
+       board.c
        
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CPPSRC = $(CHCPPSRC) \
          digital_filter.cpp \
+       	 ws2811.cpp \
          servo_dec.cpp \
          buffer.cpp \
          crc.cpp \
