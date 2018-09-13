@@ -242,8 +242,8 @@ static THD_FUNCTION(output_thread, arg) {
 		led_external_set_reversed(is_reverse);
 
 		float out_val = app_nunchuk_get_decoded_chuk();
-		utils_deadband(&out_val, config.hyst, 1.0);
-		out_val = utils_throttle_curve(out_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+		utils::deadband(&out_val, config.hyst, 1.0);
+		out_val = utils::throttle_curve(out_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
 		// LEDs
 		float x_axis = ((float)chuck_d.js_x - 128.0) / 128.0;
@@ -399,7 +399,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 			float current_goal = prev_current;
 			const float goal_tmp = current_goal;
-			utils_step_towards(&current_goal, current, ramp_step);
+			utils::step_towards(&current_goal, current, ramp_step);
 			bool is_decreasing = current_goal < goal_tmp;
 
 			// Make sure the desired current is close to the actual current to avoid surprises
@@ -407,11 +407,11 @@ static THD_FUNCTION(output_thread, arg) {
 			float goal_tmp2 = current_goal;
 			if (is_reverse) {
 				if (fabsf(current_goal + current_highest_abs) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, -current_highest_abs, 2.0 * ramp_step);
+					utils::step_towards(&goal_tmp2, -current_highest_abs, 2.0 * ramp_step);
 				}
 			} else {
 				if (fabsf(current_goal - current_highest_abs) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, current_highest_abs, 2.0 * ramp_step);
+					utils::step_towards(&goal_tmp2, current_highest_abs, 2.0 * ramp_step);
 				}
 			}
 
@@ -453,7 +453,7 @@ static THD_FUNCTION(output_thread, arg) {
 							}
 
 							float diff = rpm_tmp - rpm_lowest;
-							current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+							current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
 							if (current_out < mcconf.cc_min_current) {
 								current_out = 0.0;
 							}
@@ -469,7 +469,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 				if (config.tc) {
 					float diff = rpm_local - rpm_lowest;
-					current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+					current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
 					if (current_out < mcconf.cc_min_current) {
 						current_out = 0.0;
 					}

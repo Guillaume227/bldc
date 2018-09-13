@@ -17,41 +17,44 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef UTILS_H_
-#define UTILS_H_
+#pragma once
 
-void utils_step_towards(float *value, float goal, float step);
-float utils_calc_ratio(float low, float high, float val);
-void utils_norm_angle(float *angle);
-void utils_norm_angle_rad(float *angle);
-int utils_truncate_number(float *number, float min, float max);
-int utils_truncate_number_int(int *number, int min, int max);
-int utils_truncate_number_abs(float *number, float max);
-float utils_map(float x, float in_min, float in_max, float out_min, float out_max);
-int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max);
-void utils_deadband(float *value, float tres, float max);
-float utils_angle_difference(float angle1, float angle2);
-float utils_angle_difference_rad(float angle1, float angle2);
-float utils_avg_angles_rad_fast(float *angles, float *weights, int angles_num);
-float utils_middle_of_3(float a, float b, float c);
-int utils_middle_of_3_int(int a, int b, int c);
-float utils_fast_inv_sqrt(float x);
-float utils_fast_atan2(float y, float x);
-bool utils_saturate_vector_2d(float *x, float *y, float max);
-void utils_fast_sincos(float angle, float *sin, float *cos);
-void utils_fast_sincos_better(float angle, float *sin, float *cos);
-float utils_min_abs(float va, float vb);
-float utils_max_abs(float va, float vb);
-void utils_byte_to_binary(int x, char *b);
-float utils_throttle_curve(float val, float curve_acc, float curve_brake, int mode);
-void utils_sys_lock_cnt(void);
-void utils_sys_unlock_cnt(void);
+namespace utils{
 
-// Return the sign of the argument. -1 if negative, 1 if zero or positive.
-#define SIGN(x)				((x < 0) ? -1 : 1)
+  void step_towards(float *value, float goal, float step);
+  float calc_ratio(float low, float high, float val);
+  void norm_angle(float *angle);
+  void norm_angle_rad(float *angle);
+  int truncate_number(float *number, float min, float max);
+  int truncate_number_int(int *number, int min, int max);
+  int truncate_number_abs(float *number, float max);
+  float map(float x, float in_min, float in_max, float out_min, float out_max);
+  int map_int(int x, int in_min, int in_max, int out_min, int out_max);
+  void deadband(float *value, float tres, float max);
+  float angle_difference(float angle1, float angle2);
+  float angle_difference_rad(float angle1, float angle2);
+  float avg_angles_rad_fast(float *angles, float *weights, int angles_num);
+  float middle_of_3(float a, float b, float c);
+  int middle_of_3_int(int a, int b, int c);
+  float fast_inv_sqrt(float x);
+  float fast_atan2(float y, float x);
+  bool saturate_vector_2d(float *x, float *y, float max);
+  void fast_sincos(float angle, float *sin, float *cos);
+  void fast_sincos_better(float angle, float *sin, float *cos);
+  float min_abs(float va, float vb);
+  float max_abs(float va, float vb);
+  void byte_to_binary(int x, char *b);
+  float throttle_curve(float val, float curve_acc, float curve_brake, int mode);
 
-// Squared
-#define SQ(x)				((x) * (x))
+  void sys_lock_cnt(void);
+  void sys_unlock_cnt(void);
+
+  // Return the sign of the argument. -1 if negative, 1 if zero or positive.
+  inline constexpr int SIGN(auto x){ return x < 0 ? -1 : 1; }
+
+  // Squared
+  inline constexpr auto SQ(auto x){ return x * x; }
+}
 
 // Return the age of a timestamp in seconds
 #define UTILS_AGE_S(x)		((float)chVTTimeElapsedSinceX(x) / (float)CH_CFG_ST_FREQUENCY)
@@ -79,5 +82,3 @@ void utils_sys_unlock_cnt(void);
 #define ONE_BY_SQRT3			(0.57735026919)
 #define TWO_BY_SQRT3			(2.0f * 0.57735026919)
 #define SQRT3_BY_2				(0.86602540378)
-
-#endif /* UTILS_H_ */

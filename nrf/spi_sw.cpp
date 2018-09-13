@@ -104,7 +104,7 @@ void spi_sw_transfer(char *in_buf, const char *out_buf, int length) {
 			r3 = palReadPad(m_port_miso, m_pin_miso);
 
 			recieve <<= 1;
-			if (utils_middle_of_3_int(r1, r2, r3)) {
+			if (utils::middle_of_3_int(r1, r2, r3)) {
 				recieve |= 1;
 			}
 

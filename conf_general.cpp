@@ -327,7 +327,7 @@ bool conf_general_store_app_configuration(app_configuration const*conf) {
 	mc_interface_unlock();
 	mc_interface_release_motor();
 
-	utils_sys_lock_cnt();
+	utils::sys_lock_cnt();
 	mc_interface_lock();
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
@@ -353,7 +353,7 @@ bool conf_general_store_app_configuration(app_configuration const*conf) {
 
 	chThdSleepMilliseconds(100);
 	mc_interface_unlock();
-	utils_sys_unlock_cnt();
+	utils::sys_unlock_cnt();
 
 	return is_ok;
 }
@@ -394,7 +394,7 @@ bool conf_general_store_mc_configuration(mc_configuration const*conf) {
 	mc_interface_unlock();
 	mc_interface_release_motor();
 
-	utils_sys_lock_cnt();
+	utils::sys_lock_cnt();
 	mc_interface_lock();
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
@@ -420,7 +420,7 @@ bool conf_general_store_mc_configuration(mc_configuration const*conf) {
 
 	chThdSleepMilliseconds(100);
 	mc_interface_unlock();
-	utils_sys_unlock_cnt();
+	utils::sys_unlock_cnt();
 
 	return is_ok;
 }

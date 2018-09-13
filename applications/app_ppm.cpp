@@ -143,7 +143,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		auto const& mcconf = mc_interface_get_configuration();
 		const float rpm_now = mc_interface_get_rpm();
 		float servo_val = servodec_get_servo(0);
-		float servo_ms = utils_map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
+		float servo_ms = utils::map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
 
 		switch (config.ctrl_type) {
 		case PPM_CTRL_TYPE_CURRENT_NOREV:
@@ -157,10 +157,10 @@ static THD_FUNCTION(ppm_thread, arg) {
 		default:
 			// Mapping with respect to center pulsewidth
 			if (servo_ms < config.pulse_center) {
-				servo_val = utils_map(servo_ms, config.pulse_start,
+				servo_val = utils::map(servo_ms, config.pulse_start,
 						config.pulse_center, -1.0, 0.0);
 			} else {
-				servo_val = utils_map(servo_ms, config.pulse_center,
+				servo_val = utils::map(servo_ms, config.pulse_center,
 						config.pulse_end, 0.0, 1.0);
 			}
 			input_val = servo_val;
@@ -174,10 +174,10 @@ static THD_FUNCTION(ppm_thread, arg) {
 		}
 
 		// Apply deadband
-		utils_deadband(&servo_val, config.hyst, 1.0);
+		utils::deadband(&servo_val, config.hyst, 1.0);
 
 		// Apply throttle curve
-		servo_val = utils_throttle_curve(servo_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+		servo_val = utils::throttle_curve(servo_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
 		// Apply ramping
 		static systime_t last_time = 0;
@@ -186,7 +186,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
-			utils_step_towards(&servo_val_ramp, servo_val, ramp_step);
+			utils::step_towards(&servo_val_ramp, servo_val, ramp_step);
 			last_time = chVTGetSystemTimeX();
 			servo_val = servo_val_ramp;
 		}
@@ -232,7 +232,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils_map(servo_val, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
+				mc_interface_set_duty(utils::map(servo_val, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
 				send_current = true;
 			}
 			break;
@@ -328,7 +328,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 								}
 
 								float diff = rpm_tmp - rpm_lowest;
-								current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+								current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
 								if (current_out < mcconf.cc_min_current) {
 									current_out = 0.0;
 								}
@@ -344,7 +344,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 					if (config.tc) {
 						float diff = rpm_local - rpm_lowest;
-						current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+						current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
 						if (current_out < mcconf.cc_min_current) {
 							current_out = 0.0;
 						}

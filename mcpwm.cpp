@@ -32,6 +32,8 @@
 #include "terminal.h"
 #include "encoder.h"
 
+using namespace utils;
+
 // Structs
 typedef struct {
 	volatile bool updated;
@@ -171,7 +173,7 @@ static volatile bool timer_thd_stop;
 static volatile bool rpm_thd_stop;
 
 void mcpwm_init(mc_configuration *configuration) {
-	utils_sys_lock_cnt();
+	sys_lock_cnt();
 
 	init_done= false;
 
@@ -444,7 +446,7 @@ void mcpwm_init(mc_configuration *configuration) {
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 
-	utils_sys_unlock_cnt();
+	sys_unlock_cnt();
 
 	// Calibrate current offset
 	ENABLE_GATE();
@@ -514,12 +516,12 @@ void mcpwm_set_configuration(mc_configuration *configuration) {
 	control_mode = CONTROL_MODE_NONE;
 	stop_pwm_ll();
 
-	utils_sys_lock_cnt();
+	sys_lock_cnt();
 	conf = configuration;
 	comm_mode_next = conf->comm_mode;
 	mcpwm_init_hall_table((int8_t*)conf->hall_table);
 	update_sensor_mode();
-	utils_sys_unlock_cnt();
+	sys_unlock_cnt();
 }
 
 /**
@@ -655,7 +657,7 @@ void mcpwm_set_current(float current) {
 		return;
 	}
 
-	utils_truncate_number(&current, -conf->l_current_max, conf->l_current_max);
+	truncate_number(&current, -conf->l_current_max, conf->l_current_max);
 
 	control_mode = CONTROL_MODE_CURRENT;
 	current_set = current;
@@ -679,7 +681,7 @@ void mcpwm_set_brake_current(float current) {
 		return;
 	}
 
-	utils_truncate_number(&current, -fabsf(conf->l_current_min), fabsf(conf->l_current_min));
+	truncate_number(&current, -fabsf(conf->l_current_min), fabsf(conf->l_current_min));
 
 	control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	current_set = current;
@@ -951,7 +953,7 @@ static void full_brake_hw(void) {
  * the motor phases will be shorted to brake the motor.
  */
 static void set_duty_cycle_hl(float dutyCycle) {
-	utils_truncate_number(&dutyCycle, -conf->l_max_duty, conf->l_max_duty);
+	truncate_number(&dutyCycle, -conf->l_max_duty, conf->l_max_duty);
 
 	if (state == MC_STATE_DETECTING) {
 		stop_pwm_ll();
@@ -1077,11 +1079,11 @@ static void set_duty_cycle_ll(float dutyCycle) {
 static void set_duty_cycle_hw(float dutyCycle) {
 	mc_timer_struct timer_tmp;
 
-	utils_sys_lock_cnt();
+	sys_lock_cnt();
 	timer_tmp = timer_struct;
-	utils_sys_unlock_cnt();
+	sys_unlock_cnt();
 
-	utils_truncate_number(&dutyCycle, conf->l_min_duty, conf->l_max_duty);
+	truncate_number(&dutyCycle, conf->l_min_duty, conf->l_max_duty);
 
     if (IS_DETECTING() || conf->pwm_mode == PWM_MODE_BIPOLAR) {
         switching_frequency_now = conf->m_bldc_f_sw_max;
@@ -1143,14 +1145,14 @@ static void run_pid_control_speed(void) {
 	d_term = d_filter;
 
 	// I-term wind-up protection
-	utils_truncate_number(&i_term, -1.0, 1.0);
+	truncate_number(&i_term, -1.0, 1.0);
 
 	// Store previous error
 	prev_error = error;
 
 	// Calculate output
 	float output = p_term + i_term + d_term;
-	utils_truncate_number(&output, -1.0, 1.0);
+	truncate_number(&output, -1.0, 1.0);
 
 	// Optionally disable braking
 	if (!conf->s_pid_allow_braking) {
@@ -1183,7 +1185,7 @@ static void run_pid_control_speed(void) {
 	d_term = d_filter;
 
 	// I-term wind-up protection
-	utils_truncate_number(&i_term, -1.0, 1.0);
+	truncate_number(&i_term, -1.0, 1.0);
 
 	// Store previous error
 	prev_error = error;
@@ -1223,7 +1225,7 @@ static void run_pid_control_pos(float dt) {
 	}
 
 	// Compute error
-	float error = utils_angle_difference(encoder_read_deg(), pos_pid_set_pos);
+	float error = angle_difference(encoder_read_deg(), pos_pid_set_pos);
 
 	// Compute parameters
 	p_term = error * conf->p_pid_kp;
@@ -1236,14 +1238,14 @@ static void run_pid_control_pos(float dt) {
 	d_term = d_filter;
 
 	// I-term wind-up protection
-	utils_truncate_number(&i_term, -1.0, 1.0);
+	truncate_number(&i_term, -1.0, 1.0);
 
 	// Store previous error
 	prev_error = error;
 
 	// Calculate output
 	float output = p_term + i_term + d_term;
-	utils_truncate_number(&output, -1.0, 1.0);
+	truncate_number(&output, -1.0, 1.0);
 
 	current_set = output * conf->lo_current_max;
 }
@@ -1261,12 +1263,12 @@ static THD_FUNCTION(rpm_thread, arg) {
 
 		if (rpm_dep.comms != 0) {
 			// GG: commutations occurred since previous rpm measure
-			utils_sys_lock_cnt();
+			sys_lock_cnt();
 			const float comms = (float)rpm_dep.comms;
 			const float time_at_comm = (float)rpm_dep.time_at_comm;
 			rpm_dep.comms = 0;
 			rpm_dep.time_at_comm = 0;
-			utils_sys_unlock_cnt();
+			sys_unlock_cnt();
 
 			rpm_now = (comms * MCPWM_RPM_TIMER_FREQ * 60.0) / (time_at_comm * 6.0);
 		} else {
@@ -1290,7 +1292,7 @@ static THD_FUNCTION(rpm_thread, arg) {
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) *
 				conf->sl_bemf_coupling_k / (rpm_abs > conf->sl_min_erpm ? rpm_abs : conf->sl_min_erpm);
 
-		rpm_dep.cycle_int_limit_running = utils_map(rpm_abs,
+		rpm_dep.cycle_int_limit_running = map(rpm_abs,
 													0,
 													conf->sl_cycle_int_rpm_br,
 													rpm_dep.cycle_int_limit_running,
@@ -1392,7 +1394,7 @@ static THD_FUNCTION(timer_thread, arg) {
 			} else {
 				dutycycle_now = -amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
 			}
-			utils_truncate_number((float*)&dutycycle_now, -conf->l_max_duty, conf->l_max_duty);
+			truncate_number((float*)&dutycycle_now, -conf->l_max_duty, conf->l_max_duty);
 		} else { //state != MC_STATE_OFF
 			tachometer_for_direction = 0;
 		}
@@ -1853,7 +1855,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
                 if (v_diff > 0) {
                     cycle_sum += conf->m_bldc_f_sw_max / switching_frequency_now;
 
-                    if (cycle_sum >= utils_map(fabsf(rpm_now), 0,
+                    if (cycle_sum >= map(fabsf(rpm_now), 0,
                             conf->sl_cycle_int_rpm_br, rpm_dep.comm_time_sum / 2.0,
                             (rpm_dep.comm_time_sum / 2.0) * conf->sl_phase_advance_at_br)) {
                         commutate(1);
@@ -1921,7 +1923,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			const float start_boost = conf->cc_startup_boost_duty * voltage_scale;
 
 			// Do not ramp too much
-			utils_truncate_number(&step, -conf->cc_ramp_step_max, conf->cc_ramp_step_max);
+			truncate_number(&step, -conf->cc_ramp_step_max, conf->cc_ramp_step_max);
 
 			// Switching frequency correction
 			step /= switching_frequency_now / 1000.0;
@@ -1933,7 +1935,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			// Optionally apply startup boost.
 			if (fabsf(dutycycle_now_tmp) < start_boost) {
-				utils_step_towards(&dutycycle_now_tmp,
+				step_towards(&dutycycle_now_tmp,
 						current_set > 0.0 ?
 								start_boost :
 								-start_boost, ramp_step);
@@ -1942,7 +1944,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			}
 
 			// Upper truncation
-			utils_truncate_number((float*)&dutycycle_now_tmp, -conf->l_max_duty, conf->l_max_duty);
+			truncate_number((float*)&dutycycle_now_tmp, -conf->l_max_duty, conf->l_max_duty);
 
 			// Lower truncation
 			if (fabsf(dutycycle_now_tmp) < conf->l_min_duty) {
@@ -1962,7 +1964,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			float step = error * conf->cc_gain * voltage_scale;
 
 			// Do not ramp too much
-			utils_truncate_number(&step, -conf->cc_ramp_step_max, conf->cc_ramp_step_max);
+			truncate_number(&step, -conf->cc_ramp_step_max, conf->cc_ramp_step_max);
 
 			// Switching frequency correction
 			step /= switching_frequency_now / 1000.0;
@@ -1975,7 +1977,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			dutycycle_now_tmp += SIGN(dutycycle_now_tmp) * step;
 
 			// Upper truncation
-			utils_truncate_number((float*)&dutycycle_now_tmp, -conf->l_max_duty, conf->l_max_duty);
+			truncate_number((float*)&dutycycle_now_tmp, -conf->l_max_duty, conf->l_max_duty);
 
 			// Lower truncation
 			if (fabsf(dutycycle_now_tmp) < conf->l_min_duty) {
@@ -1988,26 +1990,26 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				}
 			}
 		} else {
-			utils_step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
+			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
 		}
 
 		static int limit_delay = 0;
 
 		// Apply limits in priority order
 		if (current_nofilter > conf->lo_current_max) {
-			utils_step_towards((float*) &dutycycle_now, 0.0,
+			step_towards((float*) &dutycycle_now, 0.0,
 					ramp_step_no_lim * fabsf(current_nofilter - conf->lo_current_max) * conf->m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (current_nofilter < conf->lo_current_min) {
-			utils_step_towards((float*) &dutycycle_now, direction ? conf->l_max_duty : -conf->l_max_duty,
+			step_towards((float*) &dutycycle_now, direction ? conf->l_max_duty : -conf->l_max_duty,
 					ramp_step_no_lim * fabsf(current_nofilter - conf->lo_current_min) * conf->m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (current_in_nofilter > conf->lo_in_current_max) {
-			utils_step_towards((float*) &dutycycle_now, 0.0,
+			step_towards((float*) &dutycycle_now, 0.0,
 					ramp_step_no_lim * fabsf(current_in_nofilter - conf->lo_in_current_max) * conf->m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (current_in_nofilter < conf->lo_in_current_min) {
-			utils_step_towards((float*) &dutycycle_now, direction ? conf->l_max_duty : -conf->l_max_duty,
+			step_towards((float*) &dutycycle_now, direction ? conf->l_max_duty : -conf->l_max_duty,
 					ramp_step_no_lim * fabsf(current_in_nofilter - conf->lo_in_current_min) * conf->m_current_backoff_gain);
 			limit_delay = 1;
 		}
@@ -2102,7 +2104,7 @@ float mcpwm_get_detect_pos(void) {
 		res = 180 - ph[0];
 	}
 
-	utils_norm_angle(&res);
+	norm_angle(&res);
 
 	return res;
 }
@@ -2524,9 +2526,9 @@ static void commutate(int steps) {
 
 	mc_timer_struct timer_tmp;
 
-	utils_sys_lock_cnt();
+	sys_lock_cnt();
 	timer_tmp = timer_struct;
-	utils_sys_unlock_cnt();
+	sys_unlock_cnt();
 
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
@@ -2535,10 +2537,10 @@ static void commutate(int steps) {
 }
 
 static void set_next_timer_settings(mc_timer_struct const*settings) {
-	utils_sys_lock_cnt();
+	sys_lock_cnt();
 	timer_struct = *settings;
 	timer_struct.updated = false;
-	utils_sys_unlock_cnt();
+	sys_unlock_cnt();
 
 	update_timer_attempt();
 }
@@ -2548,7 +2550,7 @@ static void set_next_timer_settings(mc_timer_struct const*settings) {
  * the best I can come up with.
  */
 static void update_timer_attempt(void) {
-	utils_sys_lock_cnt();
+	sys_lock_cnt();
 
 	// Set the next timer settings if an update is far enough away
 	if (!timer_struct.updated && TIM1->CNT > 10 && TIM1->CNT < (TIM1->ARR - 500)) {
@@ -2574,16 +2576,16 @@ static void update_timer_attempt(void) {
 		timer_struct.updated = true;
 	}
 
-	utils_sys_unlock_cnt();
+	sys_unlock_cnt();
 }
 
 static void set_switching_frequency(float frequency) {
 	switching_frequency_now = frequency;
 	mc_timer_struct timer_tmp;
 
-	utils_sys_lock_cnt();
+	sys_lock_cnt();
 	timer_tmp = timer_struct;
-	utils_sys_unlock_cnt();
+	sys_unlock_cnt();
 
 	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
 	update_adc_sample_pos(&timer_tmp);

@@ -295,7 +295,7 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 			r3 = palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
 
 			recieve <<= 1;
-			if (utils_middle_of_3_int(r1, r2, r3)) {
+			if (utils::middle_of_3_int(r1, r2, r3)) {
 				recieve |= 1;
 			}
 

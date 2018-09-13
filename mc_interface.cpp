@@ -399,7 +399,7 @@ void mc_interface_set_pid_pos(float pos) {
 	m_position_set = pos;
 
 	pos *= DIR_MULT;
-	utils_norm_angle(&pos);
+	utils::norm_angle(&pos);
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
@@ -929,7 +929,7 @@ float mc_interface_get_pid_pos_now(void) {
 	}
 
 	ret *= DIR_MULT;
-	utils_norm_angle(&ret);
+	utils::norm_angle(&ret);
 
 	return ret;
 }
@@ -1033,11 +1033,11 @@ void mc_interface_fault_stop(mc_fault_code fault) {
 	if (mc_interface_dccal_done() && m_fault_now == FAULT_CODE_NONE) {
 		// Sent to terminal fault logger so that all faults and their conditions
 		// can be printed for debugging.
-		utils_sys_lock_cnt();
+		utils::sys_lock_cnt();
 		volatile int val_samp = TIM8->CCR1;
 		volatile int current_samp = TIM1->CCR4;
 		volatile int tim_top = TIM1->ARR;
-		utils_sys_unlock_cnt();
+		utils::sys_unlock_cnt();
 
 		fault_data fdata;
 		fdata.fault = fault;
@@ -1282,7 +1282,7 @@ void mc_interface_mc_timer_isr(void) {
 				zero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
 				m_phase_samples[m_sample_now] = (uint8_t)(mcpwm_foc_get_phase() / 360.0 * 250.0);
 //				m_phase_samples[m_sample_now] = (uint8_t)(mcpwm_foc_get_phase_observer() / 360.0 * 250.0);
-//				float ang = utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()) + 180.0;
+//				float ang = utils::angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()) + 180.0;
 //				m_phase_samples[m_sample_now] = (uint8_t)(ang / 360.0 * 250.0);
 			} else {
 				zero = mcpwm_vzero;
@@ -1361,8 +1361,8 @@ static void update_override_limits(volatile mc_configuration *conf) {
 			maxc = fabsf(conf->l_current_min);
 		}
 
-		maxc = utils_map(m_temp_fet, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0.0);
-
+		maxc = utils::map(m_temp_fet, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0.0);
+		using utils::SIGN;
 		if (fabsf(conf->l_current_min) > maxc) {
 			lo_min_mos = SIGN(conf->l_current_min) * maxc;
 		}
@@ -1387,8 +1387,9 @@ static void update_override_limits(volatile mc_configuration *conf) {
 			maxc = fabsf(conf->l_current_min);
 		}
 
-		maxc = utils_map(m_temp_motor, conf->l_temp_motor_start, conf->l_temp_motor_end, maxc, 0.0);
+		maxc = utils::map(m_temp_motor, conf->l_temp_motor_start, conf->l_temp_motor_end, maxc, 0.0);
 
+		using utils::SIGN;
 		if (fabsf(conf->l_current_min) > maxc) {
 			lo_min_mot = SIGN(conf->l_current_min) * maxc;
 		}
@@ -1400,10 +1401,10 @@ static void update_override_limits(volatile mc_configuration *conf) {
 
 	// Decreased temperatures during acceleration
 	// in order to still have braking torque available
-	const float temp_fet_accel_start = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_fet_start, 25.0);
-	const float temp_fet_accel_end = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_fet_end, 25.0);
-	const float temp_motor_accel_start = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_start, 25.0);
-	const float temp_motor_accel_end = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_end, 25.0);
+	const float temp_fet_accel_start = utils::map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_fet_start, 25.0);
+	const float temp_fet_accel_end = utils::map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_fet_end, 25.0);
+	const float temp_motor_accel_start = utils::map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_start, 25.0);
+	const float temp_motor_accel_end = utils::map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_end, 25.0);
 
 	float lo_fet_temp_accel = 0.0;
 	if (m_temp_fet < temp_fet_accel_start) {
@@ -1411,7 +1412,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	} else if (m_temp_fet > temp_fet_accel_end) {
 		lo_fet_temp_accel = 0.0;
 	} else {
-		lo_fet_temp_accel = utils_map(m_temp_fet, temp_fet_accel_start,
+		lo_fet_temp_accel = utils::map(m_temp_fet, temp_fet_accel_start,
 				temp_fet_accel_end, conf->l_current_max, 0.0);
 	}
 
@@ -1421,7 +1422,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	} else if (m_temp_motor > temp_motor_accel_end) {
 		lo_motor_temp_accel = 0.0;
 	} else {
-		lo_motor_temp_accel = utils_map(m_temp_motor, temp_motor_accel_start,
+		lo_motor_temp_accel = utils::map(m_temp_motor, temp_motor_accel_start,
 				temp_motor_accel_end, conf->l_current_max, 0.0);
 	}
 
@@ -1434,7 +1435,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	} else if (rpm_now > rpm_pos_cut_end) {
 		lo_max_rpm = 0.0;
 	} else {
-		lo_max_rpm = utils_map(rpm_now, rpm_pos_cut_start, rpm_pos_cut_end, conf->l_current_max, 0.0);
+		lo_max_rpm = utils::map(rpm_now, rpm_pos_cut_start, rpm_pos_cut_end, conf->l_current_max, 0.0);
 	}
 
 	// RPM min
@@ -1446,16 +1447,16 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	} else if (rpm_now < rpm_neg_cut_end) {
 		lo_min_rpm = 0.0;
 	} else {
-		lo_min_rpm = utils_map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, conf->l_current_max, 0.0);
+		lo_min_rpm = utils::map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, conf->l_current_max, 0.0);
 	}
 
-	float lo_max = utils_min_abs(lo_max_mos, lo_max_mot);
-	float lo_min = utils_min_abs(lo_min_mos, lo_min_mot);
+	float lo_max = utils::min_abs(lo_max_mos, lo_max_mot);
+	float lo_min = utils::min_abs(lo_min_mos, lo_min_mot);
 
-	lo_max = utils_min_abs(lo_max, lo_max_rpm);
-	lo_max = utils_min_abs(lo_max, lo_min_rpm);
-	lo_max = utils_min_abs(lo_max, lo_fet_temp_accel);
-	lo_max = utils_min_abs(lo_max, lo_motor_temp_accel);
+	lo_max = utils::min_abs(lo_max, lo_max_rpm);
+	lo_max = utils::min_abs(lo_max, lo_min_rpm);
+	lo_max = utils::min_abs(lo_max, lo_fet_temp_accel);
+	lo_max = utils::min_abs(lo_max, lo_motor_temp_accel);
 
 	if (lo_max < conf->cc_min_current) {
 		lo_max = conf->cc_min_current;
@@ -1475,7 +1476,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	} else if (v_in < conf->l_battery_cut_end) {
 		lo_in_max_batt = 0.0;
 	} else {
-		lo_in_max_batt = utils_map(v_in, conf->l_battery_cut_start,
+		lo_in_max_batt = utils::map(v_in, conf->l_battery_cut_start,
 				conf->l_battery_cut_end, conf->l_in_current_max, 0.0);
 	}
 
@@ -1483,11 +1484,11 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	const float lo_in_max_watt = conf->l_watt_max / v_in;
 	const float lo_in_min_watt = conf->l_watt_min / v_in;
 
-	const float lo_in_max = utils_min_abs(lo_in_max_watt, lo_in_max_batt);
+	const float lo_in_max = utils::min_abs(lo_in_max_watt, lo_in_max_batt);
 	const float lo_in_min = lo_in_min_watt;
 
-	conf->lo_in_current_max = utils_min_abs(conf->l_in_current_max, lo_in_max);
-	conf->lo_in_current_min = utils_min_abs(conf->l_in_current_min, lo_in_min);
+	conf->lo_in_current_max = utils::min_abs(conf->l_in_current_max, lo_in_max);
+	conf->lo_in_current_min = utils::min_abs(conf->l_in_current_min, lo_in_min);
 
 	// Maximum current right now
 //	float duty_abs = fabsf(mc_interface_get_duty_cycle_now());
@@ -1498,8 +1499,8 @@ static void update_override_limits(volatile mc_configuration *conf) {
 //	}
 //
 //	if (duty_abs > 0.001) {
-//		conf->lo_current_motor_max_now = utils_min_abs(conf->lo_current_max, conf->lo_in_current_max / duty_abs);
-//		conf->lo_current_motor_min_now = utils_min_abs(conf->lo_current_min, conf->lo_in_current_min / duty_abs);
+//		conf->lo_current_motor_max_now = utils::min_abs(conf->lo_current_max, conf->lo_in_current_max / duty_abs);
+//		conf->lo_current_motor_min_now = utils::min_abs(conf->lo_current_min, conf->lo_in_current_min / duty_abs);
 //	} else {
 //		conf->lo_current_motor_max_now = conf->lo_current_max;
 //		conf->lo_current_motor_min_now = conf->lo_current_min;

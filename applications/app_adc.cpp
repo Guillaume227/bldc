@@ -152,22 +152,22 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_PID_REV_CENTER:
 			// Mapping with respect to center voltage
 			if (pwr < config.voltage_center) {
-				pwr = utils_map(pwr, config.voltage_start,
+				pwr = utils::map(pwr, config.voltage_start,
 						config.voltage_center, 0.0, 0.5);
 			} else {
-				pwr = utils_map(pwr, config.voltage_center,
+				pwr = utils::map(pwr, config.voltage_center,
 						config.voltage_end, 0.5, 1.0);
 			}
 			break;
 
 		default:
 			// Linear mapping between the start and end voltage
-			pwr = utils_map(pwr, config.voltage_start, config.voltage_end, 0.0, 1.0);
+			pwr = utils::map(pwr, config.voltage_start, config.voltage_end, 0.0, 1.0);
 			break;
 		}
 
 		// Truncate the read voltage
-		utils_truncate_number(&pwr, 0.0, 1.0);
+		utils::truncate_number(&pwr, 0.0, 1.0);
 
 		// Optionally invert the read voltage
 		if (config.voltage_inverted) {
@@ -205,8 +205,8 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		// Map and truncate the read voltage
-		brake = utils_map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
-		utils_truncate_number(&brake, 0.0, 1.0);
+		brake = utils::map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
+		utils::truncate_number(&brake, 0.0, 1.0);
 
 		// Optionally invert the read voltage
 		if (config.voltage2_inverted) {
@@ -274,10 +274,10 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		// Apply deadband
-		utils_deadband(&pwr, config.hyst, 1.0);
+		utils::deadband(&pwr, config.hyst, 1.0);
 
 		// Apply throttle curve
-		pwr = utils_throttle_curve(pwr, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+		pwr = utils::throttle_curve(pwr, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
 		// Apply ramping
 		static systime_t last_time = 0;
@@ -286,7 +286,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
-			utils_step_towards(&pwr_ramp, pwr, ramp_step);
+			utils::step_towards(&pwr_ramp, pwr, ramp_step);
 			last_time = chVTGetSystemTimeX();
 			pwr = pwr_ramp;
 		}
@@ -344,7 +344,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			}
 
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
+				mc_interface_set_duty(utils::map(pwr, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
 				send_duty = true;
 			}
 			break;
@@ -515,7 +515,7 @@ static THD_FUNCTION(adc_thread, arg) {
 								}
 
 								float diff = rpm_tmp - rpm_lowest;
-								current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
+								current_out = utils::map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
 							}
 
 							if (is_reverse) {
@@ -528,7 +528,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 					if (config.tc) {
 						float diff = rpm_local - rpm_lowest;
-						current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
+						current_out = utils::map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
 					}
 				}
 

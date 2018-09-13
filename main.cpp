@@ -118,21 +118,21 @@ static THD_FUNCTION(periodic_thread, arg) {
 				break;
 
 			case DISP_POS_MODE_PID_POS_ERROR:
-				commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
+				commands_send_rotor_pos(utils::angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
 				break;
 
 			default:
 				break;
 		}
 
-		if (mc_interface_get_configuration()->motor_type == MOTOR_TYPE_FOC) {
+		if (mc_interface_get_configuration().motor_type == MOTOR_TYPE_FOC) {
 			switch (display_mode) {
 			case DISP_POS_MODE_OBSERVER:
 				commands_send_rotor_pos(mcpwm_foc_get_phase_observer());
 				break;
 
 			case DISP_POS_MODE_ENCODER_OBSERVER_ERROR:
-				commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
+				commands_send_rotor_pos(utils::angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
 				break;
 
 			default:
@@ -145,7 +145,7 @@ static THD_FUNCTION(periodic_thread, arg) {
 		chThdSleepMilliseconds(10);
 
 //		chThdSleepMilliseconds(40);
-//		volatile const mc_configuration *conf = mc_interface_get_configuration();
+//		auto const& conf = mc_interface_get_configuration();
 //		float vq = mcpwm_foc_get_vq();
 //		float iq = mc_interface_get_tot_current_directional();
 //		float linkage = conf->foc_motor_flux_linkage;
@@ -155,14 +155,14 @@ static THD_FUNCTION(periodic_thread, arg) {
 //			float res = vq / (linkage * speed * iq);
 //			res *= 2.0 / 3.0;
 //			static float res_filtered = 0.0;
-//			UTILS_LP_FAST(res_filtered, res, 0.02);
+//			utils::LP_FAST(res_filtered, res, 0.02);
 //			commands_printf("Res: %.4f", (double)res_filtered);
 //		}
 
 //		chThdSleepMilliseconds(40);
 //		commands_printf("Max: %.2f Min: %.2f",
-//				(double)mc_interface_get_configuration()->lo_current_motor_max_now,
-//				(double)mc_interface_get_configuration()->lo_current_motor_min_now);
+//				(double)mc_interface_get_configuration().lo_current_motor_max_now,
+//				(double)mc_interface_get_configuration().lo_current_motor_min_now);
 	}
 }
 
