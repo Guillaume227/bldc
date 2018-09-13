@@ -221,7 +221,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		break;
 
 	case COMM_SET_DETECT:
-		mcconf = *mc_interface_get_configuration();
+		mcconf = mc_interface_get_configuration();
 
 		ind = 0;
 		display_position_mode = data[ind++];
@@ -245,7 +245,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		break;
 
 	case COMM_SET_MCCONF:
-		mcconf = *mc_interface_get_configuration();
+		mcconf = mc_interface_get_configuration();
 
 		ind = 0;
 		mcconf.pwm_mode = data[ind++];
@@ -405,7 +405,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_GET_MCCONF:
 	case COMM_GET_MCCONF_DEFAULT:
 		if (packet_id == COMM_GET_MCCONF) {
-			mcconf = *mc_interface_get_configuration();
+			mcconf = mc_interface_get_configuration();
 		} else {
 			conf_general_get_default_mc_configuration(&mcconf);
 		}
@@ -648,7 +648,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		break;
 
 	case COMM_DETECT_MOTOR_R_L: {
-		mcconf = *mc_interface_get_configuration();
+		mcconf = mc_interface_get_configuration();
 		mcconf_old = mcconf;
 
 		send_func_last = send_func;
@@ -707,7 +707,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 	case COMM_DETECT_ENCODER: {
 		if (encoder_is_configured()) {
-			mcconf = *mc_interface_get_configuration();
+			mcconf = mc_interface_get_configuration();
 			mcconf_old = mcconf;
 
 			send_func_last = send_func;
@@ -749,7 +749,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	break;
 
 	case COMM_DETECT_HALL_FOC: {
-		mcconf = *mc_interface_get_configuration();
+		mcconf = mc_interface_get_configuration();
 
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_HALL) {
 			mcconf_old = mcconf;

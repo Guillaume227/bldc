@@ -294,7 +294,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		float current_rel = 0.0;
 		bool current_mode = false;
 		bool current_mode_brake = false;
-		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+		auto const& mcconf = mc_interface_get_configuration();
 		const float rpm_now = mc_interface_get_rpm();
 		bool send_duty = false;
 
@@ -344,7 +344,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			}
 
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
+				mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
 				send_duty = true;
 			}
 			break;
@@ -361,9 +361,9 @@ static THD_FUNCTION(adc_thread, arg) {
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
 				float speed = 0.0;
 				if (pwr >= 0.0) {
-					speed = pwr * mcconf->l_max_erpm;
+					speed = pwr * mcconf.l_max_erpm;
 				} else {
-					speed = pwr * fabsf(mcconf->l_min_erpm);
+					speed = pwr * fabsf(mcconf.l_min_erpm);
 				}
 
 				mc_interface_set_pid_speed(speed);

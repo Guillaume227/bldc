@@ -140,7 +140,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			return;
 		}
 
-		const mc_configuration *mcconf = mc_interface_get_configuration();
+		auto const& mcconf = mc_interface_get_configuration();
 		const float rpm_now = mc_interface_get_rpm();
 		float servo_val = servodec_get_servo(0);
 		float servo_ms = utils_map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
@@ -201,9 +201,9 @@ static THD_FUNCTION(ppm_thread, arg) {
 		case PPM_CTRL_TYPE_CURRENT_NOREV:
 			current_mode = true;
 			if ((servo_val >= 0.0 && rpm_now > 0.0) || (servo_val < 0.0 && rpm_now < 0.0)) {
-				current = servo_val * mcconf->lo_current_motor_max_now;
+				current = servo_val * mcconf.lo_current_motor_max_now;
 			} else {
-				current = servo_val * fabsf(mcconf->lo_current_motor_min_now);
+				current = servo_val * fabsf(mcconf.lo_current_motor_min_now);
 			}
 
 			if (fabsf(servo_val) < 0.001) {
@@ -214,9 +214,9 @@ static THD_FUNCTION(ppm_thread, arg) {
 		case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
 			current_mode = true;
 			if (servo_val >= 0.0) {
-				current = servo_val * mcconf->lo_current_motor_max_now;
+				current = servo_val * mcconf.lo_current_motor_max_now;
 			} else {
-				current = fabsf(servo_val * mcconf->lo_current_motor_min_now);
+				current = fabsf(servo_val * mcconf.lo_current_motor_min_now);
 				current_mode_brake = true;
 			}
 
@@ -232,7 +232,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils_map(servo_val, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
+				mc_interface_set_duty(utils_map(servo_val, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
 				send_current = true;
 			}
 			break;
@@ -329,7 +329,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 								float diff = rpm_tmp - rpm_lowest;
 								current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
-								if (current_out < mcconf->cc_min_current) {
+								if (current_out < mcconf.cc_min_current) {
 									current_out = 0.0;
 								}
 							}
@@ -345,7 +345,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 					if (config.tc) {
 						float diff = rpm_local - rpm_lowest;
 						current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
-						if (current_out < mcconf->cc_min_current) {
+						if (current_out < mcconf.cc_min_current) {
 							current_out = 0.0;
 						}
 					}

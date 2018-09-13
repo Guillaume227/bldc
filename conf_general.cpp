@@ -431,7 +431,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	int ok_steps = 0;
 	const float spinup_to_duty = 0.5;
 
-	mcconf = *mc_interface_get_configuration();
+	mcconf = mc_interface_get_configuration();
 	mcconf_old = mcconf;
 
 	mcconf.motor_type = MOTOR_TYPE_BLDC;
@@ -643,7 +643,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
  */
 bool conf_general_measure_flux_linkage(float current, float duty,
 		float min_erpm, float res, float *linkage) {
-	mcconf = *mc_interface_get_configuration();
+	mcconf = mc_interface_get_configuration();
 	mcconf_old = mcconf;
 
 	mcconf.motor_type = MOTOR_TYPE_BLDC;

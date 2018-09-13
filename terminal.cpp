@@ -73,7 +73,7 @@ void terminal_process_string(char *str) {
 
 	static mc_configuration mcconf; // static to save some stack
 	static mc_configuration mcconf_old; // static to save some stack
-	mcconf = *mc_interface_get_configuration();
+	mcconf = mc_interface_get_configuration();
 	mcconf_old = mcconf;
 
 	if (strcmp(argv[0], "ping") == 0) {

@@ -216,12 +216,12 @@ static THD_FUNCTION(output_thread, arg) {
 			continue;
 		}
 
-		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+		auto const& mcconf = mc_interface_get_configuration();
 		static bool is_reverse = false;
 		static bool was_z = false;
 		const float current_now = mc_interface_get_tot_current_directional_filtered();
 		static float prev_current = 0.0;
-		const float max_current_diff = mcconf->l_current_max * 0.2;
+		const float max_current_diff = mcconf.l_current_max * 0.2;
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
 			led_external_set_state(LED_EXT_BATT);
@@ -289,7 +289,7 @@ static THD_FUNCTION(output_thread, arg) {
 				pid_rpm = rpm_filtered;
 
 				if ((is_reverse && pid_rpm > 0.0) || (!is_reverse && pid_rpm < 0.0)) {
-					if (fabsf(pid_rpm) > mcconf->s_pid_min_erpm) {
+					if (fabsf(pid_rpm) > mcconf.s_pid_min_erpm) {
 						// Abort if the speed is too high in the opposite direction
 						continue;
 					} else {
@@ -349,9 +349,9 @@ static THD_FUNCTION(output_thread, arg) {
 		float current = 0;
 
 		if (out_val >= 0.0) {
-			current = out_val * mcconf->lo_current_motor_max_now;
+			current = out_val * mcconf.lo_current_motor_max_now;
 		} else {
-			current = out_val * fabsf(mcconf->lo_current_motor_min_now);
+			current = out_val * fabsf(mcconf.lo_current_motor_min_now);
 		}
 
 		// Find lowest RPM and highest current
@@ -391,7 +391,7 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		// Apply ramping
-		const float current_range = mcconf->l_current_max + fabsf(mcconf->l_current_min);
+		const float current_range = mcconf.l_current_max + fabsf(mcconf.l_current_min);
 		const float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
 
 		if (ramp_time > 0.01) {
@@ -454,7 +454,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 							float diff = rpm_tmp - rpm_lowest;
 							current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
-							if (current_out < mcconf->cc_min_current) {
+							if (current_out < mcconf.cc_min_current) {
 								current_out = 0.0;
 							}
 						}
@@ -470,7 +470,7 @@ static THD_FUNCTION(output_thread, arg) {
 				if (config.tc) {
 					float diff = rpm_local - rpm_lowest;
 					current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
-					if (current_out < mcconf->cc_min_current) {
+					if (current_out < mcconf.cc_min_current) {
 						current_out = 0.0;
 					}
 				}

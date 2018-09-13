@@ -24,8 +24,8 @@
 #include "hw.h"
 
 // Functions
-void mc_interface_init(mc_configuration *configuration);
-const mc_configuration* mc_interface_get_configuration(void);
+void mc_interface_init(mc_configuration const*configuration);
+mc_configuration const& mc_interface_get_configuration(void);
 void mc_interface_set_configuration(mc_configuration *configuration);
 void mc_interface_set_pwm_callback(void (*p_func)(void));
 void mc_interface_lock(void);
@@ -62,7 +62,7 @@ float mc_interface_get_tot_current_in(void);
 float mc_interface_get_tot_current_in_filtered(void);
 int mc_interface_get_tachometer_value(bool reset);
 int mc_interface_get_tachometer_abs_value(bool reset);
-float mc_interface_get_last_inj_adc_isr_duration(void);
+float mc_interface_get_last_inj_adc_isr_duration(void); // in microseconds
 float mc_interface_read_reset_avg_motor_current(void);
 float mc_interface_read_reset_avg_input_current(void);
 float mc_interface_read_reset_avg_id(void);
@@ -93,6 +93,6 @@ extern volatile int ADC_curr_norm_value[];
 #define HW_DEAD_TIME_VALUE	60 // Dead time
 #endif
 
-#define TIM12_FREQ 10000000 // 10 MHz / 100ns
+#define TIM12_FREQ 10000000 // 10 MHz = 100ns
 
 #endif /* MC_INTERFACE_H_ */

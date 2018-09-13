@@ -104,7 +104,7 @@ static THD_WORKING_AREA(sample_send_thread_wa, 1024);
 static THD_FUNCTION(sample_send_thread, arg);
 static thread_t *sample_send_tp;
 
-void mc_interface_init(mc_configuration *configuration) {
+void mc_interface_init(mc_configuration const*configuration) {
 	m_conf = *configuration;
 	m_fault_now = FAULT_CODE_NONE;
 	m_ignore_iterations = 0;
@@ -179,8 +179,8 @@ void mc_interface_init(mc_configuration *configuration) {
 	}
 }
 
-const mc_configuration* mc_interface_get_configuration(void) {
-	return &m_conf;
+mc_configuration const& mc_interface_get_configuration(void) {
+	return m_conf;
 }
 
 void mc_interface_set_configuration(mc_configuration *configuration) {
