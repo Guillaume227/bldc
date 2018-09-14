@@ -941,7 +941,7 @@ float mcpwm_foc_get_vq(void) {
  * The detected direction.
  */
 void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted) {
-	mc_interface_lock();
+	mc_interface::lock();
 
 	m_phase_override = true;
 	m_id_set = current;
@@ -1139,7 +1139,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	// Enable timeout
 	timeout_configure(tout, tout_c);
 
-	mc_interface_unlock();
+	mc_interface::unlock();
 }
 
 /**
@@ -1156,7 +1156,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
  * The calculated motor resistance.
  */
 float mcpwm_foc_measure_resistance(float current, int samples) {
-	mc_interface_lock();
+	mc_interface::lock();
 
 	m_phase_override = true;
 	m_phase_now_override = 0.0;
@@ -1203,7 +1203,7 @@ float mcpwm_foc_measure_resistance(float current, int samples) {
 	// Enable timeout
 	timeout_configure(tout, tout_c);
 
-	mc_interface_unlock();
+	mc_interface::unlock();
 
 	return (voltage_avg / current_avg) * (2.0 / 3.0);
 }
@@ -1235,7 +1235,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr) {
 	timeout_reset();
 	timeout_configure(60000, 0.0);
 
-	mc_interface_lock();
+	mc_interface::lock();
 
 	int to_cnt = 0;
 	for (int i = 0;i < samples;i++) {
@@ -1257,7 +1257,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr) {
 	// Enable timeout
 	timeout_configure(tout, tout_c);
 
-	mc_interface_unlock();
+	mc_interface::unlock();
 
 	float avg_current = m_samples.avg_current_tot / (float)m_samples.sample_num;
 	float avg_voltage = m_samples.avg_voltage_tot / (float)m_samples.sample_num;
@@ -1353,7 +1353,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
  * false: Something went wrong
  */
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
-	mc_interface_lock();
+	mc_interface::lock();
 
 	m_phase_override = true;
 	m_id_set = current;
@@ -1430,7 +1430,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 		}
 	}
 
-	mc_interface_unlock();
+	mc_interface::unlock();
 
 	return fails == 2;
 }
@@ -1939,7 +1939,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	}
 
 	// MCIF handler
-	mc_interface_mc_timer_isr();
+	mc_interface::mc_timer_isr();
 
 	last_inj_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
 }
@@ -2085,7 +2085,7 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 	R -= R * sign * m_conf->foc_sat_comp * (m_motor_state.i_abs_filter / m_conf->l_current_max);
 
 	// Temperature compensation
-	const float t = mc_interface_temp_motor_filtered();
+	const float t = mc_interface::temp_motor_filtered();
 	if (m_conf->foc_temp_comp && t > -5.0) {
 		R += R * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);
 	}
@@ -2203,7 +2203,7 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	state_m->vq = state_m->vq_int + Ierr_q * m_conf->foc_current_kp;
 
 	// Temperature compensation
-	const float t = mc_interface_temp_motor_filtered();
+	const float t = mc_interface::temp_motor_filtered();
 	float ki = m_conf->foc_current_ki;
 	if (m_conf->foc_temp_comp && t > -5.0) {
 		ki += ki * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);

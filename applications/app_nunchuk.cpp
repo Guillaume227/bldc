@@ -216,10 +216,10 @@ static THD_FUNCTION(output_thread, arg) {
 			continue;
 		}
 
-		auto const& mcconf = mc_interface_get_configuration();
+		auto const& mcconf = mc_interface::get_configuration();
 		static bool is_reverse = false;
 		static bool was_z = false;
-		const float current_now = mc_interface_get_tot_current_directional_filtered();
+		const float current_now = mc_interface::get_tot_current_directional_filtered();
 		static float prev_current = 0.0;
 		const float max_current_diff = mcconf.l_current_max * 0.2;
 
@@ -271,7 +271,7 @@ static THD_FUNCTION(output_thread, arg) {
 		// Filter RPM to avoid glitches
 		static float filter_buffer[RPM_FILTER_SAMPLES];
 		static int filter_ptr = 0;
-		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
+		filter_buffer[filter_ptr++] = mc_interface::get_rpm();
 		if (filter_ptr >= RPM_FILTER_SAMPLES) {
 			filter_ptr = 0;
 		}
@@ -322,11 +322,11 @@ static THD_FUNCTION(output_thread, arg) {
 				}
 			}
 
-			mc_interface_set_pid_speed(pid_rpm);
+			mc_interface::set_pid_speed(pid_rpm);
 
 			// Send the same current to the other controllers
 			if (config.multi_esc) {
-				float current = mc_interface_get_tot_current_directional_filtered();
+				float current = mc_interface::get_tot_current_directional_filtered();
 
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 					can_status_msg *msg = comm_can_get_status_msg_index(i);
@@ -355,7 +355,7 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		// Find lowest RPM and highest current
-		float rpm_local = mc_interface_get_rpm();
+		float rpm_local = mc_interface::get_rpm();
 		if (is_reverse) {
 			rpm_local = -rpm_local;
 		}
@@ -427,7 +427,7 @@ static THD_FUNCTION(output_thread, arg) {
 		prev_current = current;
 
 		if (current < 0.0) {
-			mc_interface_set_brake_current(current);
+			mc_interface::set_brake_current(current);
 
 			// Send brake command to all ESCs seen recently on the CAN bus
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -477,9 +477,9 @@ static THD_FUNCTION(output_thread, arg) {
 			}
 
 			if (is_reverse) {
-				mc_interface_set_current(-current_out);
+				mc_interface::set_current(-current_out);
 			} else {
-				mc_interface_set_current(current_out);
+				mc_interface::set_current(current_out);
 			}
 		}
 	}

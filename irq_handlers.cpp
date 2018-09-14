@@ -30,7 +30,7 @@ extern "C" {
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
 	ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
-	mc_interface_adc_inj_int_handler();
+	mc_interface::adc_inj_int_handler();
 	CH_IRQ_EPILOGUE();
 }
 

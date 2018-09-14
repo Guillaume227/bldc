@@ -324,11 +324,11 @@ void conf_general_read_app_configuration(app_configuration *conf) {
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_app_configuration(app_configuration const*conf) {
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface::unlock();
+	mc_interface::release_motor();
 
 	utils::sys_lock_cnt();
-	mc_interface_lock();
+	mc_interface::lock();
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
@@ -352,7 +352,7 @@ bool conf_general_store_app_configuration(app_configuration const*conf) {
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
 
 	chThdSleepMilliseconds(100);
-	mc_interface_unlock();
+	mc_interface::unlock();
 	utils::sys_unlock_cnt();
 
 	return is_ok;
@@ -391,11 +391,11 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_mc_configuration(mc_configuration const*conf) {
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface::unlock();
+	mc_interface::release_motor();
 
 	utils::sys_lock_cnt();
-	mc_interface_lock();
+	mc_interface::lock();
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
@@ -419,7 +419,7 @@ bool conf_general_store_mc_configuration(mc_configuration const*conf) {
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
 
 	chThdSleepMilliseconds(100);
-	mc_interface_unlock();
+	mc_interface::unlock();
 	utils::sys_unlock_cnt();
 
 	return is_ok;
@@ -431,7 +431,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	int ok_steps = 0;
 	const float spinup_to_duty = 0.5;
 
-	mcconf = mc_interface_get_configuration();
+	mcconf = mc_interface::get_configuration();
 	mcconf_old = mcconf;
 
 	mcconf.motor_type = MOTOR_TYPE_BLDC;
@@ -443,11 +443,11 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	mcconf.sl_cycle_int_limit = 50;
 	mcconf.sl_min_erpm_cycle_int_limit = 1100;
 	mcconf.m_invert_direction = false;
-	mc_interface_set_configuration(&mcconf);
+	mc_interface::set_configuration(&mcconf);
 
 	// Wait maximum 5s for fault code to disappear
 	for (int i = 0;i < 500;i++) {
-		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
+		if (mc_interface::get_fault() == FAULT_CODE_NONE) {
 			break;
 		}
 		chThdSleepMilliseconds(10);
@@ -463,46 +463,46 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	timeout_reset();
 	timeout_configure(60000, 0.0);
 
-	mc_interface_lock();
+	mc_interface::lock();
 
-	mc_interface_lock_override_once();
-	mc_interface_set_current(current);
+	mc_interface::lock_override_once();
+	mc_interface::set_current(current);
 
 	// Try to spin up the motor. Up to three attempts with different settings are made.
 	bool started = false;
 	for (int i = 0;i < 3;i++) {
 		if (i == 1) {
-			mc_interface_lock_override_once();
-			mc_interface_release_motor();
+			mc_interface::lock_override_once();
+			mc_interface::release_motor();
 			mcconf.sl_min_erpm = 2 * min_rpm;
 			mcconf.sl_cycle_int_limit = 20;
-			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
+			mc_interface::lock_override_once();
+			mc_interface::set_configuration(&mcconf);
 			chThdSleepMilliseconds(1000);
-			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
+			mc_interface::lock_override_once();
+			mc_interface::set_current(current);
 		} else if (i == 2) {
-			mc_interface_lock_override_once();
-			mc_interface_release_motor();
+			mc_interface::lock_override_once();
+			mc_interface::release_motor();
 			mcconf.sl_min_erpm = 4 * min_rpm;
 			mcconf.comm_mode = COMM_MODE_DELAY;
-			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
+			mc_interface::lock_override_once();
+			mc_interface::set_configuration(&mcconf);
 			chThdSleepMilliseconds(1000);
-			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
+			mc_interface::lock_override_once();
+			mc_interface::set_current(current);
 		}
 
 		int cnt = 0;
 		bool switch_done = false;
 		started = true;
 
-		while (mc_interface_get_duty_cycle_now() < spinup_to_duty) {
+		while (mc_interface::get_duty_cycle_now() < spinup_to_duty) {
 			chThdSleepMilliseconds(1);
 			cnt++;
 
-			if (mc_interface_get_duty_cycle_now() >= (spinup_to_duty / 2.0) && !switch_done) {
-				mcpwm_switch_comm_mode(COMM_MODE_DELAY);
+			if (mc_interface::get_duty_cycle_now() >= (spinup_to_duty / 2.0) && !switch_done) {
+				mcpwm::switch_comm_mode(COMM_MODE_DELAY);
 				switch_done = true;
 			}
 
@@ -523,29 +523,29 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	}
 
 	if (!started) {
-		mc_interface_set_current(0.0);
+		mc_interface::set_current(0.0);
 		timeout_configure(tout, tout_c);
-		mc_interface_set_configuration(&mcconf_old);
-		mc_interface_unlock();
+		mc_interface::set_configuration(&mcconf_old);
+		mc_interface::unlock();
 		return false;
 	}
 
 	ok_steps++;
 
 	// Reset hall sensor samples
-	mcpwm_reset_hall_detect_table();
+	mcpwm::reset_hall_detect_table();
 
 	// Run for a while to get hall sensor samples
-	mc_interface_lock_override_once();
-	mc_interface_set_duty(spinup_to_duty);
+	mc_interface::lock_override_once();
+	mc_interface::set_duty(spinup_to_duty);
 	chThdSleepMilliseconds(400);
 
 	// Release the motor and wait a few commutations
-	mc_interface_lock_override_once();
-	mc_interface_set_current(0.0);
-	int tacho = mc_interface_get_tachometer_value(0);
+	mc_interface::lock_override_once();
+	mc_interface::set_current(0.0);
+	int tacho = mc_interface::get_tachometer_value(0);
 	for (int i = 0;i < 2000;i++) {
-		if ((mc_interface_get_tachometer_value(0) - tacho) < 3) {
+		if ((mc_interface::get_tachometer_value(0) - tacho) < 3) {
 			chThdSleepMilliseconds(1);
 		} else {
 			ok_steps++;
@@ -554,10 +554,10 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	}
 
 	// Average the cycle integrator for 50 commutations
-	mcpwm_read_reset_avg_cycle_integrator();
-	tacho = mc_interface_get_tachometer_value(false);
+	mcpwm::read_reset_avg_cycle_integrator();
+	tacho = mc_interface::get_tachometer_value(false);
 	for (int i = 0;i < 3000;i++) {
-		if ((mc_interface_get_tachometer_value(false) - tacho) < 50) {
+		if ((mc_interface::get_tachometer_value(false) - tacho) < 50) {
 			chThdSleepMilliseconds(1);
 		} else {
 			ok_steps++;
@@ -566,13 +566,13 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	}
 
 	// Get hall detect result
-	*hall_res = mcpwm_get_hall_detect_result(hall_table);
+	*hall_res = mcpwm::get_hall_detect_result(hall_table);
 
-	*int_limit = mcpwm_read_reset_avg_cycle_integrator();
+	*int_limit = mcpwm::read_reset_avg_cycle_integrator();
 
 	// Wait for the motor to slow down
 	for (int i = 0;i < 5000;i++) {
-		if (mc_interface_get_duty_cycle_now() > low_duty) {
+		if (mc_interface::get_duty_cycle_now() > low_duty) {
 			chThdSleepMilliseconds(1);
 		} else {
 			ok_steps++;
@@ -580,17 +580,17 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		}
 	}
 
-	mc_interface_lock_override_once();
-	mc_interface_set_duty(low_duty);
+	mc_interface::lock_override_once();
+	mc_interface::set_duty(low_duty);
 
 	// Average the cycle integrator for 100 commutations
-	mcpwm_read_reset_avg_cycle_integrator();
-	tacho = mc_interface_get_tachometer_value(0);
+	mcpwm::read_reset_avg_cycle_integrator();
+	tacho = mc_interface::get_tachometer_value(0);
 	float rpm_sum = 0.0;
 	float rpm_iterations = 0.0;
 	for (int i = 0;i < 3000;i++) {
-		if ((mc_interface_get_tachometer_value(0) - tacho) < 100) {
-			rpm_sum += mc_interface_get_rpm();
+		if ((mc_interface::get_tachometer_value(0) - tacho) < 100) {
+			rpm_sum += mc_interface::get_rpm();
 			rpm_iterations += 1;
 			chThdSleepMilliseconds(1);
 		} else {
@@ -599,11 +599,11 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		}
 	}
 
-	float avg_cycle_integrator_running = mcpwm_read_reset_avg_cycle_integrator();
+	float avg_cycle_integrator_running = mcpwm::read_reset_avg_cycle_integrator();
 	float rpm = rpm_sum / rpm_iterations;
 
-	mc_interface_lock_override_once();
-	mc_interface_release_motor();
+	mc_interface::lock_override_once();
+	mc_interface::release_motor();
 
 	// Try to figure out the coupling factor
 	avg_cycle_integrator_running -= *int_limit;
@@ -612,10 +612,10 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	*bemf_coupling_k = avg_cycle_integrator_running;
 
 	// Restore settings
-	mc_interface_set_configuration(&mcconf_old);
+	mc_interface::set_configuration(&mcconf_old);
 	timeout_configure(tout, tout_c);
 
-	mc_interface_unlock();
+	mc_interface::unlock();
 
 	return ok_steps == 5 ? true : false;
 }
@@ -643,7 +643,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
  */
 bool conf_general_measure_flux_linkage(float current, float duty,
 		float min_erpm, float res, float *linkage) {
-	mcconf = mc_interface_get_configuration();
+	mcconf = mc_interface::get_configuration();
 	mcconf_old = mcconf;
 
 	mcconf.motor_type = MOTOR_TYPE_BLDC;
@@ -655,11 +655,11 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	mcconf.sl_bemf_coupling_k = 300;
 	mcconf.sl_cycle_int_limit = 50;
 	mcconf.sl_min_erpm_cycle_int_limit = 1100;
-	mc_interface_set_configuration(&mcconf);
+	mc_interface::set_configuration(&mcconf);
 
 	// Wait maximum 5s for fault code to disappear
 	for (int i = 0;i < 500;i++) {
-		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
+		if (mc_interface::get_fault() == FAULT_CODE_NONE) {
 			break;
 		}
 		chThdSleepMilliseconds(10);
@@ -676,55 +676,55 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	timeout_reset();
 	timeout_configure(60000, 0.0);
 
-	mc_interface_lock();
+	mc_interface::lock();
 
-	mc_interface_lock_override_once();
-	mc_interface_set_current(current);
+	mc_interface::lock_override_once();
+	mc_interface::set_current(current);
 
 	// Try to spin up the motor. Up to three attempts with different settings are made.
 	bool started = false;
 	for (int i = 0;i < 4;i++) {
 		if (i == 1) {
-			mc_interface_lock_override_once();
-			mc_interface_release_motor();
+			mc_interface::lock_override_once();
+			mc_interface::release_motor();
 			mcconf.sl_cycle_int_limit = 250;
-			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
+			mc_interface::lock_override_once();
+			mc_interface::set_configuration(&mcconf);
 			chThdSleepMilliseconds(1000);
-			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
+			mc_interface::lock_override_once();
+			mc_interface::set_current(current);
 		} else if (i == 2) {
-			mc_interface_lock_override_once();
-			mc_interface_release_motor();
+			mc_interface::lock_override_once();
+			mc_interface::release_motor();
 			mcconf.sl_min_erpm = 2 * min_erpm;
 			mcconf.sl_cycle_int_limit = 20;
-			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
+			mc_interface::lock_override_once();
+			mc_interface::set_configuration(&mcconf);
 			chThdSleepMilliseconds(1000);
-			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
+			mc_interface::lock_override_once();
+			mc_interface::set_current(current);
 		} else if (i == 3) {
-			mc_interface_lock_override_once();
-			mc_interface_release_motor();
+			mc_interface::lock_override_once();
+			mc_interface::release_motor();
 			mcconf.sl_min_erpm = 4 * min_erpm;
 			mcconf.comm_mode = COMM_MODE_DELAY;
-			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
+			mc_interface::lock_override_once();
+			mc_interface::set_configuration(&mcconf);
 			chThdSleepMilliseconds(1000);
-			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
+			mc_interface::lock_override_once();
+			mc_interface::set_current(current);
 		}
 
 		int cnt = 0;
 		bool switch_done = false;
 		started = true;
 
-		while (mc_interface_get_duty_cycle_now() < duty) {
+		while (mc_interface::get_duty_cycle_now() < duty) {
 			chThdSleepMilliseconds(1);
 			cnt++;
 
-			if (mc_interface_get_duty_cycle_now() >= (duty / 2.0) && !switch_done) {
-				mcpwm_switch_comm_mode(COMM_MODE_DELAY);
+			if (mc_interface::get_duty_cycle_now() >= (duty / 2.0) && !switch_done) {
+				mcpwm::switch_comm_mode(COMM_MODE_DELAY);
 				switch_done = true;
 			}
 
@@ -745,32 +745,32 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	}
 
 	if (!started) {
-		mc_interface_set_current(0.0);
+		mc_interface::set_current(0.0);
 		timeout_configure(tout, tout_c);
-		mc_interface_set_configuration(&mcconf_old);
-		mc_interface_unlock();
+		mc_interface::set_configuration(&mcconf_old);
+		mc_interface::unlock();
 		return false;
 	}
 
-	mc_interface_lock_override_once();
-	mc_interface_set_duty(duty);
+	mc_interface::lock_override_once();
+	mc_interface::set_duty(duty);
 
 	float avg_voltage = 0.0;
 	float avg_rpm = 0.0;
 	float avg_current = 0.0;
 	float samples = 0.0;
 	for (int i = 0;i < 2000;i++) {
-		avg_voltage += GET_INPUT_VOLTAGE() * mc_interface_get_duty_cycle_now();
-		avg_rpm += mc_interface_get_rpm();
-		avg_current += mc_interface_get_tot_current();
+		avg_voltage += GET_INPUT_VOLTAGE() * mc_interface::get_duty_cycle_now();
+		avg_rpm += mc_interface::get_rpm();
+		avg_current += mc_interface::get_tot_current();
 		samples += 1.0;
 		chThdSleepMilliseconds(1.0);
 	}
 
 	timeout_configure(tout, tout_c);
-	mc_interface_set_configuration(&mcconf_old);
-	mc_interface_unlock();
-	mc_interface_set_current(0.0);
+	mc_interface::set_configuration(&mcconf_old);
+	mc_interface::unlock();
+	mc_interface::set_current(0.0);
 
 	avg_voltage /= samples;
 	avg_rpm /= samples;

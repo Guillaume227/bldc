@@ -171,31 +171,31 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 					switch (cmd) {
 					case CAN_PACKET_SET_DUTY:
 						ind = 0;
-						mc_interface_set_duty(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						mc_interface::set_duty(buffer_get_float32(rxmsg.data8, 1e5, &ind));
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT:
 						ind = 0;
-						mc_interface_set_current(buffer_get_float32(rxmsg.data8, 1e3, &ind));
+						mc_interface::set_current(buffer_get_float32(rxmsg.data8, 1e3, &ind));
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_BRAKE:
 						ind = 0;
-						mc_interface_set_brake_current(buffer_get_float32(rxmsg.data8, 1e3, &ind));
+						mc_interface::set_brake_current(buffer_get_float32(rxmsg.data8, 1e3, &ind));
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_RPM:
 						ind = 0;
-						mc_interface_set_pid_speed(buffer_get_float32(rxmsg.data8, 1e0, &ind));
+						mc_interface::set_pid_speed(buffer_get_float32(rxmsg.data8, 1e0, &ind));
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_POS:
 						ind = 0;
-						mc_interface_set_pid_pos(buffer_get_float32(rxmsg.data8, 1e6, &ind));
+						mc_interface::set_pid_pos(buffer_get_float32(rxmsg.data8, 1e6, &ind));
 						timeout_reset();
 						break;
 
@@ -253,25 +253,25 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 					case CAN_PACKET_SET_CURRENT_REL:
 						ind = 0;
-						mc_interface_set_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						mc_interface::set_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_BRAKE_REL:
 						ind = 0;
-						mc_interface_set_brake_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						mc_interface::set_brake_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_HANDBRAKE:
 						ind = 0;
-						mc_interface_set_handbrake(buffer_get_float32(rxmsg.data8, 1e3, &ind));
+						mc_interface::set_handbrake(buffer_get_float32(rxmsg.data8, 1e3, &ind));
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_HANDBRAKE_REL:
 						ind = 0;
-						mc_interface_set_handbrake_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						mc_interface::set_handbrake_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
 						timeout_reset();
 						break;
 
@@ -321,9 +321,9 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 			// Send status message
 			int32_t send_index = 0;
 			uint8_t buffer[8];
-			buffer_append_int32(buffer, (int32_t)mc_interface_get_rpm(), &send_index);
-			buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current() * 10.0), &send_index);
-			buffer_append_int16(buffer, (int16_t)(mc_interface_get_duty_cycle_now() * 1000.0), &send_index);
+			buffer_append_int32(buffer, (int32_t)mc_interface::get_rpm(), &send_index);
+			buffer_append_int16(buffer, (int16_t)(mc_interface::get_tot_current() * 10.0), &send_index);
+			buffer_append_int16(buffer, (int16_t)(mc_interface::get_duty_cycle_now() * 1000.0), &send_index);
 			comm_can_transmit_eid(app_get_configuration()->controller_id |
 					((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
 		}

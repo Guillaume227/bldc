@@ -140,8 +140,8 @@ static THD_FUNCTION(ppm_thread, arg) {
 			return;
 		}
 
-		auto const& mcconf = mc_interface_get_configuration();
-		const float rpm_now = mc_interface_get_rpm();
+		auto const& mcconf = mc_interface::get_configuration();
+		const float rpm_now = mc_interface::get_rpm();
 		float servo_val = servodec_get_servo(0);
 		float servo_ms = utils::map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
 
@@ -168,7 +168,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		}
 
 		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec() ||
-				mc_interface_get_fault() != FAULT_CODE_NONE) {
+				mc_interface::get_fault() != FAULT_CODE_NONE) {
 			pulses_without_power = 0;
 			continue;
 		}
@@ -232,7 +232,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils::map(servo_val, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
+				mc_interface::set_duty(utils::map(servo_val, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
 				send_current = true;
 			}
 			break;
@@ -244,7 +244,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_pid_speed(servo_val * config.pid_max_erpm);
+				mc_interface::set_pid_speed(servo_val * config.pid_max_erpm);
 				send_current = true;
 			}
 			break;
@@ -259,12 +259,12 @@ static THD_FUNCTION(ppm_thread, arg) {
 				pulses_without_power = 0;
 			}
 			pulses_without_power_before = pulses_without_power;
-			mc_interface_set_brake_current(timeout_get_brake_current());
+			mc_interface::set_brake_current(timeout_get_brake_current());
 			continue;
 		}
 
 		// Find lowest RPM
-		float rpm_local = mc_interface_get_rpm();
+		float rpm_local = mc_interface::get_rpm();
 		float rpm_lowest = rpm_local;
 		if (config.multi_esc) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -281,7 +281,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		}
 
 		if (send_current && config.multi_esc) {
-			float current = mc_interface_get_tot_current_directional_filtered();
+			float current = mc_interface::get_tot_current_directional_filtered();
 
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
@@ -294,7 +294,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 		if (current_mode) {
 			if (current_mode_brake) {
-				mc_interface_set_brake_current(current);
+				mc_interface::set_brake_current(current);
 
 				// Send brake command to all ESCs seen recently on the CAN bus
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -352,9 +352,9 @@ static THD_FUNCTION(ppm_thread, arg) {
 				}
 
 				if (is_reverse) {
-					mc_interface_set_current(-current_out);
+					mc_interface::set_current(-current_out);
 				} else {
-					mc_interface_set_current(current_out);
+					mc_interface::set_current(current_out);
 				}
 			}
 		}

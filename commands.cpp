@@ -164,73 +164,73 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_GET_VALUES:
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_VALUES;
-		buffer_append_float16(send_buffer, mc_interface_temp_fet_filtered(), 1e1, &ind);
-		buffer_append_float16(send_buffer, mc_interface_temp_motor_filtered(), 1e1, &ind);
-		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_motor_current(), 1e2, &ind);
-		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_input_current(), 1e2, &ind);
-		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_id(), 1e2, &ind);
-		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_iq(), 1e2, &ind);
-		buffer_append_float16(send_buffer, mc_interface_get_duty_cycle_now(), 1e3, &ind);
-		buffer_append_float32(send_buffer, mc_interface_get_rpm(), 1e0, &ind);
+		buffer_append_float16(send_buffer, mc_interface::temp_fet_filtered(), 1e1, &ind);
+		buffer_append_float16(send_buffer, mc_interface::temp_motor_filtered(), 1e1, &ind);
+		buffer_append_float32(send_buffer, mc_interface::read_reset_avg_motor_current(), 1e2, &ind);
+		buffer_append_float32(send_buffer, mc_interface::read_reset_avg_input_current(), 1e2, &ind);
+		buffer_append_float32(send_buffer, mc_interface::read_reset_avg_id(), 1e2, &ind);
+		buffer_append_float32(send_buffer, mc_interface::read_reset_avg_iq(), 1e2, &ind);
+		buffer_append_float16(send_buffer, mc_interface::get_duty_cycle_now(), 1e3, &ind);
+		buffer_append_float32(send_buffer, mc_interface::get_rpm(), 1e0, &ind);
 		buffer_append_float16(send_buffer, GET_INPUT_VOLTAGE(), 1e1, &ind);
-		buffer_append_float32(send_buffer, mc_interface_get_amp_hours(false), 1e4, &ind);
-		buffer_append_float32(send_buffer, mc_interface_get_amp_hours_charged(false), 1e4, &ind);
-		buffer_append_float32(send_buffer, mc_interface_get_watt_hours(false), 1e4, &ind);
-		buffer_append_float32(send_buffer, mc_interface_get_watt_hours_charged(false), 1e4, &ind);
-		buffer_append_int32(send_buffer, mc_interface_get_tachometer_value(false), &ind);
-		buffer_append_int32(send_buffer, mc_interface_get_tachometer_abs_value(false), &ind);
-		send_buffer[ind++] = mc_interface_get_fault();
-		buffer_append_float32(send_buffer, mc_interface_get_pid_pos_now(), 1e6, &ind);
+		buffer_append_float32(send_buffer, mc_interface::get_amp_hours(false), 1e4, &ind);
+		buffer_append_float32(send_buffer, mc_interface::get_amp_hours_charged(false), 1e4, &ind);
+		buffer_append_float32(send_buffer, mc_interface::get_watt_hours(false), 1e4, &ind);
+		buffer_append_float32(send_buffer, mc_interface::get_watt_hours_charged(false), 1e4, &ind);
+		buffer_append_int32(send_buffer, mc_interface::get_tachometer_value(false), &ind);
+		buffer_append_int32(send_buffer, mc_interface::get_tachometer_abs_value(false), &ind);
+		send_buffer[ind++] = mc_interface::get_fault();
+		buffer_append_float32(send_buffer, mc_interface::get_pid_pos_now(), 1e6, &ind);
 		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_SET_DUTY:
 		ind = 0;
-		mc_interface_set_duty((float)buffer_get_int32(data, &ind) / 100000.0);
+		mc_interface::set_duty((float)buffer_get_int32(data, &ind) / 100000.0);
 		timeout_reset();
 		break;
 
 	case COMM_SET_CURRENT:
 		ind = 0;
-		mc_interface_set_current((float)buffer_get_int32(data, &ind) / 1000.0);
+		mc_interface::set_current((float)buffer_get_int32(data, &ind) / 1000.0);
 		timeout_reset();
 		break;
 
 	case COMM_SET_CURRENT_BRAKE:
 		ind = 0;
-		mc_interface_set_brake_current((float)buffer_get_int32(data, &ind) / 1000.0);
+		mc_interface::set_brake_current((float)buffer_get_int32(data, &ind) / 1000.0);
 		timeout_reset();
 		break;
 
 	case COMM_SET_RPM:
 		ind = 0;
-		mc_interface_set_pid_speed((float)buffer_get_int32(data, &ind));
+		mc_interface::set_pid_speed((float)buffer_get_int32(data, &ind));
 		timeout_reset();
 		break;
 
 	case COMM_SET_POS:
 		ind = 0;
-		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0);
+		mc_interface::set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0);
 		timeout_reset();
 		break;
 
 	case COMM_SET_HANDBRAKE:
 		ind = 0;
-		mc_interface_set_handbrake(buffer_get_float32(data, 1e3, &ind));
+		mc_interface::set_handbrake(buffer_get_float32(data, 1e3, &ind));
 		timeout_reset();
 		break;
 
 	case COMM_SET_DETECT:
-		mcconf = mc_interface_get_configuration();
+		mcconf = mc_interface::get_configuration();
 
 		ind = 0;
 		display_position_mode = data[ind++];
 
 		if (mcconf.motor_type == MOTOR_TYPE_BLDC) {
 			if (display_position_mode == DISP_POS_MODE_NONE) {
-				mc_interface_release_motor();
+				mc_interface::release_motor();
 			} else if (display_position_mode == DISP_POS_MODE_INDUCTANCE) {
-				mcpwm_set_detect();
+				mcpwm::set_detect();
 			}
 		}
 
@@ -245,7 +245,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		break;
 
 	case COMM_SET_MCCONF:
-		mcconf = mc_interface_get_configuration();
+		mcconf = mc_interface::get_configuration();
 
 		ind = 0;
 		mcconf.pwm_mode = data[ind++];
@@ -395,7 +395,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 #endif
 
 		conf_general_store_mc_configuration(&mcconf);
-		mc_interface_set_configuration(&mcconf);
+		mc_interface::set_configuration(&mcconf);
 		chThdSleepMilliseconds(200);
 
 		ind = 0;
@@ -406,7 +406,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_GET_MCCONF:
 	case COMM_GET_MCCONF_DEFAULT:
 		if (packet_id == COMM_GET_MCCONF) {
-			mcconf = mc_interface_get_configuration();
+			mcconf = mc_interface::get_configuration();
 		} else {
 			conf_general_get_default_mc_configuration(&mcconf);
 		}
@@ -629,7 +629,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mode = data[ind++];
 		sample_len = buffer_get_uint16(data, &ind);
 		decimation = data[ind++];
-		mc_interface_sample_print_data(mode, sample_len, decimation);
+		mc_interface::sample_print_data(mode, sample_len, decimation);
 	} break;
 
 	case COMM_TERMINAL_CMD:
@@ -649,18 +649,18 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		break;
 
 	case COMM_DETECT_MOTOR_R_L: {
-		mcconf = mc_interface_get_configuration();
+		mcconf = mc_interface::get_configuration();
 		mcconf_old = mcconf;
 
 		send_func_last = send_func;
 
 		mcconf.motor_type = MOTOR_TYPE_FOC;
-		mc_interface_set_configuration(&mcconf);
+		mc_interface::set_configuration(&mcconf);
 
 		float r = 0.0;
 		float l = 0.0;
 		bool res = mcpwm_foc_measure_res_ind(&r, &l);
-		mc_interface_set_configuration(&mcconf_old);
+		mc_interface::set_configuration(&mcconf_old);
 
 		if (!res) {
 			r = 0.0;
@@ -708,7 +708,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 	case COMM_DETECT_ENCODER: {
 		if (encoder_is_configured()) {
-			mcconf = mc_interface_get_configuration();
+			mcconf = mc_interface::get_configuration();
 			mcconf_old = mcconf;
 
 			send_func_last = send_func;
@@ -720,13 +720,13 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			mcconf.foc_f_sw = 10000.0;
 			mcconf.foc_current_kp = 0.01;
 			mcconf.foc_current_ki = 10.0;
-			mc_interface_set_configuration(&mcconf);
+			mc_interface::set_configuration(&mcconf);
 
 			float offset = 0.0;
 			float ratio = 0.0;
 			bool inverted = false;
 			mcpwm_foc_encoder_detect(current, false, &offset, &ratio, &inverted);
-			mc_interface_set_configuration(&mcconf_old);
+			mc_interface::set_configuration(&mcconf_old);
 
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_ENCODER;
@@ -750,7 +750,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	break;
 
 	case COMM_DETECT_HALL_FOC: {
-		mcconf = mc_interface_get_configuration();
+		mcconf = mc_interface::get_configuration();
 
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_HALL) {
 			mcconf_old = mcconf;
@@ -763,11 +763,11 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			mcconf.foc_f_sw = 10000.0;
 			mcconf.foc_current_kp = 0.01;
 			mcconf.foc_current_ki = 10.0;
-			mc_interface_set_configuration(&mcconf);
+			mc_interface::set_configuration(&mcconf);
 
 			uint8_t hall_tab[8];
 			bool res = mcpwm_foc_hall_detect(current, hall_tab);
-			mc_interface_set_configuration(&mcconf_old);
+			mc_interface::set_configuration(&mcconf_old);
 
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_HALL_FOC;

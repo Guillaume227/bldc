@@ -86,8 +86,8 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	new_app_size += flash_addr[NEW_APP_BASE];
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface::unlock();
+	mc_interface::release_motor();
 	utils::sys_lock_cnt();
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
@@ -112,8 +112,8 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface::unlock();
+	mc_interface::release_motor();
 	utils::sys_lock_cnt();
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
@@ -136,8 +136,8 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 void flash_helper_jump_to_bootloader(void) {
 	typedef void (*pFunction)(void);
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface::unlock();
+	mc_interface::release_motor();
 	usbDisconnectBus(&USBD1);
 	usbStop(&USBD1);
 

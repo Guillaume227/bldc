@@ -42,28 +42,30 @@
 volatile uint16_t ADC_Value[HW_ADC_CHANNELS];
 volatile int ADC_curr_norm_value[3];
 
+namespace mc_interface{
+
 // Private variables
-static /*volatile*/ mc_configuration m_conf;
-static mc_fault_code m_fault_now;
-static int m_ignore_iterations;
-static volatile unsigned int m_cycles_running;
-static volatile bool m_lock_enabled;
-static volatile bool m_lock_override_once;
-static volatile float m_motor_current_sum;
-static volatile float m_input_current_sum;
-static volatile float m_motor_current_iterations;
-static volatile float m_input_current_iterations;
-static volatile float m_motor_id_sum;
-static volatile float m_motor_iq_sum;
-static volatile float m_motor_id_iterations;
-static volatile float m_motor_iq_iterations;
-static volatile float m_amp_seconds;
-static volatile float m_amp_seconds_charged;
-static volatile float m_watt_seconds;
-static volatile float m_watt_seconds_charged;
-static volatile float m_position_set;
-static volatile float m_temp_fet;
-static volatile float m_temp_motor;
+/*volatile*/ mc_configuration m_conf;
+mc_fault_code m_fault_now;
+int m_ignore_iterations;
+volatile unsigned int m_cycles_running;
+volatile bool m_lock_enabled;
+volatile bool m_lock_override_once;
+volatile float m_motor_current_sum;
+volatile float m_input_current_sum;
+volatile float m_motor_current_iterations;
+volatile float m_input_current_iterations;
+volatile float m_motor_id_sum;
+volatile float m_motor_iq_sum;
+volatile float m_motor_id_iterations;
+volatile float m_motor_iq_iterations;
+volatile float m_amp_seconds;
+volatile float m_amp_seconds_charged;
+volatile float m_watt_seconds;
+volatile float m_watt_seconds_charged;
+volatile float m_position_set;
+volatile float m_temp_fet;
+volatile float m_temp_motor;
 
 // Sampling variables
 #ifdef HW_NO_CCM_RAM
@@ -72,39 +74,39 @@ static volatile float m_temp_motor;
 #define CCM_SECTION __attribute__((section(".ram4")))
 #endif
 #define ADC_SAMPLE_MAX_LEN      2000
-CCM_SECTION static volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile int16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile int16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile int16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile int16_t m_vzero_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile uint8_t m_status_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
-CCM_SECTION static volatile int8_t m_phase_samples[ADC_SAMPLE_MAX_LEN];
-static volatile int m_sample_len;
-static volatile int m_sample_int;
-static volatile debug_sampling_mode m_sample_mode;
-static volatile debug_sampling_mode m_sample_mode_last;
-static volatile int m_sample_now;
-static volatile int m_sample_trigger;
-static volatile float m_last_adc_duration_sample;
+CCM_SECTION volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile int16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile int16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile int16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile int16_t m_vzero_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile uint8_t m_status_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
+CCM_SECTION volatile int8_t m_phase_samples[ADC_SAMPLE_MAX_LEN];
+volatile int m_sample_len;
+volatile int m_sample_int;
+volatile debug_sampling_mode m_sample_mode;
+volatile debug_sampling_mode m_sample_mode_last;
+volatile int m_sample_now;
+volatile int m_sample_trigger;
+volatile float m_last_adc_duration_sample;
 
 // Private functions
-static void update_override_limits(volatile mc_configuration *conf);
+void update_override_limits(volatile mc_configuration *conf);
 
 // Function pointers
-static void(*pwn_done_func)(void) = 0;
+void(*pwn_done_func)(void) = 0;
 
 // Threads
-static THD_WORKING_AREA(timer_thread_wa, 1024);
-static THD_FUNCTION(timer_thread, arg);
-static THD_WORKING_AREA(sample_send_thread_wa, 1024);
-static THD_FUNCTION(sample_send_thread, arg);
-static thread_t *sample_send_tp;
+THD_WORKING_AREA(timer_thread_wa, 1024);
+THD_FUNCTION(timer_thread, arg);
+THD_WORKING_AREA(sample_send_thread_wa, 1024);
+THD_FUNCTION(sample_send_thread, arg);
+thread_t *sample_send_tp;
 
-void mc_interface_init(mc_configuration const*configuration) {
+void init(mc_configuration const*configuration) {
 	m_conf = *configuration;
 	m_fault_now = FAULT_CODE_NONE;
 	m_ignore_iterations = 0;
@@ -167,7 +169,7 @@ void mc_interface_init(mc_configuration const*configuration) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_init(&m_conf);
+		mcpwm::init(&m_conf);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -179,11 +181,11 @@ void mc_interface_init(mc_configuration const*configuration) {
 	}
 }
 
-mc_configuration const& mc_interface_get_configuration(void) {
+mc_configuration const& get_configuration(void) {
 	return m_conf;
 }
 
-void mc_interface_set_configuration(mc_configuration *configuration) {
+void set_configuration(mc_configuration *configuration) {
 #if !WS2811_ENABLE
 	if (m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
 		encoder_deinit();
@@ -218,10 +220,10 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 			&& configuration->motor_type != MOTOR_TYPE_FOC) {
 		mcpwm_foc_deinit();
 		m_conf = *configuration;
-		mcpwm_init(&m_conf);
+		mcpwm::init(&m_conf);
 	} else if (m_conf.motor_type != MOTOR_TYPE_FOC
 			&& configuration->motor_type == MOTOR_TYPE_FOC) {
-		mcpwm_deinit();
+		mcpwm::deinit();
 		m_conf = *configuration;
 		mcpwm_foc_init(&m_conf);
 	} else {
@@ -233,7 +235,7 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_configuration(&m_conf);
+		mcpwm::set_configuration(&m_conf);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -245,12 +247,12 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	}
 }
 
-bool mc_interface_dccal_done(void) {
+bool dccal_done(void) {
 	bool ret = false;
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_is_dccal_done();
+		ret = mcpwm::is_dccal_done();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -270,36 +272,36 @@ bool mc_interface_dccal_done(void) {
  * @param p_func
  * The function to be called. 0 will not call any function.
  */
-void mc_interface_set_pwm_callback(void (*p_func)(void)) {
+void set_pwm_callback(void (*p_func)(void)) {
 	pwn_done_func = p_func;
 }
 
 /**
  * Lock the control by disabling all control commands.
  */
-void mc_interface_lock(void) {
+void lock(void) {
 	m_lock_enabled = true;
 }
 
 /**
  * Unlock all control commands.
  */
-void mc_interface_unlock(void) {
+void unlock(void) {
 	m_lock_enabled = false;
 }
 
 /**
  * Allow just one motor control command in the locked state.
  */
-void mc_interface_lock_override_once(void) {
+void lock_override_once(void) {
 	m_lock_override_once = true;
 }
 
-mc_fault_code mc_interface_get_fault(void) {
+mc_fault_code get_fault(void) {
 	return m_fault_now;
 }
 
-const char* mc_interface_fault_to_string(mc_fault_code fault) {
+const char* fault_to_string(mc_fault_code fault) {
 	switch (fault) {
 	case FAULT_CODE_NONE: return "FAULT_CODE_NONE"; break;
 	case FAULT_CODE_OVER_VOLTAGE: return "FAULT_CODE_OVER_VOLTAGE"; break;
@@ -312,12 +314,12 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
 	}
 }
 
-mc_state mc_interface_get_state(void) {
+mc_state get_state(void) {
 	mc_state ret = MC_STATE_OFF;
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_state();
+		ret = mcpwm::get_state();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -331,15 +333,15 @@ mc_state mc_interface_get_state(void) {
 	return ret;
 }
 
-void mc_interface_set_duty(float dutyCycle) {
-	if (mc_interface_try_input()) {
+void set_duty(float dutyCycle) {
+	if (try_input()) {
 		return;
 	}
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_duty(DIR_MULT * dutyCycle);
+		mcpwm::set_duty(DIR_MULT * dutyCycle);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -351,15 +353,15 @@ void mc_interface_set_duty(float dutyCycle) {
 	}
 }
 
-void mc_interface_set_duty_noramp(float dutyCycle) {
-	if (mc_interface_try_input()) {
+void set_duty_noramp(float dutyCycle) {
+	if (try_input()) {
 		return;
 	}
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_duty_noramp(DIR_MULT * dutyCycle);
+		mcpwm::set_duty_noramp(DIR_MULT * dutyCycle);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -371,15 +373,15 @@ void mc_interface_set_duty_noramp(float dutyCycle) {
 	}
 }
 
-void mc_interface_set_pid_speed(float rpm) {
-	if (mc_interface_try_input()) {
+void set_pid_speed(float rpm) {
+	if (try_input()) {
 		return;
 	}
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_pid_speed(DIR_MULT * rpm);
+		mcpwm::set_pid_speed(DIR_MULT * rpm);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -391,8 +393,8 @@ void mc_interface_set_pid_speed(float rpm) {
 	}
 }
 
-void mc_interface_set_pid_pos(float pos) {
-	if (mc_interface_try_input()) {
+void set_pid_pos(float pos) {
+	if (try_input()) {
 		return;
 	}
 
@@ -404,7 +406,7 @@ void mc_interface_set_pid_pos(float pos) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_pid_pos(pos);
+		mcpwm::set_pid_pos(pos);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -416,15 +418,15 @@ void mc_interface_set_pid_pos(float pos) {
 	}
 }
 
-void mc_interface_set_current(float current) {
-	if (mc_interface_try_input()) {
+void set_current(float current) {
+	if (try_input()) {
 		return;
 	}
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_current(DIR_MULT * current);
+		mcpwm::set_current(DIR_MULT * current);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -436,15 +438,15 @@ void mc_interface_set_current(float current) {
 	}
 }
 
-void mc_interface_set_brake_current(float current) {
-	if (mc_interface_try_input()) {
+void set_brake_current(float current) {
+	if (try_input()) {
 		return;
 	}
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_brake_current(DIR_MULT * current);
+		mcpwm::set_brake_current(DIR_MULT * current);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -462,11 +464,11 @@ void mc_interface_set_brake_current(float current) {
  * @param current
  * The relative current value, range [-1.0 1.0]
  */
-void mc_interface_set_current_rel(float val) {
+void set_current_rel(float val) {
 	if (val > 0.0) {
-		mc_interface_set_current(val * m_conf.lo_current_motor_max_now);
+		set_current(val * m_conf.lo_current_motor_max_now);
 	} else {
-		mc_interface_set_current(val * fabsf(m_conf.lo_current_motor_min_now));
+		set_current(val * fabsf(m_conf.lo_current_motor_min_now));
 	}
 }
 
@@ -476,8 +478,8 @@ void mc_interface_set_current_rel(float val) {
  * @param current
  * The relative current value, range [0.0 1.0]
  */
-void mc_interface_set_brake_current_rel(float val) {
-	mc_interface_set_brake_current(val * m_conf.lo_current_motor_max_now);
+void set_brake_current_rel(float val) {
+	set_brake_current(val * m_conf.lo_current_motor_max_now);
 }
 
 /**
@@ -486,8 +488,8 @@ void mc_interface_set_brake_current_rel(float val) {
  * @param current
  * The current value.
  */
-void mc_interface_set_handbrake(float current) {
-	if (mc_interface_try_input()) {
+void set_handbrake(float current) {
+	if (try_input()) {
 		return;
 	}
 
@@ -495,7 +497,7 @@ void mc_interface_set_handbrake(float current) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
 		// TODO: Not implemented yet, use brake mode for now.
-		mcpwm_set_brake_current(current);
+		mcpwm::set_brake_current(current);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -513,31 +515,31 @@ void mc_interface_set_handbrake(float current) {
  * @param current
  * The relative current value, range [0.0 1.0]
  */
-void mc_interface_set_handbrake_rel(float val) {
-	mc_interface_set_handbrake(val * fabsf(m_conf.lo_current_motor_min_now));
+void set_handbrake_rel(float val) {
+	set_handbrake(val * fabsf(m_conf.lo_current_motor_min_now));
 }
 
-void mc_interface_brake_now(void) {
-	mc_interface_set_duty(0.0);
+void brake_now(void) {
+	set_duty(0.0);
 }
 
 /**
  * Disconnect the motor and let it turn freely.
  */
-void mc_interface_release_motor(void) {
-	mc_interface_set_current(0.0);
+void release_motor(void) {
+	set_current(0.0);
 }
 
 /**
  * Stop the motor and use braking.
  */
-float mc_interface_get_duty_cycle_set(void) {
+float get_duty_cycle_set(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_duty_cycle_set();
+		ret = mcpwm::get_duty_cycle_set();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -551,13 +553,13 @@ float mc_interface_get_duty_cycle_set(void) {
 	return DIR_MULT * ret;
 }
 
-float mc_interface_get_duty_cycle_now(void) {
+float get_duty_cycle_now(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_duty_cycle_now();
+		ret = mcpwm::get_duty_cycle_now();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -571,13 +573,13 @@ float mc_interface_get_duty_cycle_now(void) {
 	return DIR_MULT * ret;
 }
 
-float mc_interface_get_sampling_frequency_now(void) {
+float get_sampling_frequency_now(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_switching_frequency_now();
+		ret = mcpwm::get_switching_frequency_now();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -591,13 +593,13 @@ float mc_interface_get_sampling_frequency_now(void) {
 	return ret;
 }
 
-float mc_interface_get_rpm(void) {
+float get_rpm(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_rpm();
+		ret = mcpwm::get_rpm();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -620,7 +622,7 @@ float mc_interface_get_rpm(void) {
  * @return
  * The amount of amp hours drawn.
  */
-float mc_interface_get_amp_hours(bool reset) {
+float get_amp_hours(bool reset) {
 	float val = m_amp_seconds / 3600;
 
 	if (reset) {
@@ -639,7 +641,7 @@ float mc_interface_get_amp_hours(bool reset) {
  * @return
  * The amount of amp hours fed back.
  */
-float mc_interface_get_amp_hours_charged(bool reset) {
+float get_amp_hours_charged(bool reset) {
 	float val = m_amp_seconds_charged / 3600;
 
 	if (reset) {
@@ -658,7 +660,7 @@ float mc_interface_get_amp_hours_charged(bool reset) {
  * @return
  * The amount of watt hours drawn.
  */
-float mc_interface_get_watt_hours(bool reset) {
+float get_watt_hours(bool reset) {
 	float val = m_watt_seconds / 3600;
 
 	if (reset) {
@@ -677,7 +679,7 @@ float mc_interface_get_watt_hours(bool reset) {
  * @return
  * The amount of watt hours fed back.
  */
-float mc_interface_get_watt_hours_charged(bool reset) {
+float get_watt_hours_charged(bool reset) {
 	float val = m_watt_seconds_charged / 3600;
 
 	if (reset) {
@@ -687,13 +689,13 @@ float mc_interface_get_watt_hours_charged(bool reset) {
 	return val;
 }
 
-float mc_interface_get_tot_current(void) {
+float get_tot_current(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_tot_current();
+		ret = mcpwm::get_tot_current();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -707,13 +709,13 @@ float mc_interface_get_tot_current(void) {
 	return ret;
 }
 
-float mc_interface_get_tot_current_filtered(void) {
+float get_tot_current_filtered(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_tot_current_filtered();
+		ret = mcpwm::get_tot_current_filtered();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -727,13 +729,13 @@ float mc_interface_get_tot_current_filtered(void) {
 	return ret;
 }
 
-float mc_interface_get_tot_current_directional(void) {
+float get_tot_current_directional(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_tot_current_directional();
+		ret = mcpwm::get_tot_current_directional();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -747,13 +749,13 @@ float mc_interface_get_tot_current_directional(void) {
 	return DIR_MULT * ret;
 }
 
-float mc_interface_get_tot_current_directional_filtered(void) {
+float get_tot_current_directional_filtered(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_tot_current_directional_filtered();
+		ret = mcpwm::get_tot_current_directional_filtered();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -767,13 +769,13 @@ float mc_interface_get_tot_current_directional_filtered(void) {
 	return DIR_MULT * ret;
 }
 
-float mc_interface_get_tot_current_in(void) {
+float get_tot_current_in(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_tot_current_in();
+		ret = mcpwm::get_tot_current_in();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -787,13 +789,13 @@ float mc_interface_get_tot_current_in(void) {
 	return ret;
 }
 
-float mc_interface_get_tot_current_in_filtered(void) {
+float get_tot_current_in_filtered(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_tot_current_in_filtered();
+		ret = mcpwm::get_tot_current_in_filtered();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -807,13 +809,13 @@ float mc_interface_get_tot_current_in_filtered(void) {
 	return ret;
 }
 
-int mc_interface_get_tachometer_value(bool reset) {
+int get_tachometer_value(bool reset) {
 	int ret = 0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_tachometer_value(reset);
+		ret = mcpwm::get_tachometer_value(reset);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -827,13 +829,13 @@ int mc_interface_get_tachometer_value(bool reset) {
 	return DIR_MULT * ret;
 }
 
-int mc_interface_get_tachometer_abs_value(bool reset) {
+int get_tachometer_abs_value(bool reset) {
 	int ret = 0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_tachometer_abs_value(reset);
+		ret = mcpwm::get_tachometer_abs_value(reset);
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -847,13 +849,13 @@ int mc_interface_get_tachometer_abs_value(bool reset) {
 	return ret;
 }
 
-float mc_interface_get_last_inj_adc_isr_duration(void) {
+float get_last_inj_adc_isr_duration(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		ret = mcpwm_get_last_inj_adc_isr_duration();
+		ret = mcpwm::get_last_inj_adc_isr_duration();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -867,14 +869,14 @@ float mc_interface_get_last_inj_adc_isr_duration(void) {
 	return ret;
 }
 
-float mc_interface_read_reset_avg_motor_current(void) {
+float read_reset_avg_motor_current(void) {
 	float res = m_motor_current_sum / m_motor_current_iterations;
 	m_motor_current_sum = 0.0;
 	m_motor_current_iterations = 0.0;
 	return res;
 }
 
-float mc_interface_read_reset_avg_input_current(void) {
+float read_reset_avg_input_current(void) {
 	float res = m_input_current_sum / m_input_current_iterations;
 	m_input_current_sum = 0.0;
 	m_input_current_iterations = 0.0;
@@ -887,7 +889,7 @@ float mc_interface_read_reset_avg_input_current(void) {
  * @return
  * The average D axis current.
  */
-float mc_interface_read_reset_avg_id(void) {
+float read_reset_avg_id(void) {
 	float res = m_motor_id_sum / m_motor_id_iterations;
 	m_motor_id_sum = 0.0;
 	m_motor_id_iterations = 0.0;
@@ -900,18 +902,18 @@ float mc_interface_read_reset_avg_id(void) {
  * @return
  * The average Q axis current.
  */
-float mc_interface_read_reset_avg_iq(void) {
+float read_reset_avg_iq(void) {
 	float res = m_motor_iq_sum / m_motor_iq_iterations;
 	m_motor_iq_sum = 0.0;
 	m_motor_iq_iterations = 0.0;
 	return DIR_MULT * res;
 }
 
-float mc_interface_get_pid_pos_set(void) {
+float get_pid_pos_set(void) {
 	return m_position_set;
 }
 
-float mc_interface_get_pid_pos_now(void) {
+float get_pid_pos_now(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
@@ -934,11 +936,11 @@ float mc_interface_get_pid_pos_now(void) {
 	return ret;
 }
 
-float mc_interface_get_last_sample_adc_isr_duration(void) {
+float get_last_sample_adc_isr_duration(void) {
 	return m_last_adc_duration_sample;
 }
 
-void mc_interface_sample_print_data(debug_sampling_mode mode, uint16_t len, uint8_t decimation) {
+void sample_print_data(debug_sampling_mode mode, uint16_t len, uint8_t decimation) {
 	if (len > ADC_SAMPLE_MAX_LEN) {
 		len = ADC_SAMPLE_MAX_LEN;
 	}
@@ -961,7 +963,7 @@ void mc_interface_sample_print_data(debug_sampling_mode mode, uint16_t len, uint
  * @return
  * The filtered MOSFET temperature.
  */
-float mc_interface_temp_fet_filtered(void) {
+float temp_fet_filtered(void) {
 	return m_temp_fet;
 }
 
@@ -972,7 +974,7 @@ float mc_interface_temp_fet_filtered(void) {
  * @return
  * The filtered motor temperature.
  */
-float mc_interface_temp_motor_filtered(void) {
+float temp_motor_filtered(void) {
 	return m_temp_motor;
 }
 
@@ -986,11 +988,11 @@ float mc_interface_temp_motor_filtered(void) {
  * The amount of milliseconds left until user commands are allowed again.
  *
  */
-int mc_interface_try_input(void) {
+int try_input(void) {
 	// TODO: Remove this later
-	if (mc_interface_get_state() == MC_STATE_DETECTING) {
-		mcpwm_stop_pwm();
-		m_ignore_iterations = MCPWM_DETECT_STOP_TIME;
+	if (get_state() == MC_STATE_DETECTING) {
+		mcpwm::stop_pwm();
+		m_ignore_iterations = mcpwm::DETECT_STOP_TIME;
 	}
 
 	int retval = m_ignore_iterations;
@@ -1006,7 +1008,7 @@ int mc_interface_try_input(void) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		if (!mcpwm_init_done()) {
+		if (!mcpwm::init_done()) {
 			retval = 1;
 		}
 		break;
@@ -1024,13 +1026,13 @@ int mc_interface_try_input(void) {
 	return retval;
 }
 
-void mc_interface_fault_stop(mc_fault_code fault) {
+void fault_stop(mc_fault_code fault) {
 	if (m_fault_now == fault) {
 		m_ignore_iterations = m_conf.m_fault_stop_time_ms;
 		return;
 	}
 
-	if (mc_interface_dccal_done() && m_fault_now == FAULT_CODE_NONE) {
+	if (dccal_done() && m_fault_now == FAULT_CODE_NONE) {
 		// Sent to terminal fault logger so that all faults and their conditions
 		// can be printed for debugging.
 		utils::sys_lock_cnt();
@@ -1041,17 +1043,17 @@ void mc_interface_fault_stop(mc_fault_code fault) {
 
 		fault_data fdata;
 		fdata.fault = fault;
-		fdata.current = mc_interface_get_tot_current();
-		fdata.current_filtered = mc_interface_get_tot_current_filtered();
+		fdata.current = get_tot_current();
+		fdata.current_filtered = get_tot_current_filtered();
 		fdata.voltage = GET_INPUT_VOLTAGE();
-		fdata.duty = mc_interface_get_duty_cycle_now();
-		fdata.rpm = mc_interface_get_rpm();
-		fdata.tacho = mc_interface_get_tachometer_value(false);
+		fdata.duty = get_duty_cycle_now();
+		fdata.rpm = get_rpm();
+		fdata.tacho = get_tachometer_value(false);
 		fdata.cycles_running = m_cycles_running;
 		fdata.tim_val_samp = val_samp;
 		fdata.tim_current_samp = current_samp;
 		fdata.tim_top = tim_top;
-		fdata.comm_step = mcpwm_get_comm_step();
+		fdata.comm_step = mcpwm::get_comm_step();
 		fdata.temperature = NTC_TEMP(ADC_IND_TEMP_MOS);
 #ifdef HW_HAS_DRV8301
 		if (fault == FAULT_CODE_DRV) {
@@ -1070,7 +1072,7 @@ void mc_interface_fault_stop(mc_fault_code fault) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_stop_pwm();
+		mcpwm::stop_pwm();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -1084,7 +1086,7 @@ void mc_interface_fault_stop(mc_fault_code fault) {
 	m_fault_now = fault;
 }
 
-void mc_interface_mc_timer_isr(void) {
+void mc_timer_isr(void) {
 	ledpwm_update_pwm(); // LED PWM Driver update
 
 	const float input_voltage = GET_INPUT_VOLTAGE();
@@ -1096,14 +1098,14 @@ void mc_interface_mc_timer_isr(void) {
 		wrong_voltage_iterations++;
 
 		if ((wrong_voltage_iterations >= 8)) {
-			mc_interface_fault_stop(input_voltage < m_conf.l_min_vin ?
+			fault_stop(input_voltage < m_conf.l_min_vin ?
 					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE);
 		}
 	} else {
 		wrong_voltage_iterations = 0;
 	}
 
-	if (mc_interface_get_state() == MC_STATE_RUNNING) {
+	if (get_state() == MC_STATE_RUNNING) {
 		m_cycles_running++;
 	} else {
 		m_cycles_running = 0;
@@ -1113,8 +1115,8 @@ void mc_interface_mc_timer_isr(void) {
 		pwn_done_func();
 	}
 
-	const float current = mc_interface_get_tot_current_filtered();
-	const float current_in = mc_interface_get_tot_current_in_filtered();
+	const float current = get_tot_current_filtered();
+	const float current_in = get_tot_current_in_filtered();
 	m_motor_current_sum += current;
 	m_input_current_sum += current_in;
 	m_motor_current_iterations++;
@@ -1125,7 +1127,7 @@ void mc_interface_mc_timer_isr(void) {
 	m_motor_id_iterations++;
 	m_motor_iq_iterations++;
 
-	float abs_current = mc_interface_get_tot_current();
+	float abs_current = get_tot_current();
 	float abs_current_filtered = current;
 	if (m_conf.motor_type == MOTOR_TYPE_FOC) {
 		// TODO: Make this more general
@@ -1136,21 +1138,21 @@ void mc_interface_mc_timer_isr(void) {
 	// Current fault code
 	if (m_conf.l_slow_abs_current) {
 		if (fabsf(abs_current_filtered) > m_conf.l_abs_current_max) {
-			mc_interface_fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
+			fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
 		}
 	} else {
 		if (fabsf(abs_current) > m_conf.l_abs_current_max) {
-			mc_interface_fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
+			fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
 		}
 	}
 
 	// DRV fault code
 	if (IS_DRV_FAULT()) {
-		mc_interface_fault_stop(FAULT_CODE_DRV);
+		fault_stop(FAULT_CODE_DRV);
 	}
 
 	// Watt and ah counters
-	const float f_samp = mc_interface_get_sampling_frequency_now();
+	const float f_samp = get_sampling_frequency_now();
 	if (fabsf(current) > 1.0) {
 		// Some extra filtering
 		static float curr_diff_sum = 0.0;
@@ -1189,7 +1191,7 @@ void mc_interface_mc_timer_isr(void) {
 		break;
 
 	case DEBUG_SAMPLING_START:
-		if (mc_interface_get_state() == MC_STATE_RUNNING || m_sample_now > 0) {
+		if (get_state() == MC_STATE_RUNNING || m_sample_now > 0) {
 			sample = true;
 		}
 
@@ -1227,7 +1229,7 @@ void mc_interface_mc_timer_isr(void) {
 			m_sample_mode = DEBUG_SAMPLING_OFF;
 		}
 
-		if (mc_interface_get_state() == MC_STATE_RUNNING && m_sample_trigger < 0) {
+		if (get_state() == MC_STATE_RUNNING && m_sample_trigger < 0) {
 			m_sample_trigger = m_sample_now;
 		}
 	} break;
@@ -1285,17 +1287,17 @@ void mc_interface_mc_timer_isr(void) {
 //				float ang = utils::angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()) + 180.0;
 //				m_phase_samples[m_sample_now] = (uint8_t)(ang / 360.0 * 250.0);
 			} else {
-				zero = mcpwm_vzero;
+				zero = mcpwm::mcpwm_vzero;
 				m_phase_samples[m_sample_now] = 0;
 			}
 
-			if (mc_interface_get_state() == MC_STATE_DETECTING) {
-				m_curr0_samples[m_sample_now] = (int16_t)mcpwm_detect_currents[mcpwm_get_comm_step() - 1];
-				m_curr1_samples[m_sample_now] = (int16_t)mcpwm_detect_currents_diff[mcpwm_get_comm_step() - 1];
+			if (get_state() == MC_STATE_DETECTING) {
+				m_curr0_samples[m_sample_now] = (int16_t)mcpwm::detect_currents[mcpwm::get_comm_step() - 1];
+				m_curr1_samples[m_sample_now] = (int16_t)mcpwm::detect_currents_diff[mcpwm::get_comm_step() - 1];
 
-				m_ph1_samples[m_sample_now] = (int16_t)mcpwm_detect_voltages[0];
-				m_ph2_samples[m_sample_now] = (int16_t)mcpwm_detect_voltages[1];
-				m_ph3_samples[m_sample_now] = (int16_t)mcpwm_detect_voltages[2];
+				m_ph1_samples[m_sample_now] = (int16_t)mcpwm::detect_voltages[0];
+				m_ph2_samples[m_sample_now] = (int16_t)mcpwm::detect_voltages[1];
+				m_ph3_samples[m_sample_now] = (int16_t)mcpwm::detect_voltages[2];
 			} else {
 				m_curr0_samples[m_sample_now] = ADC_curr_norm_value[0];
 				m_curr1_samples[m_sample_now] = ADC_curr_norm_value[1];
@@ -1307,22 +1309,22 @@ void mc_interface_mc_timer_isr(void) {
 			}
 
 			m_vzero_samples[m_sample_now] = zero;
-			m_curr_fir_samples[m_sample_now] = (int16_t)(mc_interface_get_tot_current() * (8.0 / FAC_CURRENT));
+			m_curr_fir_samples[m_sample_now] = (int16_t)(get_tot_current() * (8.0 / FAC_CURRENT));
 			m_f_sw_samples[m_sample_now] = (int16_t)(f_samp / 10.0);
-			m_status_samples[m_sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
+			m_status_samples[m_sample_now] = mcpwm::get_comm_step() | (mcpwm::read_hall_phase() << 3);
 
 			m_sample_now++;
 
-			m_last_adc_duration_sample = mc_interface_get_last_sample_adc_isr_duration();
+			m_last_adc_duration_sample = get_last_sample_adc_isr_duration();
 		}
 	}
 }
 
-void mc_interface_adc_inj_int_handler(void) {
+void adc_inj_int_handler(void) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_adc_inj_int_handler();
+		mcpwm::adc_inj_int_handler();
 		break;
 
 	case MOTOR_TYPE_FOC:
@@ -1341,7 +1343,7 @@ void mc_interface_adc_inj_int_handler(void) {
  */
 static void update_override_limits(volatile mc_configuration *conf) {
 	const float v_in = GET_INPUT_VOLTAGE();
-	const float rpm_now = mc_interface_get_rpm();
+	const float rpm_now = get_rpm();
 
 	UTILS_LP_FAST(m_temp_fet, NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
 	UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
@@ -1354,7 +1356,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	} else if (m_temp_fet > conf->l_temp_fet_end) {
 		lo_min_mos = 0.0;
 		lo_max_mos = 0.0;
-		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET);
+		fault_stop(FAULT_CODE_OVER_TEMP_FET);
 	} else {
 		float maxc = fabsf(conf->l_current_max);
 		if (fabsf(conf->l_current_min) > maxc) {
@@ -1380,7 +1382,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	} else if (m_temp_motor > conf->l_temp_motor_end) {
 		lo_min_mot = 0.0;
 		lo_max_mot = 0.0;
-		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_MOTOR);
+		fault_stop(FAULT_CODE_OVER_TEMP_MOTOR);
 	} else {
 		float maxc = fabsf(conf->l_current_max);
 		if (fabsf(conf->l_current_min) > maxc) {
@@ -1491,7 +1493,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	conf->lo_in_current_min = utils::min_abs(conf->l_in_current_min, lo_in_min);
 
 	// Maximum current right now
-//	float duty_abs = fabsf(mc_interface_get_duty_cycle_now());
+//	float duty_abs = fabsf(get_duty_cycle_now());
 //
 //	// TODO: This is not an elegant solution.
 //	if (m_conf.motor_type == MOTOR_TYPE_FOC) {
@@ -1607,7 +1609,7 @@ static THD_FUNCTION(sample_send_thread, arg) {
 /**
  * sets the dutycycle from the potentiometer
  */
-void mc_interface_set_duty_from_potentiometer(void){
+void set_duty_from_potentiometer(void){
 
 #ifdef HW_HAS_POTENTIOMETER
 
@@ -1633,13 +1635,13 @@ void mc_interface_set_duty_from_potentiometer(void){
         } else {
           dutyCycle /= 1.1;
         }
-        mc_interface_set_duty(dutyCycle);
+        set_duty(dutyCycle);
       }
 
     } else if(fabsf(potVal - .5) < POT_MARGIN) {
         enabled = true;
-        if(mc_interface_get_duty_cycle_set() != 0)
-          mc_interface_set_duty(0.);
+        if(get_duty_cycle_set() != 0)
+          set_duty(0.);
 
     } else {
       // valPct in 2.5 - 47.5 or 52.5 - 97.5
@@ -1650,11 +1652,12 @@ void mc_interface_set_duty_from_potentiometer(void){
         float ratio = (fabsf(potVal - 0.5)- POT_MARGIN) / (0.5 - 2*POT_MARGIN);
         dutyCycle = m_conf.l_min_duty + ratio * (m_conf.l_max_duty - m_conf.l_min_duty);
 
-        if((int)(100*dutyCycle) != (int) (100*mc_interface_get_duty_cycle_set())){
-          mc_interface_set_duty(dutyCycle);
+        if((int)(100*dutyCycle) != (int) (100*get_duty_cycle_set())){
+          set_duty(dutyCycle);
         }
       }
       timeout_reset();
     }
 #endif
+}
 }

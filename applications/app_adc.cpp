@@ -116,7 +116,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		// For safe start when fault codes occur
-		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		if (mc_interface::get_fault() != FAULT_CODE_NONE) {
 			ms_without_power = 0;
 		}
 
@@ -294,8 +294,8 @@ static THD_FUNCTION(adc_thread, arg) {
 		float current_rel = 0.0;
 		bool current_mode = false;
 		bool current_mode_brake = false;
-		auto const& mcconf = mc_interface_get_configuration();
-		const float rpm_now = mc_interface_get_rpm();
+		auto const& mcconf = mc_interface::get_configuration();
+		const float rpm_now = mc_interface::get_rpm();
 		bool send_duty = false;
 
 		// Use the filtered and mapped voltage for control according to the configuration.
@@ -344,7 +344,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			}
 
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils::map(pwr, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
+				mc_interface::set_duty(utils::map(pwr, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
 				send_duty = true;
 			}
 			break;
@@ -366,7 +366,7 @@ static THD_FUNCTION(adc_thread, arg) {
 					speed = pwr * fabsf(mcconf.l_min_erpm);
 				}
 
-				mc_interface_set_pid_speed(speed);
+				mc_interface::set_pid_speed(speed);
 				send_duty = true;
 			}
 
@@ -386,7 +386,7 @@ static THD_FUNCTION(adc_thread, arg) {
 				ms_without_power = 0;
 			}
 			pulses_without_power_before = ms_without_power;
-			mc_interface_set_brake_current(timeout_get_brake_current());
+			mc_interface::set_brake_current(timeout_get_brake_current());
 
 			if (config.multi_esc) {
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -410,7 +410,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Filter RPM to avoid glitches
 		static float filter_buffer[RPM_FILTER_SAMPLES];
 		static int filter_ptr = 0;
-		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
+		filter_buffer[filter_ptr++] = mc_interface::get_rpm();
 		if (filter_ptr >= RPM_FILTER_SAMPLES) {
 			filter_ptr = 0;
 		}
@@ -429,11 +429,11 @@ static THD_FUNCTION(adc_thread, arg) {
 				pid_rpm = rpm_filtered;
 			}
 
-			mc_interface_set_pid_speed(pid_rpm);
+			mc_interface::set_pid_speed(pid_rpm);
 
 			// Send the same duty cycle to the other controllers
 			if (config.multi_esc) {
-				float current = mc_interface_get_tot_current_directional_filtered();
+				float current = mc_interface::get_tot_current_directional_filtered();
 
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 					can_status_msg *msg = comm_can_get_status_msg_index(i);
@@ -450,7 +450,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		was_pid = false;
 
 		// Find lowest RPM (for traction control)
-		float rpm_local = mc_interface_get_rpm();
+		float rpm_local = mc_interface::get_rpm();
 		float rpm_lowest = rpm_local;
 		if (config.multi_esc) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -468,7 +468,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Optionally send the duty cycles to the other ESCs seen on the CAN-bus
 		if (send_duty && config.multi_esc) {
-			float duty = mc_interface_get_duty_cycle_now();
+			float duty = mc_interface::get_duty_cycle_now();
 
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
@@ -481,7 +481,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		if (current_mode) {
 			if (current_mode_brake) {
-				mc_interface_set_brake_current_rel(current_rel);
+				mc_interface::set_brake_current_rel(current_rel);
 
 				// Send brake command to all ESCs seen recently on the CAN bus
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -533,9 +533,9 @@ static THD_FUNCTION(adc_thread, arg) {
 				}
 
 				if (is_reverse) {
-					mc_interface_set_current_rel(-current_out);
+					mc_interface::set_current_rel(-current_out);
 				} else {
-					mc_interface_set_current_rel(current_out);
+					mc_interface::set_current_rel(current_out);
 				}
 			}
 		}

@@ -17,74 +17,73 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef MCPWM_H_
-#define MCPWM_H_
+#pragma once
 
 #include "conf_general.h"
-
+namespace mcpwm {
 // Functions
-void mcpwm_init(mc_configuration *configuration);
-void mcpwm_deinit(void);
-bool mcpwm_init_done(void);
-void mcpwm_set_configuration(mc_configuration *configuration);
-void mcpwm_init_hall_table(int8_t *table);
-void mcpwm_set_duty(float dutyCycle);
-void mcpwm_set_duty_noramp(float dutyCycle);
-void mcpwm_set_pid_speed(float rpm);
-void mcpwm_set_pid_pos(float pos);
-void mcpwm_set_current(float current);
-void mcpwm_set_brake_current(float current);
-void mcpwm_brake_now(void);
-void mcpwm_release_motor(void);
-int mcpwm_get_comm_step(void);
-float mcpwm_get_duty_cycle_set(void);
-float mcpwm_get_duty_cycle_now(void);
-float mcpwm_get_switching_frequency_now(void);
-float mcpwm_get_rpm(void);
-mc_state mcpwm_get_state(void);
-float mcpwm_get_kv(void);
-float mcpwm_get_kv_filtered(void);
-int mcpwm_get_tachometer_value(bool reset);
-int mcpwm_get_tachometer_abs_value(bool reset);
-void mcpwm_stop_pwm(void);
-float mcpwm_get_tot_current(void);
-float mcpwm_get_tot_current_filtered(void);
-float mcpwm_get_tot_current_directional(void);
-float mcpwm_get_tot_current_directional_filtered(void);
-float mcpwm_get_tot_current_in(void);
-float mcpwm_get_tot_current_in_filtered(void);
-void mcpwm_set_detect(void);
-float mcpwm_get_detect_pos(void);
-void mcpwm_reset_hall_detect_table(void);
-int mcpwm_get_hall_detect_result(int8_t *table);
-int mcpwm_read_hall_phase(void);
-float mcpwm_read_reset_avg_cycle_integrator(void);
-void mcpwm_set_comm_mode(mc_comm_mode mode);
-mc_comm_mode mcpwm_get_comm_mode(void);
-float mcpwm_get_last_adc_isr_duration(void);
-float mcpwm_get_last_inj_adc_isr_duration(void);
-mc_rpm_dep_struct mcpwm_get_rpm_dep(void);
-bool mcpwm_is_dccal_done(void);
-void mcpwm_switch_comm_mode(mc_comm_mode next);
+void init(mc_configuration *configuration);
+void deinit(void);
+bool init_done(void);
+void set_configuration(mc_configuration *configuration);
+void init_hall_table(int8_t *table);
+void set_duty(float dutyCycle);
+void set_duty_noramp(float dutyCycle);
+void set_pid_speed(float rpm);
+void set_pid_pos(float pos);
+void set_current(float current);
+void set_brake_current(float current);
+void brake_now(void);
+void release_motor(void);
+int get_comm_step(void);
+float get_duty_cycle_set(void);
+float get_duty_cycle_now(void);
+float get_switching_frequency_now(void);
+float get_rpm(void);
+mc_state get_state(void);
+float get_kv(void);
+float get_kv_filtered(void);
+int get_tachometer_value(bool reset);
+int get_tachometer_abs_value(bool reset);
+void stop_pwm(void);
+float get_tot_current(void);
+float get_tot_current_filtered(void);
+float get_tot_current_directional(void);
+float get_tot_current_directional_filtered(void);
+float get_tot_current_in(void);
+float get_tot_current_in_filtered(void);
+void set_detect(void); // detect BLDC motor params
+float get_detect_pos(void);
+void reset_hall_detect_table(void);
+int get_hall_detect_result(int8_t *table);
+int read_hall_phase(void);
+float read_reset_avg_cycle_integrator(void);
+void set_comm_mode(mc_comm_mode mode);
+mc_comm_mode get_comm_mode(void);
+float get_last_adc_isr_duration(void);
+float get_last_inj_adc_isr_duration(void);
+mc_rpm_dep_struct get_rpm_dep(void);
+bool is_dccal_done(void);
+void switch_comm_mode(mc_comm_mode next);
 
 // Interrupt handlers
-void mcpwm_adc_inj_int_handler(void);
-void mcpwm_adc_int_handler(void *p, uint32_t flags);
+void adc_inj_int_handler(void);
+void adc_int_handler(void *p, uint32_t flags);
 
 // External variables
-extern volatile float mcpwm_detect_currents[];
-extern volatile float mcpwm_detect_voltages[];
-extern volatile float mcpwm_detect_currents_diff[];
+extern volatile float detect_currents[];
+extern volatile float detect_voltages[];
+extern volatile float detect_currents_diff[];
 extern volatile int mcpwm_vzero;
 
 /*
  * Fixed parameters
  */
-#define MCPWM_RPM_TIMER_FREQ			1000000.0	// Frequency of the RPM measurement timer
-#define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
-#define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
+constexpr float RPM_TIMER_FREQ   = 1000000.0;// Frequency of the RPM measurement timer
+constexpr int CMD_STOP_TIME      = 0;        // Ignore commands for this duration in msec after a stop has been sent
+constexpr int DETECT_STOP_TIME   = 500;      // Ignore commands for this duration in msec after a detect command
 
 // Speed PID parameters
-#define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
+constexpr float PID_TIME_K       = 0.001;    // Pid controller sample time in seconds
 
-#endif /* MC_PWM_H_ */
+}

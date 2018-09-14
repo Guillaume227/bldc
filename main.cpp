@@ -82,13 +82,13 @@ static THD_FUNCTION(periodic_thread, arg) {
 	chRegSetThreadName("Main periodic");
 
 	for(;;) {
-		if (mc_interface_get_state() == MC_STATE_RUNNING) {
+		if (mc_interface::get_state() == MC_STATE_RUNNING) {
 			ledpwm_set_intensity(LED_GREEN, 1.0);
 		} else {
 			ledpwm_set_intensity(LED_GREEN, 0.2);
 		}
 
-		mc_fault_code fault = mc_interface_get_fault();
+		mc_fault_code fault = mc_interface::get_fault();
 		if (fault != FAULT_CODE_NONE) {
 			for (int i = 0;i < (int)fault;i++) {
 				ledpwm_set_intensity(LED_RED, 1.0);
@@ -102,8 +102,8 @@ static THD_FUNCTION(periodic_thread, arg) {
 			ledpwm_set_intensity(LED_RED, 0.0);
 		}
 
-		if (mc_interface_get_state() == MC_STATE_DETECTING) {
-			commands_send_rotor_pos(mcpwm_get_detect_pos());
+		if (mc_interface::get_state() == MC_STATE_DETECTING) {
+			commands_send_rotor_pos(mcpwm::get_detect_pos());
 		}
 
 		disp_pos_mode display_mode = commands_get_disp_pos_mode();
@@ -114,18 +114,18 @@ static THD_FUNCTION(periodic_thread, arg) {
 				break;
 
 			case DISP_POS_MODE_PID_POS:
-				commands_send_rotor_pos(mc_interface_get_pid_pos_now());
+				commands_send_rotor_pos(mc_interface::get_pid_pos_now());
 				break;
 
 			case DISP_POS_MODE_PID_POS_ERROR:
-				commands_send_rotor_pos(utils::angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
+				commands_send_rotor_pos(utils::angle_difference(mc_interface::get_pid_pos_set(), mc_interface::get_pid_pos_now()));
 				break;
 
 			default:
 				break;
 		}
 
-		if (mc_interface_get_configuration().motor_type == MOTOR_TYPE_FOC) {
+		if (mc_interface::get_configuration().motor_type == MOTOR_TYPE_FOC) {
 			switch (display_mode) {
 			case DISP_POS_MODE_OBSERVER:
 				commands_send_rotor_pos(mcpwm_foc_get_phase_observer());
@@ -140,16 +140,16 @@ static THD_FUNCTION(periodic_thread, arg) {
 		}
 		}
 
-		mc_interface_set_duty_from_potentiometer();
+		mc_interface::set_duty_from_potentiometer();
 
 		chThdSleepMilliseconds(10);
 
 //		chThdSleepMilliseconds(40);
-//		auto const& conf = mc_interface_get_configuration();
+//		auto const& conf = mc_interface::get_configuration();
 //		float vq = mcpwm_foc_get_vq();
-//		float iq = mc_interface_get_tot_current_directional();
+//		float iq = mc_interface::get_tot_current_directional();
 //		float linkage = conf->foc_motor_flux_linkage;
-//		float speed = ((2.0 * M_PI) / 60.0) * mc_interface_get_rpm();
+//		float speed = ((2.0 * M_PI) / 60.0) * mc_interface::get_rpm();
 //
 //		if (iq < -6.0) {
 //			float res = vq / (linkage * speed * iq);
@@ -161,8 +161,8 @@ static THD_FUNCTION(periodic_thread, arg) {
 
 //		chThdSleepMilliseconds(40);
 //		commands_printf("Max: %.2f Min: %.2f",
-//				(double)mc_interface_get_configuration().lo_current_motor_max_now,
-//				(double)mc_interface_get_configuration().lo_current_motor_min_now);
+//				(double)mc_interface::get_configuration().lo_current_motor_max_now,
+//				(double)mc_interface::get_configuration().lo_current_motor_min_now);
 	}
 }
 
@@ -199,7 +199,7 @@ int main(void) {
 
 	mc_configuration mcconf;
 	conf_general_read_mc_configuration(&mcconf);
-	mc_interface_init(&mcconf);
+	mc_interface::init(&mcconf);
 
 	commands_init();
 	comm_usb_init();
