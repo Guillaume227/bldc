@@ -44,7 +44,7 @@ volatile int mcpwm_vzero;
 
 
   // Structs
-  struct mc_timer_struct{
+  struct MCTimer{
       volatile bool updated;
       volatile unsigned int top;
       volatile unsigned int duty;
@@ -57,29 +57,29 @@ volatile int mcpwm_vzero;
   };
 
   // Private variables
-  volatile int comm_step; // Range [1 6]
-  volatile int detect_step; // Range [0 5]
-  volatile int direction;
-  volatile float dutycycle_set;
-  volatile float dutycycle_now;
-  volatile float rpm_now;
-  volatile float speed_pid_set_rpm;
-  volatile float pos_pid_set_pos;
-  volatile float current_set;
-  volatile int tachometer;
-  volatile int tachometer_abs;
-  volatile int tachometer_for_direction;
-  volatile int curr0_sum;
-  volatile int curr1_sum;
-  volatile int curr_start_samples;
-  volatile int curr0_offset;
-  volatile int curr1_offset;
-  volatile mc_state state;
-  volatile mc_control_mode control_mode;
-  volatile float last_current_sample;
-  volatile float last_current_sample_filtered;
-  volatile float detect_currents_avg[6];
-  volatile float detect_avg_samples[6];
+  volatile int m_comm_step; // Range [1 6]
+  volatile int m_detect_step; // Range [0 5]
+  volatile int m_direction;
+  volatile float m_dutycycle_set;
+  volatile float m_dutycycle_now;
+  volatile float m_rpm_now;
+  volatile float m_speed_pid_set_rpm;
+  volatile float m_pos_pid_set_pos;
+  volatile float m_current_set;
+  volatile int m_tachometer;
+  volatile int m_tachometer_abs;
+  volatile int m_tachometer_for_direction;
+  volatile int m_curr0_sum;
+  volatile int m_curr1_sum;
+  volatile int m_curr_start_samples;
+  volatile int m_curr0_offset;
+  volatile int m_curr1_offset;
+  volatile mc_state m_state;
+  volatile mc_control_mode m_control_mode;
+  volatile float m_last_current_sample;
+  volatile float m_last_current_sample_filtered;
+  volatile float m_detect_currents_avg[6];
+  volatile float m_detect_avg_samples[6];
 
   /*To get better voltage samples, the switching frequency is adaptive and proportional
    * to the duty cycle. This is because the back-EMF only can be sampled
@@ -90,26 +90,26 @@ volatile int mcpwm_vzero;
    * Lower switching frequency also decreases switching losses,
    * which is a positive side-effect.
    */
-  volatile float switching_frequency_now; // PWM switching frequency
-  volatile int ignore_iterations;
-  mc_timer_struct timer_struct;
-  volatile int curr_samp_volt; // Use the voltage-synchronized samples for this current sample
-  int hall_to_phase_table[16];
-  volatile unsigned int slow_ramping_cycles;
-  volatile int has_commutated;
+  volatile float m_switching_frequency_now; // PWM switching frequency
+  volatile int m_ignore_iterations;
+  MCTimer m_timer_struct;
+  volatile int m_curr_samp_volt; // Use the voltage-synchronized samples for this current sample
+  int m_hall_to_phase_table[16];
+  volatile unsigned int m_slow_ramping_cycles;
+  volatile int m_has_commutated;
   mc_rpm_dep_struct rpm_dep;
-  volatile float cycle_integrator_sum;
-  volatile float cycle_integrator_iterations;
-  mc_configuration *conf;
-  volatile float pwm_cycles_sum;
-  volatile int pwm_cycles;
-  volatile float last_pwm_cycles_sum;
-  volatile float last_pwm_cycles_sums[6];
-  volatile bool dccal_done;
-  volatile bool sensorless_now;
-  volatile int hall_detect_table[8][7];
+  volatile float m_cycle_integrator_sum;
+  volatile float m_cycle_integrator_iterations;
+  mc_configuration *m_conf;
+  volatile float m_pwm_cycles_sum;
+  volatile int m_pwm_cycles;
+  volatile float m_last_pwm_cycles_sum;
+  volatile float m_last_pwm_cycles_sums[6];
+  volatile bool m_dccal_done;
+  volatile bool m_sensorless_now;
+  volatile int m_hall_detect_table[8][7];
   volatile bool m_init_done;
-  volatile mc_comm_mode comm_mode_next;
+  volatile mc_comm_mode m_comm_mode_next;
 
 #ifdef HW_HAS_3_SHUNTS
   volatile int curr2_sum;
@@ -158,12 +158,13 @@ volatile int mcpwm_vzero;
   void update_rpm_tacho(void);
   void update_sensor_mode(void);
   int read_hall(void);
-  void update_adc_sample_pos(mc_timer_struct *timer_tmp);
+  void update_adc_sample_pos(MCTimer *timer_tmp);
   void commutate(int steps);
-  void set_next_timer_settings(mc_timer_struct const*settings);
+  void set_next_timer_settings(MCTimer const*settings);
   void update_timer_attempt(void);
   void set_switching_frequency(float frequency);
   void do_dc_cal(void);
+  inline bool is_detecting(){ return m_state == MC_STATE_DETECTING; }
 
   // Threads
   THD_WORKING_AREA(timer_thread_wa, 2048);
@@ -172,9 +173,6 @@ volatile int mcpwm_vzero;
   THD_FUNCTION(rpm_thread, arg);
   volatile bool timer_thd_stop;
   volatile bool rpm_thd_stop;
-
-// Defines
-#define IS_DETECTING()			(state == MC_STATE_DETECTING)
 
 void init(mc_configuration *configuration) {
 	sys_lock_cnt();
@@ -185,43 +183,43 @@ void init(mc_configuration *configuration) {
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
 
-	conf = configuration;
+	m_conf = configuration;
 
 	// Initialize variables
-	comm_step = 1;
-	detect_step = 0;
-	direction = 1;
-	rpm_now = 0.0;
-	dutycycle_set = 0.0;
-	dutycycle_now = 0.0;
-	speed_pid_set_rpm = 0.0;
-	pos_pid_set_pos = 0.0;
-	current_set = 0.0;
-	tachometer = 0;
-	tachometer_abs = 0;
-	tachometer_for_direction = 0;
-	state = MC_STATE_OFF;
-	control_mode = CONTROL_MODE_NONE;
-	last_current_sample = 0.0;
-	last_current_sample_filtered = 0.0;
-	switching_frequency_now = conf->m_bldc_f_sw_max;
-	ignore_iterations = 0;
-	curr_samp_volt = 0;
-	slow_ramping_cycles = 0;
-	has_commutated = 0;
+	m_comm_step = 1;
+	m_detect_step = 0;
+	m_direction = 1;
+	m_rpm_now = 0.0;
+	m_dutycycle_set = 0.0;
+	m_dutycycle_now = 0.0;
+	m_speed_pid_set_rpm = 0.0;
+	m_pos_pid_set_pos = 0.0;
+	m_current_set = 0.0;
+	m_tachometer = 0;
+	m_tachometer_abs = 0;
+	m_tachometer_for_direction = 0;
+	m_state = MC_STATE_OFF;
+	m_control_mode = CONTROL_MODE_NONE;
+	m_last_current_sample = 0.0;
+	m_last_current_sample_filtered = 0.0;
+	m_switching_frequency_now = m_conf->m_bldc_f_sw_max;
+	m_ignore_iterations = 0;
+	m_curr_samp_volt = 0;
+	m_slow_ramping_cycles = 0;
+	m_has_commutated = 0;
 	memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
-	cycle_integrator_sum = 0.0;
-	cycle_integrator_iterations = 0.0;
-	pwm_cycles_sum = 0.0;
-	pwm_cycles = 0;
-	last_pwm_cycles_sum = 0.0;
-	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
-	dccal_done = false;
-	memset((void*)hall_detect_table, 0, sizeof(hall_detect_table[0][0]) * 8 * 7);
+	m_cycle_integrator_sum = 0.0;
+	m_cycle_integrator_iterations = 0.0;
+	m_pwm_cycles_sum = 0.0;
+	m_pwm_cycles = 0;
+	m_last_pwm_cycles_sum = 0.0;
+	memset((float*)m_last_pwm_cycles_sums, 0, sizeof(m_last_pwm_cycles_sums));
+	m_dccal_done = false;
+	memset((void*)m_hall_detect_table, 0, sizeof(m_hall_detect_table[0][0]) * 8 * 7);
 	update_sensor_mode();
-	comm_mode_next = conf->comm_mode;
+	m_comm_mode_next = m_conf->comm_mode;
 
-	init_hall_table((int8_t*)conf->hall_table);
+	init_hall_table((int8_t*)m_conf->hall_table);
 
 	// Create KV FIR filter
 	filter_create_fir_lowpass((float*)kv_fir_coeffs, KV_FIR_FCUT, KV_FIR_TAPS_BITS, 1);
@@ -243,7 +241,7 @@ void init(mc_configuration *configuration) {
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now; // ARR value
+	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)m_switching_frequency_now; // ARR value
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -444,7 +442,7 @@ void init(mc_configuration *configuration) {
 
 	// ADC sampling locations
 	stop_pwm_hw();
-	mc_timer_struct timer_tmp;
+	MCTimer timer_tmp;
 	timer_tmp.top = TIM1->ARR;
 	timer_tmp.duty = TIM1->ARR / 2;
 	update_adc_sample_pos(&timer_tmp);
@@ -483,8 +481,8 @@ void init(mc_configuration *configuration) {
 	WWDG_Enable(100);
 
 	// Reset tachometers again
-	tachometer = 0;
-	tachometer_abs = 0;
+	m_tachometer = 0;
+	m_tachometer_abs = 0;
 
 	m_init_done = true;
 }
@@ -517,13 +515,13 @@ bool init_done(void) {
 
 void set_configuration(mc_configuration *configuration) {
 	// Stop everything first to be safe
-	control_mode = CONTROL_MODE_NONE;
+	m_control_mode = CONTROL_MODE_NONE;
 	stop_pwm_ll();
 
 	sys_lock_cnt();
-	conf = configuration;
-	comm_mode_next = conf->comm_mode;
-	init_hall_table((int8_t*)conf->hall_table);
+	m_conf = configuration;
+	m_comm_mode_next = m_conf->comm_mode;
+	init_hall_table((int8_t*)m_conf->hall_table);
 	update_sensor_mode();
 	sys_unlock_cnt();
 }
@@ -538,15 +536,15 @@ void init_hall_table(int8_t *table) {
 	const int fwd_to_rev[7] = {-1,1,6,5,4,3,2};
 
 	for (int i = 0;i < 8;i++) {
-		hall_to_phase_table[8 + i] = table[i];
-		int ind_now = hall_to_phase_table[8 + i];
+		m_hall_to_phase_table[8 + i] = table[i];
+		int ind_now = m_hall_to_phase_table[8 + i];
 
 		if (ind_now < 1) {
-			hall_to_phase_table[i] = ind_now;
+			m_hall_to_phase_table[i] = ind_now;
 			continue;
 		}
 
-		hall_to_phase_table[i] = fwd_to_rev[ind_now];
+		m_hall_to_phase_table[i] = fwd_to_rev[ind_now];
 	}
 }
 
@@ -564,24 +562,24 @@ void do_dc_cal(void) {
 	};
 
 	chThdSleepMilliseconds(1000);
-	curr0_sum = 0;
-	curr1_sum = 0;
+	m_curr0_sum = 0;
+	m_curr1_sum = 0;
 
 #ifdef HW_HAS_3_SHUNTS
 	curr2_sum = 0;
 #endif
 
-	curr_start_samples = 0;
-	while(curr_start_samples < 4000) {};
-	curr0_offset = curr0_sum / curr_start_samples;
-	curr1_offset = curr1_sum / curr_start_samples;
+	m_curr_start_samples = 0;
+	while(m_curr_start_samples < 4000) {};
+	m_curr0_offset = m_curr0_sum / m_curr_start_samples;
+	m_curr1_offset = m_curr1_sum / m_curr_start_samples;
 
 #ifdef HW_HAS_3_SHUNTS
-	curr2_offset = curr2_sum / curr_start_samples;
+	curr2_offset = curr2_sum / m_curr_start_samples;
 #endif
 
 	DCCAL_OFF();
-	dccal_done = true;
+	m_dccal_done = true;
 }
 
 /**
@@ -592,7 +590,7 @@ void do_dc_cal(void) {
  * The duty cycle to use.
  */
 void set_duty(float dutyCycle) {
-	control_mode = CONTROL_MODE_DUTY;
+	m_control_mode = CONTROL_MODE_DUTY;
 	set_duty_cycle_hl(dutyCycle);
 }
 
@@ -607,13 +605,13 @@ void set_duty(float dutyCycle) {
  * The duty cycle to use.
  */
 void set_duty_noramp(float dutyCycle) {
-	control_mode = CONTROL_MODE_DUTY;
+	m_control_mode = CONTROL_MODE_DUTY;
 
-	if (state != MC_STATE_RUNNING) {
+	if (m_state != MC_STATE_RUNNING) {
 		set_duty_cycle_hl(dutyCycle);
 	} else {
-		dutycycle_set = dutyCycle;
-		dutycycle_now = dutyCycle;
+		m_dutycycle_set = dutyCycle;
+		m_dutycycle_now = dutyCycle;
 		set_duty_cycle_ll(dutyCycle);
 	}
 }
@@ -626,8 +624,8 @@ void set_duty_noramp(float dutyCycle) {
  * The electrical RPM goal value to use.
  */
 void set_pid_speed(float rpm) {
-	control_mode = CONTROL_MODE_SPEED;
-	speed_pid_set_rpm = rpm;
+	m_control_mode = CONTROL_MODE_SPEED;
+	m_speed_pid_set_rpm = rpm;
 }
 
 /**
@@ -638,11 +636,11 @@ void set_pid_speed(float rpm) {
  * The desired position of the motor in degrees.
  */
 void set_pid_pos(float pos) {
-	control_mode = CONTROL_MODE_POS;
-	pos_pid_set_pos = pos;
+	m_control_mode = CONTROL_MODE_POS;
+	m_pos_pid_set_pos = pos;
 
-	if (state != MC_STATE_RUNNING) {
-		set_duty_cycle_hl(conf->l_min_duty);
+	if (m_state != MC_STATE_RUNNING) {
+		set_duty_cycle_hl(m_conf->l_min_duty);
 	}
 }
 
@@ -655,19 +653,19 @@ void set_pid_pos(float pos) {
  * The current to use.
  */
 void set_current(float current) {
-	if (fabsf(current) < conf->cc_min_current) {
-		control_mode = CONTROL_MODE_NONE;
+	if (fabsf(current) < m_conf->cc_min_current) {
+		m_control_mode = CONTROL_MODE_NONE;
 		stop_pwm_ll();
 		return;
 	}
 
-	truncate_number(&current, -conf->l_current_max, conf->l_current_max);
+	truncate_number(&current, -m_conf->l_current_max, m_conf->l_current_max);
 
-	control_mode = CONTROL_MODE_CURRENT;
-	current_set = current;
+	m_control_mode = CONTROL_MODE_CURRENT;
+	m_current_set = current;
 
-	if (state != MC_STATE_RUNNING) {
-		set_duty_cycle_hl(SIGN(current) * conf->l_min_duty);
+	if (m_state != MC_STATE_RUNNING) {
+		set_duty_cycle_hl(SIGN(current) * m_conf->l_min_duty);
 	}
 }
 
@@ -679,23 +677,23 @@ void set_current(float current) {
  * The current to use. Positive and negative values give the same effect.
  */
 void set_brake_current(float current) {
-	if (fabsf(current) < conf->cc_min_current) {
-		control_mode = CONTROL_MODE_NONE;
+	if (fabsf(current) < m_conf->cc_min_current) {
+		m_control_mode = CONTROL_MODE_NONE;
 		stop_pwm_ll();
 		return;
 	}
 
-	truncate_number(&current, -fabsf(conf->l_current_min), fabsf(conf->l_current_min));
+	truncate_number(&current, -fabsf(m_conf->l_current_min), fabsf(m_conf->l_current_min));
 
-	control_mode = CONTROL_MODE_CURRENT_BRAKE;
-	current_set = current;
+	m_control_mode = CONTROL_MODE_CURRENT_BRAKE;
+	m_current_set = current;
 
-	if (state != MC_STATE_RUNNING && state != MC_STATE_FULL_BRAKE) {
+	if (m_state != MC_STATE_RUNNING && m_state != MC_STATE_FULL_BRAKE) {
 		// In case the motor is already spinning, set the state to running
 		// so that it can be ramped down before the full brake is applied.
 
-        if (fabsf(rpm_now) > conf->l_max_erpm_fbrake) {
-            state = MC_STATE_RUNNING;
+        if (fabsf(m_rpm_now) > m_conf->l_max_erpm_fbrake) {
+            m_state = MC_STATE_RUNNING;
         } else {
             full_brake_ll();
         }
@@ -709,15 +707,15 @@ void set_brake_current(float current) {
  * The current commutation step. Range [1 6]
  */
 int get_comm_step(void) {
-	return comm_step;
+	return m_comm_step;
 }
 
 float get_duty_cycle_set(void) {
-	return dutycycle_set;
+	return m_dutycycle_set;
 }
 
 float get_duty_cycle_now(void) {
-	return dutycycle_now;
+	return m_dutycycle_now;
 }
 
 /**
@@ -727,7 +725,7 @@ float get_duty_cycle_now(void) {
  * The switching frequency in Hz.
  */
 float get_switching_frequency_now(void) {
-	return switching_frequency_now;
+	return m_switching_frequency_now;
 }
 
 /**
@@ -739,11 +737,11 @@ float get_switching_frequency_now(void) {
  * The RPM value.
  */
 float get_rpm(void) {
-	return direction ? rpm_now : -rpm_now;
+	return m_direction ? m_rpm_now : -m_rpm_now;
 }
 
 mc_state get_state(void) {
-	return state;
+	return m_state;
 }
 
 /**
@@ -755,7 +753,7 @@ mc_state get_state(void) {
  * The KV value.
  */
 float get_kv(void) {
-	return rpm_now / (GET_INPUT_VOLTAGE() * fabsf(dutycycle_now));
+	return m_rpm_now / (GET_INPUT_VOLTAGE() * fabsf(m_dutycycle_now));
 }
 
 /**
@@ -782,7 +780,7 @@ float get_kv_filtered(void) {
  * The motor current.
  */
 float get_tot_current(void) {
-	return last_current_sample;
+	return m_last_current_sample;
 }
 
 /**
@@ -794,7 +792,7 @@ float get_tot_current(void) {
  * The filtered motor current.
  */
 float get_tot_current_filtered(void) {
-	return last_current_sample_filtered;
+	return m_last_current_sample_filtered;
 }
 
 /**
@@ -806,7 +804,7 @@ float get_tot_current_filtered(void) {
  */
 float get_tot_current_directional(void) {
 	const float retval = get_tot_current();
-	return dutycycle_now > 0.0 ? retval : -retval;
+	return m_dutycycle_now > 0.0 ? retval : -retval;
 }
 
 /**
@@ -818,7 +816,7 @@ float get_tot_current_directional(void) {
  */
 float get_tot_current_directional_filtered(void) {
 	const float retval = get_tot_current_filtered();
-	return dutycycle_now > 0.0 ? retval : -retval;
+	return m_dutycycle_now > 0.0 ? retval : -retval;
 }
 
 /**
@@ -828,7 +826,7 @@ float get_tot_current_directional_filtered(void) {
  * The input current.
  */
 float get_tot_current_in(void) {
-	return get_tot_current() * fabsf(dutycycle_now);
+	return get_tot_current() * fabsf(m_dutycycle_now);
 }
 
 /**
@@ -838,7 +836,7 @@ float get_tot_current_in(void) {
  * The filtered input current.
  */
 float get_tot_current_in_filtered(void) {
-	return get_tot_current_filtered() * fabsf(dutycycle_now);
+	return get_tot_current_filtered() * fabsf(m_dutycycle_now);
 }
 
 /**
@@ -853,10 +851,10 @@ float get_tot_current_in_filtered(void) {
  * be this number divided by (3 * MOTOR_POLE_NUMBER).
  */
 int get_tachometer_value(bool reset) {
-	int val = tachometer;
+	int val = m_tachometer;
 
 	if (reset) {
-		tachometer = 0;
+		m_tachometer = 0;
 	}
 
 	return val;
@@ -873,10 +871,10 @@ int get_tachometer_value(bool reset) {
  * be this number divided by (3 * MOTOR_POLE_NUMBER).
  */
 int get_tachometer_abs_value(bool reset) {
-	int val = tachometer_abs;
+	int val = m_tachometer_abs;
 
 	if (reset) {
-		tachometer_abs = 0;
+		m_tachometer_abs = 0;
 	}
 
 	return val;
@@ -886,13 +884,13 @@ int get_tachometer_abs_value(bool reset) {
  * Switch off all FETs.
  */
 void stop_pwm(void) {
-	control_mode = CONTROL_MODE_NONE;
+	m_control_mode = CONTROL_MODE_NONE;
 	stop_pwm_ll();
 }
 
 void stop_pwm_ll(void) {
-	state = MC_STATE_OFF;
-	ignore_iterations = CMD_STOP_TIME;
+	m_state = MC_STATE_OFF;
+	m_ignore_iterations = CMD_STOP_TIME;
 	stop_pwm_hw();
 }
 
@@ -915,12 +913,12 @@ void stop_pwm_hw(void) {
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
-	set_switching_frequency(conf->m_bldc_f_sw_max);
+	set_switching_frequency(m_conf->m_bldc_f_sw_max);
 }
 
 void full_brake_ll(void) {
-	state = MC_STATE_FULL_BRAKE;
-	ignore_iterations = CMD_STOP_TIME;
+	m_state = MC_STATE_FULL_BRAKE;
+	m_ignore_iterations = CMD_STOP_TIME;
 	full_brake_hw();
 }
 
@@ -943,7 +941,7 @@ void full_brake_hw(void) {
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
-	set_switching_frequency(conf->m_bldc_f_sw_max);
+	set_switching_frequency(m_conf->m_bldc_f_sw_max);
 }
 
 /**
@@ -957,29 +955,29 @@ void full_brake_hw(void) {
  * the motor phases will be shorted to brake the motor.
  */
 void set_duty_cycle_hl(float dutyCycle) {
-	truncate_number(&dutyCycle, -conf->l_max_duty, conf->l_max_duty);
+	truncate_number(&dutyCycle, -m_conf->l_max_duty, m_conf->l_max_duty);
 
-	if (state == MC_STATE_DETECTING) {
+	if (m_state == MC_STATE_DETECTING) {
 		stop_pwm_ll();
 		return;
 	}
 
-	dutycycle_set = dutyCycle;
+	m_dutycycle_set = dutyCycle;
 
-	if (state != MC_STATE_RUNNING) {
-		if (fabsf(dutyCycle) >= conf->l_min_duty) {
+	if (m_state != MC_STATE_RUNNING) {
+		if (fabsf(dutyCycle) >= m_conf->l_min_duty) {
 			// dutycycle_now is updated by the back-emf detection. If the motor already
 			// is spinning, it will be non-zero.
-			if (fabsf(dutycycle_now) < conf->l_min_duty) {
-				dutycycle_now = SIGN(dutyCycle) * conf->l_min_duty;
+			if (fabsf(m_dutycycle_now) < m_conf->l_min_duty) {
+				m_dutycycle_now = SIGN(dutyCycle) * m_conf->l_min_duty;
 			}
 
-			set_duty_cycle_ll(dutycycle_now);
+			set_duty_cycle_ll(m_dutycycle_now);
 		} else {
 			// In case the motor is already spinning, set the state to running
 			// so that it can be ramped down before the full brake is applied.
-            if (fabsf(rpm_now) > conf->l_max_erpm_fbrake) {
-                state = MC_STATE_RUNNING;
+            if (fabsf(m_rpm_now) > m_conf->l_max_erpm_fbrake) {
+                m_state = MC_STATE_RUNNING;
             } else {
                 full_brake_ll();
             }
@@ -1000,33 +998,33 @@ void set_duty_cycle_hl(float dutyCycle) {
  * the motor will be switched off.
  */
 void set_duty_cycle_ll(float dutyCycle) {
-	if (dutyCycle >= conf->l_min_duty) {
-		direction = 1;
-	} else if (dutyCycle <= -conf->l_min_duty) {
+	if (dutyCycle >= m_conf->l_min_duty) {
+		m_direction = 1;
+	} else if (dutyCycle <= -m_conf->l_min_duty) {
 		dutyCycle = -dutyCycle;
-		direction = 0;
+		m_direction = 0;
 	}
 
-	if (dutyCycle < conf->l_min_duty) {
+	if (dutyCycle < m_conf->l_min_duty) {
 		float max_erpm_fbrake;
 #if BLDC_SPEED_CONTROL_CURRENT
-		if (control_mode == CONTROL_MODE_CURRENT ||
-			control_mode == CONTROL_MODE_CURRENT_BRAKE ||
-			control_mode == CONTROL_MODE_SPEED) {
+		if (m_control_mode == CONTROL_MODE_CURRENT ||
+			m_control_mode == CONTROL_MODE_CURRENT_BRAKE ||
+			m_control_mode == CONTROL_MODE_SPEED) {
 #else
-		if (control_mode == CONTROL_MODE_CURRENT ||
-			control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+		if (m_control_mode == CONTROL_MODE_CURRENT ||
+			m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 #endif
-			max_erpm_fbrake = conf->l_max_erpm_fbrake_cc;
+			max_erpm_fbrake = m_conf->l_max_erpm_fbrake_cc;
 		} else {
-			max_erpm_fbrake = conf->l_max_erpm_fbrake;
+			max_erpm_fbrake = m_conf->l_max_erpm_fbrake;
 		}
 
-		switch (state) {
+		switch (m_state) {
 		case MC_STATE_RUNNING:
 			// TODO!!!
-			if (fabsf(rpm_now) > max_erpm_fbrake) {
-				dutyCycle = conf->l_min_duty;
+			if (fabsf(m_rpm_now) > max_erpm_fbrake) {
+				dutyCycle = m_conf->l_min_duty;
 			} else {
 				full_brake_ll();
 				return;
@@ -1041,32 +1039,32 @@ void set_duty_cycle_ll(float dutyCycle) {
 		default:
 			return;
 		}
-	} else if (dutyCycle > conf->l_max_duty) {
-		dutyCycle = conf->l_max_duty;
+	} else if (dutyCycle > m_conf->l_max_duty) {
+		dutyCycle = m_conf->l_max_duty;
 	}
 
 	set_duty_cycle_hw(dutyCycle);
 
-    if (sensorless_now) {
-        if (state != MC_STATE_RUNNING) {
-            if (state == MC_STATE_OFF) {
-                state = MC_STATE_RUNNING;
+    if (m_sensorless_now) {
+        if (m_state != MC_STATE_RUNNING) {
+            if (m_state == MC_STATE_OFF) {
+                m_state = MC_STATE_RUNNING;
 
-                if (fabsf(rpm_now) < conf->sl_min_erpm) {
+                if (fabsf(m_rpm_now) < m_conf->sl_min_erpm) {
                     commutate(1);
                 }
-            } else if (state == MC_STATE_FULL_BRAKE) {
-                if (fabsf(rpm_now) < conf->sl_min_erpm && get_tot_current_filtered() < conf->sl_max_fullbreak_current_dir_change) {
-                    state = MC_STATE_RUNNING;
+            } else if (m_state == MC_STATE_FULL_BRAKE) {
+                if (fabsf(m_rpm_now) < m_conf->sl_min_erpm && get_tot_current_filtered() < m_conf->sl_max_fullbreak_current_dir_change) {
+                    m_state = MC_STATE_RUNNING;
                     commutate(1);
                 }
             }
         }
     } else {
-        if (state != MC_STATE_RUNNING) {
-            state = MC_STATE_RUNNING;
-            comm_step = read_hall_phase();
-            set_next_comm_step(comm_step);
+        if (m_state != MC_STATE_RUNNING) {
+            m_state = MC_STATE_RUNNING;
+            m_comm_step = read_hall_phase();
+            set_next_comm_step(m_comm_step);
             commutate(1);
         }
     }
@@ -1081,24 +1079,24 @@ void set_duty_cycle_ll(float dutyCycle) {
  * (Only positive)
  */
 void set_duty_cycle_hw(float dutyCycle) {
-	mc_timer_struct timer_tmp;
+	MCTimer timer_tmp;
 
 	sys_lock_cnt();
-	timer_tmp = timer_struct;
+	timer_tmp = m_timer_struct;
 	sys_unlock_cnt();
 
-	truncate_number(&dutyCycle, conf->l_min_duty, conf->l_max_duty);
+	truncate_number(&dutyCycle, m_conf->l_min_duty, m_conf->l_max_duty);
 
-    if (IS_DETECTING() || conf->pwm_mode == PWM_MODE_BIPOLAR) {
-        switching_frequency_now = conf->m_bldc_f_sw_max;
+    if (is_detecting() || m_conf->pwm_mode == PWM_MODE_BIPOLAR) {
+        m_switching_frequency_now = m_conf->m_bldc_f_sw_max;
     } else {
-        switching_frequency_now = (float)conf->m_bldc_f_sw_min * (1.0 - fabsf(dutyCycle)) +
-                conf->m_bldc_f_sw_max * fabsf(dutyCycle);
+        m_switching_frequency_now = (float)m_conf->m_bldc_f_sw_min * (1.0 - fabsf(dutyCycle)) +
+                m_conf->m_bldc_f_sw_max * fabsf(dutyCycle);
     }
 
-	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
+	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)m_switching_frequency_now;
 
-	if (conf->pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
+	if (m_conf->pwm_mode == PWM_MODE_BIPOLAR && !is_detecting()) {
 		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
 				+ ((float) timer_tmp.top / 2.0));
 	} else {
@@ -1116,22 +1114,22 @@ void run_pid_control_speed(void) {
 	float d_term;
 
 	// PID is off. Return.
-	if (control_mode != CONTROL_MODE_SPEED) {
+	if (m_control_mode != CONTROL_MODE_SPEED) {
 #if BLDC_SPEED_CONTROL_CURRENT
 		i_term = 0.0;
 #else
-		i_term = dutycycle_now;
+		i_term = m_dutycycle_now;
 #endif
 		prev_error = 0.0;
 		return;
 	}
 
 	const float rpm = get_rpm();
-	float error = speed_pid_set_rpm - rpm;
+	float error = m_speed_pid_set_rpm - rpm;
 
 	// Too low RPM set. Stop and return.
-	if (fabsf(speed_pid_set_rpm) < conf->s_pid_min_erpm) {
-		i_term = dutycycle_now;
+	if (fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
+		i_term = m_dutycycle_now;
 		prev_error = error;
 		set_duty(0.0);
 		return;
@@ -1139,13 +1137,13 @@ void run_pid_control_speed(void) {
 
 #if BLDC_SPEED_CONTROL_CURRENT
 	// Compute parameters
-	p_term = error * conf->s_pid_kp * (1.0 / 20.0);
-	i_term += error * (conf->s_pid_ki * PID_TIME_K) * (1.0 / 20.0);
-	d_term = (error - prev_error) * (conf->s_pid_kd / PID_TIME_K) * (1.0 / 20.0);
+	p_term = error * m_conf->s_pid_kp * (1.0 / 20.0);
+	i_term += error * (m_conf->s_pid_ki * PID_TIME_K) * (1.0 / 20.0);
+	d_term = (error - prev_error) * (m_conf->s_pid_kd / PID_TIME_K) * (1.0 / 20.0);
 
 	// Filter D
 	static float d_filter = 0.0;
-	UTILS_LP_FAST(d_filter, d_term, conf->p_pid_kd_filter);
+	UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
 	d_term = d_filter;
 
 	// I-term wind-up protection
@@ -1159,7 +1157,7 @@ void run_pid_control_speed(void) {
 	truncate_number(&output, -1.0, 1.0);
 
 	// Optionally disable braking
-	if (!conf->s_pid_allow_braking) {
+	if (!m_conf->s_pid_allow_braking) {
 		if (rpm > 0.0 && output < 0.0) {
 			output = 0.0;
 		}
@@ -1169,23 +1167,23 @@ void run_pid_control_speed(void) {
 		}
 	}
 
-	current_set = output * conf->lo_current_max;
+	m_current_set = output * m_conf->lo_current_max;
 
-	if (state != MC_STATE_RUNNING) {
-		set_duty_cycle_hl(SIGN(output) * conf->l_min_duty);
+	if (m_state != MC_STATE_RUNNING) {
+		set_duty_cycle_hl(SIGN(output) * m_conf->l_min_duty);
 	}
 #else
 	// Compensation for supply voltage variations
 	float scale = 1.0 / GET_INPUT_VOLTAGE();
 
 	// Compute parameters
-	p_term = error * conf->s_pid_kp * scale;
-	i_term += error * (conf->s_pid_ki * PID_TIME_K) * scale;
-	d_term = (error - prev_error) * (conf->s_pid_kd / PID_TIME_K) * scale;
+	p_term = error * m_conf->s_pid_kp * scale;
+	i_term += error * (m_conf->s_pid_ki * PID_TIME_K) * scale;
+	d_term = (error - prev_error) * (m_conf->s_pid_kd / PID_TIME_K) * scale;
 
 	// Filter D
 	static float d_filter = 0.0;
-	UTILS_LP_FAST(d_filter, d_term, conf->s_pid_kd_filter);
+	UTILS_LP_FAST(d_filter, d_term, m_conf->s_pid_kd_filter);
 	d_term = d_filter;
 
 	// I-term wind-up protection
@@ -1198,16 +1196,16 @@ void run_pid_control_speed(void) {
 	float output = p_term + i_term + d_term;
 
 	// Make sure that at least minimum output is used
-	if (fabsf(output) < conf->l_min_duty) {
-		output = SIGN(output) * conf->l_min_duty;
+	if (fabsf(output) < m_conf->l_min_duty) {
+		output = SIGN(output) * m_conf->l_min_duty;
 	}
 
 	// Do not output in reverse direction to oppose too high rpm
-	if (speed_pid_set_rpm > 0.0 && output < 0.0) {
-		output = conf->l_min_duty;
+	if (m_speed_pid_set_rpm > 0.0 && output < 0.0) {
+		output = m_conf->l_min_duty;
 		i_term = 0.0;
-	} else if (speed_pid_set_rpm < 0.0 && output > 0.0) {
-		output = -conf->l_min_duty;
+	} else if (m_speed_pid_set_rpm < 0.0 && output > 0.0) {
+		output = -m_conf->l_min_duty;
 		i_term = 0.0;
 	}
 
@@ -1222,23 +1220,23 @@ void run_pid_control_pos(float dt) {
 	float d_term;
 
 	// PID is off. Return.
-	if (control_mode != CONTROL_MODE_POS) {
+	if (m_control_mode != CONTROL_MODE_POS) {
 		i_term = 0;
 		prev_error = 0;
 		return;
 	}
 
 	// Compute error
-	float error = angle_difference(encoder_read_deg(), pos_pid_set_pos);
+	float error = angle_difference(encoder_read_deg(), m_pos_pid_set_pos);
 
 	// Compute parameters
-	p_term = error * conf->p_pid_kp;
-	i_term += error * (conf->p_pid_ki * dt);
-	d_term = (error - prev_error) * (conf->p_pid_kd / dt);
+	p_term = error * m_conf->p_pid_kp;
+	i_term += error * (m_conf->p_pid_ki * dt);
+	d_term = (error - prev_error) * (m_conf->p_pid_kd / dt);
 
 	// Filter D
 	static float d_filter = 0.0;
-	UTILS_LP_FAST(d_filter, d_term, conf->p_pid_kd_filter);
+	UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
 	d_term = d_filter;
 
 	// I-term wind-up protection
@@ -1251,7 +1249,7 @@ void run_pid_control_pos(float dt) {
 	float output = p_term + i_term + d_term;
 	truncate_number(&output, -1.0, 1.0);
 
-	current_set = output * conf->lo_current_max;
+	m_current_set = output * m_conf->lo_current_max;
 }
 
 THD_FUNCTION(rpm_thread, arg) {
@@ -1274,36 +1272,36 @@ THD_FUNCTION(rpm_thread, arg) {
 			rpm_dep.time_at_comm = 0;
 			sys_unlock_cnt();
 
-			rpm_now = (comms * RPM_TIMER_FREQ * 60.0) / (time_at_comm * 6.0);
+			m_rpm_now = (comms * RPM_TIMER_FREQ * 60.0) / (time_at_comm * 6.0);
 		} else {
 		    // GG: still on the same commutation as in previous rpm evaluation
 			// In case we have slowed down
 			float rpm_tmp = (RPM_TIMER_FREQ * 60.0) / ((float) TIM2 ->CNT * 6.0);
 
-			if (fabsf(rpm_tmp) < fabsf(rpm_now)) {
-				rpm_now = rpm_tmp;
+			if (fabsf(rpm_tmp) < fabsf(m_rpm_now)) {
+				m_rpm_now = rpm_tmp;
 			}
 		}
 
 		// Some low-pass filtering
 		static float rpm_filtered = 0.0;
-		UTILS_LP_FAST(rpm_filtered, rpm_now, 0.1);
-		rpm_now = rpm_filtered;
-		const float rpm_abs = fabsf(rpm_now);
+		UTILS_LP_FAST(rpm_filtered, m_rpm_now, 0.1);
+		m_rpm_now = rpm_filtered;
+		const float rpm_abs = fabsf(m_rpm_now);
 
 		// Update the cycle integrator limit
-		rpm_dep.cycle_int_limit = conf->sl_cycle_int_limit;
+		rpm_dep.cycle_int_limit = m_conf->sl_cycle_int_limit;
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) *
-				conf->sl_bemf_coupling_k / (rpm_abs > conf->sl_min_erpm ? rpm_abs : conf->sl_min_erpm);
+				m_conf->sl_bemf_coupling_k / (rpm_abs > m_conf->sl_min_erpm ? rpm_abs : m_conf->sl_min_erpm);
 
 		rpm_dep.cycle_int_limit_running = map(rpm_abs,
 													0,
-													conf->sl_cycle_int_rpm_br,
+													m_conf->sl_cycle_int_rpm_br,
 													rpm_dep.cycle_int_limit_running,
-													rpm_dep.cycle_int_limit_running * conf->sl_phase_advance_at_br);
+													rpm_dep.cycle_int_limit_running * m_conf->sl_phase_advance_at_br);
 
 		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) *
-				conf->sl_bemf_coupling_k / conf->sl_min_erpm_cycle_int_limit;
+				m_conf->sl_bemf_coupling_k / m_conf->sl_min_erpm_cycle_int_limit;
 
 		if (rpm_dep.cycle_int_limit_running < 1.0) {
 			rpm_dep.cycle_int_limit_running = 1.0;
@@ -1313,8 +1311,8 @@ THD_FUNCTION(rpm_thread, arg) {
 			rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit_max;
 		}
 
-		rpm_dep.comm_time_sum = conf->m_bldc_f_sw_max / ((rpm_abs / 60.0) * 6.0);
-		rpm_dep.comm_time_sum_min_rpm = conf->m_bldc_f_sw_max / ((conf->sl_min_erpm / 60.0) * 6.0);
+		rpm_dep.comm_time_sum = m_conf->m_bldc_f_sw_max / ((rpm_abs / 60.0) * 6.0);
+		rpm_dep.comm_time_sum_min_rpm = m_conf->m_bldc_f_sw_max / ((m_conf->sl_min_erpm / 60.0) * 6.0);
 
 		run_pid_control_speed();
 
@@ -1337,24 +1335,24 @@ THD_FUNCTION(timer_thread, arg) {
 			return;
 		}
 
-		if (state == MC_STATE_OFF) {
+		if (m_state == MC_STATE_OFF) {
 			// Track the motor back-emf and follow it with dutycycle_now. Also track
 			// the direction of the motor.
 			amp = filter_run_fir_iteration((float*)amp_fir_samples,
 					(float*)amp_fir_coeffs, AMP_FIR_TAPS_BITS, amp_fir_index);
 
 			// Direction tracking
-            if (sensorless_now) {
+            if (m_sensorless_now) {
                 min_s = 9999999999999.0;
                 max_s = 0.0;
 
                 for (int i = 0;i < 6;i++) {
-                    if (last_pwm_cycles_sums[i] < min_s) {
-                        min_s = last_pwm_cycles_sums[i];
+                    if (m_last_pwm_cycles_sums[i] < min_s) {
+                        min_s = m_last_pwm_cycles_sums[i];
                     }
 
-                    if (last_pwm_cycles_sums[i] > max_s) {
-                        max_s = last_pwm_cycles_sums[i];
+                    if (m_last_pwm_cycles_sums[i] > max_s) {
+                        max_s = m_last_pwm_cycles_sums[i];
                     }
                 }
 
@@ -1367,40 +1365,40 @@ THD_FUNCTION(timer_thread, arg) {
                 // change direction again.
 
                 if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.2) {
-                    if (tachometer_for_direction > 12) {
-                        if (direction == 1) {
-                            direction = 0;
+                    if (m_tachometer_for_direction > 12) {
+                        if (m_direction == 1) {
+                            m_direction = 0;
                         } else {
-                            direction = 1;
+                            m_direction = 1;
                         }
-                        tachometer_for_direction = 0;
+                        m_tachometer_for_direction = 0;
                     }
                 } else {
-                    tachometer_for_direction = 0;
+                    m_tachometer_for_direction = 0;
                 }
             } else { // sensorless_now
                 // If the direction tachometer is counting backwards, the motor is
                 // not moving in the direction we think it is.
-                if (tachometer_for_direction < -3) {
-                    if (direction == 1) {
-                        direction = 0;
+                if (m_tachometer_for_direction < -3) {
+                    if (m_direction == 1) {
+                        m_direction = 0;
                     } else {
-                        direction = 1;
+                        m_direction = 1;
                     }
-                    tachometer_for_direction = 0;
-                } else if (tachometer_for_direction > 0) {
-                    tachometer_for_direction = 0;
+                    m_tachometer_for_direction = 0;
+                } else if (m_tachometer_for_direction > 0) {
+                    m_tachometer_for_direction = 0;
                 }
             }
 
-			if (direction == 1) {
-				dutycycle_now =  amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
+			if (m_direction == 1) {
+				m_dutycycle_now =  amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
 			} else {
-				dutycycle_now = -amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
+				m_dutycycle_now = -amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
 			}
-			truncate_number((float*)&dutycycle_now, -conf->l_max_duty, conf->l_max_duty);
+			truncate_number((float*)&m_dutycycle_now, -m_conf->l_max_duty, m_conf->l_max_duty);
 		} else { //state != MC_STATE_OFF
-			tachometer_for_direction = 0;
+			m_tachometer_for_direction = 0;
 		}
 
 		// Fill KV filter vector at 100Hz
@@ -1408,11 +1406,11 @@ THD_FUNCTION(timer_thread, arg) {
 		cnt_tmp++;
 		if (cnt_tmp >= 10) {
 			cnt_tmp = 0;
-			if (state == MC_STATE_RUNNING) {
+			if (m_state == MC_STATE_RUNNING) {
 				filter_add_sample((float*)kv_fir_samples, get_kv(),
 						KV_FIR_TAPS_BITS, (uint32_t*)&kv_fir_index);
-			} else if (state == MC_STATE_OFF) {
-				if (dutycycle_now >= conf->l_min_duty) {
+			} else if (m_state == MC_STATE_OFF) {
+				if (m_dutycycle_now >= m_conf->l_min_duty) {
 					filter_add_sample((float*)kv_fir_samples, get_kv(),
 							KV_FIR_TAPS_BITS, (uint32_t*)&kv_fir_index);
 				}
@@ -1431,44 +1429,44 @@ void process_detecting(){
       const float b = fabsf(ADC_curr_norm_value[1]);
 
       if (a > b) {
-          detect_currents[detect_step] = a;
+          detect_currents[m_detect_step] = a;
       } else {
-          detect_currents[detect_step] = b;
+          detect_currents[m_detect_step] = b;
       }
 
-      if (detect_step > 0) {
-          detect_currents_diff[detect_step] =
-                  detect_currents[detect_step - 1] - detect_currents[detect_step];
+      if (m_detect_step > 0) {
+          detect_currents_diff[m_detect_step] =
+                  detect_currents[m_detect_step - 1] - detect_currents[m_detect_step];
       } else {
-          detect_currents_diff[detect_step] =
-                  detect_currents[5] - detect_currents[detect_step];
+          detect_currents_diff[m_detect_step] =
+                  detect_currents[5] - detect_currents[m_detect_step];
       }
 
       const int vzero = ADC_V_ZERO;
       //          const int vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
 
-      switch (comm_step) {
+      switch (m_comm_step) {
       case 1:
       case 4:
-          detect_voltages[detect_step] = ADC_V_L1 - vzero;
+          detect_voltages[m_detect_step] = ADC_V_L1 - vzero;
           break;
 
       case 2:
       case 5:
-          detect_voltages[detect_step] = ADC_V_L2 - vzero;
+          detect_voltages[m_detect_step] = ADC_V_L2 - vzero;
           break;
 
       case 3:
       case 6:
-          detect_voltages[detect_step] = ADC_V_L3 - vzero;
+          detect_voltages[m_detect_step] = ADC_V_L3 - vzero;
           break;
 
       default:
           break;
       }
 
-      detect_currents_avg[detect_step] += detect_currents[detect_step];
-      detect_avg_samples[detect_step]++;
+      m_detect_currents_avg[m_detect_step] += detect_currents[m_detect_step];
+      m_detect_avg_samples[m_detect_step]++;
 
       stop_pwm_hw();
   }
@@ -1477,19 +1475,19 @@ void process_detecting(){
       detect_now--;
   }
 
-  if (IS_DETECTING() && detect_now == 0) {
+  if (is_detecting() && detect_now == 0) {
       detect_now = 5;
 
       set_duty_cycle_hw(0.2);
 
-      detect_step++;
-      if (detect_step > 5) {
-          detect_step = 0;
+      m_detect_step++;
+      if (m_detect_step > 5) {
+          m_detect_step = 0;
       }
 
-      comm_step = detect_step + 1;
+      m_comm_step = m_detect_step + 1;
 
-      set_next_comm_step(comm_step);
+      set_next_comm_step(m_comm_step);
       TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
   }
 }
@@ -1513,16 +1511,16 @@ void adc_inj_int_handler(void) {
 	float curr2_currsamp = curr2;
 #endif
 
-	if (curr_samp_volt & (1 << 0)) {
+	if (m_curr_samp_volt & (1 << 0)) {
 		curr0 = ADC_Value[ADC_IND_CURR1];
 	}
 
-	if (curr_samp_volt & (1 << 1)) {
+	if (m_curr_samp_volt & (1 << 1)) {
 		curr1 = ADC_Value[ADC_IND_CURR2];
 	}
 
 #ifdef HW_HAS_3_SHUNTS
-	if (curr_samp_volt & (1 << 2)) {
+	if (m_curr_samp_volt & (1 << 2)) {
 		curr2 = ADC_Value[ADC_IND_CURR3];
 	}
 #endif
@@ -1540,20 +1538,20 @@ void adc_inj_int_handler(void) {
 	//		DCCAL_ON();
 	//	}
 
-	curr0_sum += curr0;
-	curr1_sum += curr1;
+	m_curr0_sum += curr0;
+	m_curr1_sum += curr1;
 #ifdef HW_HAS_3_SHUNTS
 	curr2_sum += curr2;
 #endif
 
-	curr_start_samples++;
+	m_curr_start_samples++;
 
-	curr0_currsamp -= curr0_offset;
-	curr1_currsamp -= curr1_offset;
-	curr0 -= curr0_offset;
-	curr1 -= curr1_offset;
-	curr0_2 -= curr0_offset;
-	curr1_2 -= curr1_offset;
+	curr0_currsamp -= m_curr0_offset;
+	curr1_currsamp -= m_curr1_offset;
+	curr0 -= m_curr0_offset;
+	curr1 -= m_curr1_offset;
+	curr0_2 -= m_curr0_offset;
+	curr1_2 -= m_curr1_offset;
 
 #ifdef HW_HAS_3_SHUNTS
 	curr2_currsamp -= curr2_offset;
@@ -1561,17 +1559,17 @@ void adc_inj_int_handler(void) {
 #endif
 
 #if CURR1_DOUBLE_SAMPLE || CURR2_DOUBLE_SAMPLE
-	if (conf->pwm_mode != PWM_MODE_BIPOLAR) {
-		if (direction) {
-			if (CURR1_DOUBLE_SAMPLE && comm_step == 3) {
+	if (m_conf->pwm_mode != PWM_MODE_BIPOLAR) {
+		if (m_direction) {
+			if (CURR1_DOUBLE_SAMPLE && m_comm_step == 3) {
 				curr0 = (curr0 + curr0_2) / 2.0;
-			} else if (CURR2_DOUBLE_SAMPLE && comm_step == 4) {
+			} else if (CURR2_DOUBLE_SAMPLE && m_comm_step == 4) {
 				curr1 = (curr1 + curr1_2) / 2.0;
 			}
 		} else {
-			if (CURR1_DOUBLE_SAMPLE && comm_step == 2) {
+			if (CURR1_DOUBLE_SAMPLE && m_comm_step == 2) {
 				curr0 = (curr0 + curr0_2) / 2.0;
-			} else if (CURR2_DOUBLE_SAMPLE && comm_step == 1) {
+			} else if (CURR2_DOUBLE_SAMPLE && m_comm_step == 1) {
 				curr1 = (curr1 + curr1_2) / 2.0;
 			}
 		}
@@ -1615,15 +1613,15 @@ void adc_inj_int_handler(void) {
      * 6		-		0		+
      */
 
-    if (state == MC_STATE_FULL_BRAKE) {
+    if (m_state == MC_STATE_FULL_BRAKE) {
         float c0 = (float)ADC_curr_norm_value[0];
         float c1 = (float)ADC_curr_norm_value[1];
         float c2 = (float)ADC_curr_norm_value[2];
         curr_tot_sample = sqrtf((c0*c0 + c1*c1 + c2*c2) / 1.5);
     } else {
 #ifdef HW_HAS_3_SHUNTS
-        if (direction) {
-            switch (comm_step) {
+        if (m_direction) {
+            switch (m_comm_step) {
             case 1: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
             case 2: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
             case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
@@ -1633,7 +1631,7 @@ void adc_inj_int_handler(void) {
             default: break;
             }
         } else {
-            switch (comm_step) {
+            switch (m_comm_step) {
             case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
             case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
             case 3: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
@@ -1644,8 +1642,8 @@ void adc_inj_int_handler(void) {
             }
         }
 #else
-        if (direction) {
-            switch (comm_step) {
+        if (m_direction) {
+            switch (m_comm_step) {
             case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
             case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
             case 3: curr_tot_sample =  (float)ADC_curr_norm_value[0]; break;
@@ -1655,7 +1653,7 @@ void adc_inj_int_handler(void) {
             default: break;
             }
         } else {
-            switch (comm_step) {
+            switch (m_comm_step) {
             case 1: curr_tot_sample =  (float)ADC_curr_norm_value[1]; break;
             case 2: curr_tot_sample =  (float)ADC_curr_norm_value[0]; break;
             case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
@@ -1670,25 +1668,25 @@ void adc_inj_int_handler(void) {
         const float tot_sample_tmp = curr_tot_sample;
         static int comm_step_prev = 1;
         static float prev_tot_sample = 0.0;
-        if (comm_step != comm_step_prev) {
+        if (m_comm_step != comm_step_prev) {
             curr_tot_sample = prev_tot_sample;
         }
-        comm_step_prev = comm_step;
+        comm_step_prev = m_comm_step;
         prev_tot_sample = tot_sample_tmp;
     }
 
     process_detecting();
 
-	last_current_sample = curr_tot_sample * FAC_CURRENT;
+	m_last_current_sample = curr_tot_sample * FAC_CURRENT;
 
 	// Filter out outliers
-	if (fabsf(last_current_sample) > (conf->l_abs_current_max * 1.2)) {
-		last_current_sample = SIGN(last_current_sample) * conf->l_abs_current_max * 1.2;
+	if (fabsf(m_last_current_sample) > (m_conf->l_abs_current_max * 1.2)) {
+		m_last_current_sample = SIGN(m_last_current_sample) * m_conf->l_abs_current_max * 1.2;
 	}
 
-	filter_add_sample((float*) current_fir_samples, last_current_sample,
+	filter_add_sample((float*) current_fir_samples, m_last_current_sample,
 			CURR_FIR_TAPS_BITS, (uint32_t*) &current_fir_index);
-	last_current_sample_filtered = filter_run_fir_iteration(
+	m_last_current_sample_filtered = filter_run_fir_iteration(
 			(float*) current_fir_samples, (float*) current_fir_coeffs,
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
@@ -1716,21 +1714,21 @@ void adc_int_handler(void *p, uint32_t flags) {
 	int ph1_raw, ph2_raw, ph3_raw;
 
 	static int direction_before = 1;
-	if (!(state == MC_STATE_RUNNING && direction == direction_before)) {
-		has_commutated = 0;
+	if (!(m_state == MC_STATE_RUNNING && m_direction == direction_before)) {
+		m_has_commutated = 0;
 	}
-	direction_before = direction;
+	direction_before = m_direction;
 
     /*
      * Calculate the virtual ground, depending on the state.
      */
-    if (has_commutated && fabsf(dutycycle_now) > 0.2) {
+    if (m_has_commutated && fabsf(m_dutycycle_now) > 0.2) {
         mcpwm_vzero = ADC_V_ZERO;
     } else {
         mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
     }
 
-    if (direction) {
+    if (m_direction) {
         ph1 = ADC_V_L1 - mcpwm_vzero;
         ph2 = ADC_V_L2 - mcpwm_vzero;
         ph3 = ADC_V_L3 - mcpwm_vzero;
@@ -1751,8 +1749,8 @@ void adc_int_handler(void *p, uint32_t flags) {
     {
       float amp = 0.0;
 
-      if (has_commutated) {
-          amp = fabsf(dutycycle_now) * (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
+      if (m_has_commutated) {
+          amp = fabsf(m_dutycycle_now) * (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
       } else {
           amp = sqrtf((float)(ph1*ph1 + ph2*ph2 + ph3*ph3)) * sqrtf(2.0);
       }
@@ -1762,17 +1760,17 @@ void adc_int_handler(void *p, uint32_t flags) {
               AMP_FIR_TAPS_BITS, (uint32_t*)&amp_fir_index);
     }
 
-    if (sensorless_now) {
+    if (m_sensorless_now) {
         static float cycle_integrator = 0;
 
-        if (pwm_cycles_sum >= rpm_dep.comm_time_sum_min_rpm) {
-            if (state == MC_STATE_RUNNING) {
-                if (conf->comm_mode == COMM_MODE_INTEGRATE) {
+        if (m_pwm_cycles_sum >= rpm_dep.comm_time_sum_min_rpm) {
+            if (m_state == MC_STATE_RUNNING) {
+                if (m_conf->comm_mode == COMM_MODE_INTEGRATE) {
                     // This means that the motor is stuck. If this commutation does not
                     // produce any torque because of misalignment at start, two
                     // commutations ahead should produce full torque.
                     commutate(2);
-                } else if (conf->comm_mode == COMM_MODE_DELAY) {
+                } else if (m_conf->comm_mode == COMM_MODE_DELAY) {
                     commutate(1);
                 }
 
@@ -1780,11 +1778,11 @@ void adc_int_handler(void *p, uint32_t flags) {
             }
         }
 
-        if ((state == MC_STATE_RUNNING && pwm_cycles >= 2) || state == MC_STATE_OFF) {
+        if ((m_state == MC_STATE_RUNNING && m_pwm_cycles >= 2) || m_state == MC_STATE_OFF) {
             int v_diff = 0;
             int ph_now_raw = 0;
 
-            switch (comm_step) {
+            switch (m_comm_step) {
             case 1:
                 v_diff = ph1;
                 ph_now_raw = ph1_raw;
@@ -1817,7 +1815,7 @@ void adc_int_handler(void *p, uint32_t flags) {
             // because positive timing is much better than negative timing in case they are
             // mis-aligned.
             if (v_diff < 50) {
-                hall_detect_table[read_hall()][comm_step]++;
+                m_hall_detect_table[read_hall()][m_comm_step]++;
             }
 
             // Don't commutate while the motor is standing still and the signal only consists
@@ -1829,21 +1827,21 @@ void adc_int_handler(void *p, uint32_t flags) {
             if (v_diff > 0) {
                 // TODO!
                 //					const int min = 100;
-                int min = (int)((1.0 - fabsf(dutycycle_now)) * (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] * 0.3));
+                int min = (int)((1.0 - fabsf(m_dutycycle_now)) * (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] * 0.3));
                 if (min > CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] / 4)) {
                     min = CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] / 4);
                 }
 
-                if (pwm_cycles_sum > (last_pwm_cycles_sum / 2.0) ||
-                        !has_commutated || (ph_now_raw > min && ph_now_raw < (CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) - min))) {
-                    cycle_integrator += (float)v_diff / switching_frequency_now;
+                if (m_pwm_cycles_sum > (m_last_pwm_cycles_sum / 2.0) ||
+                        !m_has_commutated || (ph_now_raw > min && ph_now_raw < (CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) - min))) {
+                    cycle_integrator += (float)v_diff / m_switching_frequency_now;
                 }
             }
 
             static float cycle_sum = 0.0;
-            if (conf->comm_mode == COMM_MODE_INTEGRATE) {
+            if (m_conf->comm_mode == COMM_MODE_INTEGRATE) {
                 float limit;
-                if (has_commutated) {
+                if (m_has_commutated) {
                     limit = rpm_dep.cycle_int_limit_running * (0.0005 * VDIV_CORR);
                 } else {
                     limit = rpm_dep.cycle_int_limit * (0.0005 * VDIV_CORR);
@@ -1855,16 +1853,16 @@ void adc_int_handler(void *p, uint32_t flags) {
                     cycle_integrator = 0.0;
                     cycle_sum = 0.0;
                 }
-            } else if (conf->comm_mode == COMM_MODE_DELAY) {
+            } else if (m_conf->comm_mode == COMM_MODE_DELAY) {
                 if (v_diff > 0) {
-                    cycle_sum += conf->m_bldc_f_sw_max / switching_frequency_now;
+                    cycle_sum += m_conf->m_bldc_f_sw_max / m_switching_frequency_now;
 
-                    if (cycle_sum >= map(fabsf(rpm_now), 0,
-                            conf->sl_cycle_int_rpm_br, rpm_dep.comm_time_sum / 2.0,
-                            (rpm_dep.comm_time_sum / 2.0) * conf->sl_phase_advance_at_br)) {
+                    if (cycle_sum >= map(fabsf(m_rpm_now), 0,
+                            m_conf->sl_cycle_int_rpm_br, rpm_dep.comm_time_sum / 2.0,
+                            (rpm_dep.comm_time_sum / 2.0) * m_conf->sl_phase_advance_at_br)) {
                         commutate(1);
-                        cycle_integrator_sum += cycle_integrator * (1.0 / (0.0005 * VDIV_CORR));
-                        cycle_integrator_iterations += 1.0;
+                        m_cycle_integrator_sum += cycle_integrator * (1.0 / (0.0005 * VDIV_CORR));
+                        m_cycle_integrator_iterations += 1.0;
                         cycle_integrator = 0.0;
                         cycle_sum = 0.0;
                     }
@@ -1877,70 +1875,70 @@ void adc_int_handler(void *p, uint32_t flags) {
             cycle_integrator = 0.0;
         }
 
-        pwm_cycles_sum += conf->m_bldc_f_sw_max / switching_frequency_now;
-        pwm_cycles++;
+        m_pwm_cycles_sum += m_conf->m_bldc_f_sw_max / m_switching_frequency_now;
+        m_pwm_cycles++;
     } else { // !sensorless_now
         const int hall_phase = read_hall_phase();
-        if (comm_step != hall_phase) {
-            comm_step = hall_phase;
+        if (m_comm_step != hall_phase) {
+            m_comm_step = hall_phase;
 
             update_rpm_tacho();
 
-            if (state == MC_STATE_RUNNING) {
-                set_next_comm_step(comm_step);
+            if (m_state == MC_STATE_RUNNING) {
+                set_next_comm_step(m_comm_step);
                 commutate(0);
             }
-        } else if (state == MC_STATE_RUNNING && !has_commutated) {
-            set_next_comm_step(comm_step);
+        } else if (m_state == MC_STATE_RUNNING && !m_has_commutated) {
+            set_next_comm_step(m_comm_step);
             commutate(0);
         }
     }
 
 	const float current_nofilter = get_tot_current();
-	const float current_in_nofilter = current_nofilter * fabsf(dutycycle_now);
+	const float current_in_nofilter = current_nofilter * fabsf(m_dutycycle_now);
 
-	if (state == MC_STATE_RUNNING && has_commutated) {
+	if (m_state == MC_STATE_RUNNING && m_has_commutated) {
 		// Compensation for supply voltage variations
 		const float voltage_scale = 20.0 / input_voltage;
-		float ramp_step = conf->m_duty_ramp_step / (switching_frequency_now / 1000.0);
+		float ramp_step = m_conf->m_duty_ramp_step / (m_switching_frequency_now / 1000.0);
 		float ramp_step_no_lim = ramp_step;
 		const float rpm = get_rpm();
 
-		if (slow_ramping_cycles) {
-			slow_ramping_cycles--;
+		if (m_slow_ramping_cycles) {
+			m_slow_ramping_cycles--;
 			ramp_step *= 0.1;
 		}
 
-		float dutycycle_now_tmp = dutycycle_now;
+		float dutycycle_now_tmp = m_dutycycle_now;
 
 #if BLDC_SPEED_CONTROL_CURRENT
-		if (control_mode == CONTROL_MODE_CURRENT ||
-			control_mode == CONTROL_MODE_POS ||
-			control_mode == CONTROL_MODE_SPEED) {
+		if (m_control_mode == CONTROL_MODE_CURRENT ||
+			m_control_mode == CONTROL_MODE_POS ||
+			m_control_mode == CONTROL_MODE_SPEED) {
 #else
-		if (control_mode == CONTROL_MODE_CURRENT ||
-			control_mode == CONTROL_MODE_POS) {
+		if (m_control_mode == CONTROL_MODE_CURRENT ||
+			m_control_mode == CONTROL_MODE_POS) {
 #endif
 			// Compute error
-			const float error = current_set - (direction ? current_nofilter : -current_nofilter);
-			float step = error * conf->cc_gain * voltage_scale;
-			const float start_boost = conf->cc_startup_boost_duty * voltage_scale;
+			const float error = m_current_set - (m_direction ? current_nofilter : -current_nofilter);
+			float step = error * m_conf->cc_gain * voltage_scale;
+			const float start_boost = m_conf->cc_startup_boost_duty * voltage_scale;
 
 			// Do not ramp too much
-			truncate_number(&step, -conf->cc_ramp_step_max, conf->cc_ramp_step_max);
+			truncate_number(&step, -m_conf->cc_ramp_step_max, m_conf->cc_ramp_step_max);
 
 			// Switching frequency correction
-			step /= switching_frequency_now / 1000.0;
+			step /= m_switching_frequency_now / 1000.0;
 
-			if (slow_ramping_cycles) {
-				slow_ramping_cycles--;
+			if (m_slow_ramping_cycles) {
+				m_slow_ramping_cycles--;
 				step *= 0.1;
 			}
 
 			// Optionally apply startup boost.
 			if (fabsf(dutycycle_now_tmp) < start_boost) {
 				step_towards(&dutycycle_now_tmp,
-						current_set > 0.0 ?
+						m_current_set > 0.0 ?
 								start_boost :
 								-start_boost, ramp_step);
 			} else {
@@ -1948,106 +1946,106 @@ void adc_int_handler(void *p, uint32_t flags) {
 			}
 
 			// Upper truncation
-			truncate_number((float*)&dutycycle_now_tmp, -conf->l_max_duty, conf->l_max_duty);
+			truncate_number((float*)&dutycycle_now_tmp, -m_conf->l_max_duty, m_conf->l_max_duty);
 
 			// Lower truncation
-			if (fabsf(dutycycle_now_tmp) < conf->l_min_duty) {
-				if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
-					dutycycle_now_tmp = conf->l_min_duty;
-				} else if (dutycycle_now_tmp > 0.0 && current_set < 0.0) {
-					dutycycle_now_tmp = -conf->l_min_duty;
+			if (fabsf(dutycycle_now_tmp) < m_conf->l_min_duty) {
+				if (dutycycle_now_tmp < 0.0 && m_current_set > 0.0) {
+					dutycycle_now_tmp = m_conf->l_min_duty;
+				} else if (dutycycle_now_tmp > 0.0 && m_current_set < 0.0) {
+					dutycycle_now_tmp = -m_conf->l_min_duty;
 				}
 			}
 
 			// The set dutycycle should be in the correct direction in case the output is lower
 			// than the minimum duty cycle and the mechanism below gets activated.
-			dutycycle_set = dutycycle_now_tmp >= 0.0 ? conf->l_min_duty : -conf->l_min_duty;
-		} else if (control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+			m_dutycycle_set = dutycycle_now_tmp >= 0.0 ? m_conf->l_min_duty : -m_conf->l_min_duty;
+		} else if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Compute error
-			const float error = -fabsf(current_set) - current_nofilter;
-			float step = error * conf->cc_gain * voltage_scale;
+			const float error = -fabsf(m_current_set) - current_nofilter;
+			float step = error * m_conf->cc_gain * voltage_scale;
 
 			// Do not ramp too much
-			truncate_number(&step, -conf->cc_ramp_step_max, conf->cc_ramp_step_max);
+			truncate_number(&step, -m_conf->cc_ramp_step_max, m_conf->cc_ramp_step_max);
 
 			// Switching frequency correction
-			step /= switching_frequency_now / 1000.0;
+			step /= m_switching_frequency_now / 1000.0;
 
-			if (slow_ramping_cycles) {
-				slow_ramping_cycles--;
+			if (m_slow_ramping_cycles) {
+				m_slow_ramping_cycles--;
 				step *= 0.1;
 			}
 
 			dutycycle_now_tmp += SIGN(dutycycle_now_tmp) * step;
 
 			// Upper truncation
-			truncate_number((float*)&dutycycle_now_tmp, -conf->l_max_duty, conf->l_max_duty);
+			truncate_number((float*)&dutycycle_now_tmp, -m_conf->l_max_duty, m_conf->l_max_duty);
 
 			// Lower truncation
-			if (fabsf(dutycycle_now_tmp) < conf->l_min_duty) {
-				if (fabsf(rpm_now) < conf->l_max_erpm_fbrake_cc) {
+			if (fabsf(dutycycle_now_tmp) < m_conf->l_min_duty) {
+				if (fabsf(m_rpm_now) < m_conf->l_max_erpm_fbrake_cc) {
 					dutycycle_now_tmp = 0.0;
-					dutycycle_set = dutycycle_now_tmp;
+					m_dutycycle_set = dutycycle_now_tmp;
 				} else {
-					dutycycle_now_tmp = SIGN(dutycycle_now_tmp) * conf->l_min_duty;
-					dutycycle_set = dutycycle_now_tmp;
+					dutycycle_now_tmp = SIGN(dutycycle_now_tmp) * m_conf->l_min_duty;
+					m_dutycycle_set = dutycycle_now_tmp;
 				}
 			}
 		} else {
-			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
+			step_towards((float*)&dutycycle_now_tmp, m_dutycycle_set, ramp_step);
 		}
 
 		static int limit_delay = 0;
 
 		// Apply limits in priority order
-		if (current_nofilter > conf->lo_current_max) {
-			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current_nofilter - conf->lo_current_max) * conf->m_current_backoff_gain);
+		if (current_nofilter > m_conf->lo_current_max) {
+			step_towards((float*) &m_dutycycle_now, 0.0,
+					ramp_step_no_lim * fabsf(current_nofilter - m_conf->lo_current_max) * m_conf->m_current_backoff_gain);
 			limit_delay = 1;
-		} else if (current_nofilter < conf->lo_current_min) {
-			step_towards((float*) &dutycycle_now, direction ? conf->l_max_duty : -conf->l_max_duty,
-					ramp_step_no_lim * fabsf(current_nofilter - conf->lo_current_min) * conf->m_current_backoff_gain);
+		} else if (current_nofilter < m_conf->lo_current_min) {
+			step_towards((float*) &m_dutycycle_now, m_direction ? m_conf->l_max_duty : -m_conf->l_max_duty,
+					ramp_step_no_lim * fabsf(current_nofilter - m_conf->lo_current_min) * m_conf->m_current_backoff_gain);
 			limit_delay = 1;
-		} else if (current_in_nofilter > conf->lo_in_current_max) {
-			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current_in_nofilter - conf->lo_in_current_max) * conf->m_current_backoff_gain);
+		} else if (current_in_nofilter > m_conf->lo_in_current_max) {
+			step_towards((float*) &m_dutycycle_now, 0.0,
+					ramp_step_no_lim * fabsf(current_in_nofilter - m_conf->lo_in_current_max) * m_conf->m_current_backoff_gain);
 			limit_delay = 1;
-		} else if (current_in_nofilter < conf->lo_in_current_min) {
-			step_towards((float*) &dutycycle_now, direction ? conf->l_max_duty : -conf->l_max_duty,
-					ramp_step_no_lim * fabsf(current_in_nofilter - conf->lo_in_current_min) * conf->m_current_backoff_gain);
+		} else if (current_in_nofilter < m_conf->lo_in_current_min) {
+			step_towards((float*) &m_dutycycle_now, m_direction ? m_conf->l_max_duty : -m_conf->l_max_duty,
+					ramp_step_no_lim * fabsf(current_in_nofilter - m_conf->lo_in_current_min) * m_conf->m_current_backoff_gain);
 			limit_delay = 1;
 		}
 
 		if (limit_delay > 0) {
 			limit_delay--;
 		} else {
-			dutycycle_now = dutycycle_now_tmp;
+			m_dutycycle_now = dutycycle_now_tmp;
 		}
 
 		// When the set duty cycle is in the opposite direction, make sure that the motor
 		// starts again after stopping completely
-		if (fabsf(dutycycle_now) < conf->l_min_duty) {
-			if (dutycycle_set >= conf->l_min_duty) {
-				dutycycle_now = conf->l_min_duty;
-			} else if (dutycycle_set <= -conf->l_min_duty) {
-				dutycycle_now = -conf->l_min_duty;
+		if (fabsf(m_dutycycle_now) < m_conf->l_min_duty) {
+			if (m_dutycycle_set >= m_conf->l_min_duty) {
+				m_dutycycle_now = m_conf->l_min_duty;
+			} else if (m_dutycycle_set <= -m_conf->l_min_duty) {
+				m_dutycycle_now = -m_conf->l_min_duty;
 			}
 		}
 
 		// Don't start in the opposite direction when the RPM is too high even if the current is low enough.
-		if (dutycycle_now >= conf->l_min_duty && rpm < -conf->l_max_erpm_fbrake) {
-			dutycycle_now = -conf->l_min_duty;
-		} else if (dutycycle_now <= -conf->l_min_duty && rpm > conf->l_max_erpm_fbrake) {
-			dutycycle_now = conf->l_min_duty;
+		if (m_dutycycle_now >= m_conf->l_min_duty && rpm < -m_conf->l_max_erpm_fbrake) {
+			m_dutycycle_now = -m_conf->l_min_duty;
+		} else if (m_dutycycle_now <= -m_conf->l_min_duty && rpm > m_conf->l_max_erpm_fbrake) {
+			m_dutycycle_now = m_conf->l_min_duty;
 		}
 
-		set_duty_cycle_ll(dutycycle_now);
+		set_duty_cycle_ll(m_dutycycle_now);
 	}
 
 	mc_interface::mc_timer_isr();
 
 	if (encoder_is_configured()) {
-		run_pid_control_pos(1.0 / switching_frequency_now);
+		run_pid_control_pos(1.0 / m_switching_frequency_now);
 	}
 
 	last_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
@@ -2058,32 +2056,32 @@ void set_detect(void) {
 		return;
 	}
 
-	control_mode = CONTROL_MODE_NONE;
+	m_control_mode = CONTROL_MODE_NONE;
 	stop_pwm_hw();
 
-	set_switching_frequency(conf->m_bldc_f_sw_max);
+	set_switching_frequency(m_conf->m_bldc_f_sw_max);
 
 	for(int i = 0;i < 6;i++) {
 		detect_currents[i] = 0;
-		detect_currents_avg[i] = 0;
-		detect_avg_samples[i] = 0;
+		m_detect_currents_avg[i] = 0;
+		m_detect_avg_samples[i] = 0;
 	}
 
-	state = MC_STATE_DETECTING;
+	m_state = MC_STATE_DETECTING;
 }
 
 float get_detect_pos(void) {
 	float v[6];
-	v[0] = detect_currents_avg[0] / detect_avg_samples[0];
-	v[1] = detect_currents_avg[1] / detect_avg_samples[1];
-	v[2] = detect_currents_avg[2] / detect_avg_samples[2];
-	v[3] = detect_currents_avg[3] / detect_avg_samples[3];
-	v[4] = detect_currents_avg[4] / detect_avg_samples[4];
-	v[5] = detect_currents_avg[5] / detect_avg_samples[5];
+	v[0] = m_detect_currents_avg[0] / m_detect_avg_samples[0];
+	v[1] = m_detect_currents_avg[1] / m_detect_avg_samples[1];
+	v[2] = m_detect_currents_avg[2] / m_detect_avg_samples[2];
+	v[3] = m_detect_currents_avg[3] / m_detect_avg_samples[3];
+	v[4] = m_detect_currents_avg[4] / m_detect_avg_samples[4];
+	v[5] = m_detect_currents_avg[5] / m_detect_avg_samples[5];
 
 	for(int i = 0;i < 6;i++) {
-		detect_currents_avg[i] = 0;
-		detect_avg_samples[i] = 0;
+		m_detect_currents_avg[i] = 0;
+		m_detect_avg_samples[i] = 0;
 	}
 
 	float v0 = v[0] + v[3];
@@ -2114,9 +2112,9 @@ float get_detect_pos(void) {
 }
 
 float read_reset_avg_cycle_integrator(void) {
-	float res = cycle_integrator_sum / cycle_integrator_iterations;
-	cycle_integrator_sum = 0;
-	cycle_integrator_iterations = 0;
+	float res = m_cycle_integrator_sum / m_cycle_integrator_iterations;
+	m_cycle_integrator_sum = 0;
+	m_cycle_integrator_iterations = 0;
 	return res;
 }
 
@@ -2130,11 +2128,11 @@ float read_reset_avg_cycle_integrator(void) {
  *
  */
 void set_comm_mode(mc_comm_mode mode) {
-	conf->comm_mode = mode;
+	m_conf->comm_mode = mode;
 }
 
 mc_comm_mode get_comm_mode(void) {
-	return conf->comm_mode;
+	return m_conf->comm_mode;
 }
 
 float get_last_adc_isr_duration(void) {
@@ -2150,18 +2148,18 @@ mc_rpm_dep_struct get_rpm_dep(void) {
 }
 
 bool is_dccal_done(void) {
-	return dccal_done;
+	return m_dccal_done;
 }
 
 void switch_comm_mode(mc_comm_mode next) {
-	comm_mode_next = next;
+	m_comm_mode_next = next;
 }
 
 /**
  * Reset the hall sensor detection table
  */
 void reset_hall_detect_table(void) {
-	memset((void*)hall_detect_table, 0, sizeof(hall_detect_table[0][0]) * 8 * 7);
+	memset((void*)m_hall_detect_table, 0, sizeof(m_hall_detect_table[0][0]) * 8 * 7);
 }
 
 /**
@@ -2179,7 +2177,7 @@ void reset_hall_detect_table(void) {
 int get_hall_detect_result(int8_t *table) {
 	if (WS2811_ENABLE) {
 		return -2;
-	} else if (conf->m_sensor_port_mode != SENSOR_PORT_MODE_HALL) {
+	} else if (m_conf->m_sensor_port_mode != SENSOR_PORT_MODE_HALL) {
 		return -3;
 	}
 
@@ -2187,8 +2185,8 @@ int get_hall_detect_result(int8_t *table) {
 		int samples = 0;
 		int res = -1;
 		for (int j = 1;j < 7;j++) {
-			if (hall_detect_table[i][j] > samples) {
-				samples = hall_detect_table[i][j];
+			if (m_hall_detect_table[i][j] > samples) {
+				samples = m_hall_detect_table[i][j];
 				if (samples > 15) {
 					res = j;
 				}
@@ -2224,7 +2222,7 @@ int get_hall_detect_result(int8_t *table) {
  * The phase read.
  */
 int read_hall_phase(void) {
-	return hall_to_phase_table[read_hall() + (direction ? 8 : 0)];
+	return m_hall_to_phase_table[read_hall() + (m_direction ? 8 : 0)];
 }
 
 int read_hall(void) {
@@ -2251,7 +2249,7 @@ int read_hall(void) {
  * 6		-		0		+
  */
 
-void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
+void update_adc_sample_pos(MCTimer *timer_tmp) {
 	volatile uint32_t duty = timer_tmp->duty;
 	volatile uint32_t top = timer_tmp->top;
 	volatile uint32_t val_sample = timer_tmp->val_sample;
@@ -2262,14 +2260,14 @@ void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	volatile uint32_t curr3_sample = timer_tmp->curr3_sample;
 #endif
 
-	if (duty > (uint32_t)((float)top * conf->l_max_duty)) {
-		duty = (uint32_t)((float)top * conf->l_max_duty);
+	if (duty > (uint32_t)((float)top * m_conf->l_max_duty)) {
+		duty = (uint32_t)((float)top * m_conf->l_max_duty);
 	}
 
-	curr_samp_volt = 0;
+	m_curr_samp_volt = 0;
 
     // Sample the ADC at an appropriate time during the pwm cycle
-    if (IS_DETECTING()) {
+    if (is_detecting()) {
         // Voltage samples
         val_sample = duty / 2;
 
@@ -2280,7 +2278,7 @@ void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
         curr3_sample = (top - duty) / 2 + duty;
 #endif
     } else {
-        if (conf->pwm_mode == PWM_MODE_BIPOLAR) {
+        if (m_conf->pwm_mode == PWM_MODE_BIPOLAR) {
             uint32_t samp_neg = top - 2;
             uint32_t samp_pos = duty + (top - duty) / 2;
             uint32_t samp_zero = top - 2;
@@ -2294,12 +2292,12 @@ void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
             curr3_sample = samp_zero;
 #endif
 
-            switch (comm_step) {
+            switch (m_comm_step) {
             case 1:
-                if (direction) {
+                if (m_direction) {
                     curr1_sample = samp_zero;
                     curr2_sample = samp_neg;
-                    curr_samp_volt = (1 << 1);
+                    m_curr_samp_volt = (1 << 1);
                 } else {
                     curr1_sample = samp_zero;
                     curr2_sample = samp_pos;
@@ -2307,10 +2305,10 @@ void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
                 break;
 
             case 2:
-                if (direction) {
+                if (m_direction) {
                     curr1_sample = samp_pos;
                     curr2_sample = samp_neg;
-                    curr_samp_volt = (1 << 1);
+                    m_curr_samp_volt = (1 << 1);
                 } else {
                     curr1_sample = samp_pos;
                     curr2_sample = samp_zero;
@@ -2318,48 +2316,48 @@ void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
                 break;
 
             case 3:
-                if (direction) {
+                if (m_direction) {
                     curr1_sample = samp_pos;
                     curr2_sample = samp_zero;
                 } else {
                     curr1_sample = samp_pos;
                     curr2_sample = samp_neg;
-                    curr_samp_volt = (1 << 1);
+                    m_curr_samp_volt = (1 << 1);
                 }
                 break;
 
             case 4:
-                if (direction) {
+                if (m_direction) {
                     curr1_sample = samp_zero;
                     curr2_sample = samp_pos;
                 } else {
                     curr1_sample = samp_zero;
                     curr2_sample = samp_neg;
-                    curr_samp_volt = (1 << 1);
+                    m_curr_samp_volt = (1 << 1);
                 }
                 break;
 
             case 5:
-                if (direction) {
+                if (m_direction) {
                     curr1_sample = samp_neg;
                     curr2_sample = samp_pos;
-                    curr_samp_volt = (1 << 0);
+                    m_curr_samp_volt = (1 << 0);
                 } else {
                     curr1_sample = samp_neg;
                     curr2_sample = samp_zero;
-                    curr_samp_volt = (1 << 0);
+                    m_curr_samp_volt = (1 << 0);
                 }
                 break;
 
             case 6:
-                if (direction) {
+                if (m_direction) {
                     curr1_sample = samp_neg;
                     curr2_sample = samp_zero;
-                    curr_samp_volt = (1 << 0);
+                    m_curr_samp_volt = (1 << 0);
                 } else {
                     curr1_sample = samp_neg;
                     curr2_sample = samp_pos;
-                    curr_samp_volt = (1 << 0);
+                    m_curr_samp_volt = (1 << 0);
                 }
                 break;
             }
@@ -2382,20 +2380,20 @@ void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
             // where possible
             if (duty > (top / 2)) {
 #if CURR1_DOUBLE_SAMPLE
-                if (comm_step == 2 || comm_step == 3) {
+                if (m_comm_step == 2 || m_comm_step == 3) {
                     curr1_sample = duty + 90;
                     curr2_sample = top - 230;
                 }
 #endif
 
 #if CURR2_DOUBLE_SAMPLE
-                if (direction) {
-                    if (comm_step == 4 || comm_step == 5) {
+                if (m_direction) {
+                    if (m_comm_step == 4 || m_comm_step == 5) {
                         curr1_sample = duty + 90;
                         curr2_sample = top - 230;
                     }
                 } else {
-                    if (comm_step == 1 || comm_step == 6) {
+                    if (m_comm_step == 1 || m_comm_step == 6) {
                         curr1_sample = duty + 90;
                         curr2_sample = top - 230;
                     }
@@ -2403,46 +2401,46 @@ void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 #endif
 
 #ifdef HW_HAS_3_SHUNTS
-                if (direction) {
-                    switch (comm_step) {
-                    case 1: curr_samp_volt = (1 << 0) || (1 << 2); break;
-                    case 2: curr_samp_volt = (1 << 1) || (1 << 2); break;
-                    case 3: curr_samp_volt = (1 << 1) || (1 << 2); break;
-                    case 4: curr_samp_volt = (1 << 0) || (1 << 1); break;
-                    case 5: curr_samp_volt = (1 << 0) || (1 << 1); break;
-                    case 6: curr_samp_volt = (1 << 0) || (1 << 2); break;
+                if (m_direction) {
+                    switch (m_comm_step) {
+                    case 1: m_curr_samp_volt = (1 << 0) || (1 << 2); break;
+                    case 2: m_curr_samp_volt = (1 << 1) || (1 << 2); break;
+                    case 3: m_curr_samp_volt = (1 << 1) || (1 << 2); break;
+                    case 4: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
+                    case 5: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
+                    case 6: m_curr_samp_volt = (1 << 0) || (1 << 2); break;
                     default: break;
                     }
                 } else {
-                    switch (comm_step) {
-                    case 1: curr_samp_volt = (1 << 0) || (1 << 1); break;
-                    case 2: curr_samp_volt = (1 << 1) || (1 << 2); break;
-                    case 3: curr_samp_volt = (1 << 1) || (1 << 2); break;
-                    case 4: curr_samp_volt = (1 << 0) || (1 << 2); break;
-                    case 5: curr_samp_volt = (1 << 0) || (1 << 2); break;
-                    case 6: curr_samp_volt = (1 << 0) || (1 << 1); break;
+                    switch (m_comm_step) {
+                    case 1: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
+                    case 2: m_curr_samp_volt = (1 << 1) || (1 << 2); break;
+                    case 3: m_curr_samp_volt = (1 << 1) || (1 << 2); break;
+                    case 4: m_curr_samp_volt = (1 << 0) || (1 << 2); break;
+                    case 5: m_curr_samp_volt = (1 << 0) || (1 << 2); break;
+                    case 6: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
                     default: break;
                     }
                 }
 #else
-                if (direction) {
-                    switch (comm_step) {
-                    case 1: curr_samp_volt = (1 << 0) || (1 << 1); break;
-                    case 2: curr_samp_volt = (1 << 1); break;
-                    case 3: curr_samp_volt = (1 << 1); break;
-                    case 4: curr_samp_volt = (1 << 0); break;
-                    case 5: curr_samp_volt = (1 << 0); break;
-                    case 6: curr_samp_volt = (1 << 0) || (1 << 1); break;
+                if (m_direction) {
+                    switch (m_comm_step) {
+                    case 1: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
+                    case 2: m_curr_samp_volt = (1 << 1); break;
+                    case 3: m_curr_samp_volt = (1 << 1); break;
+                    case 4: m_curr_samp_volt = (1 << 0); break;
+                    case 5: m_curr_samp_volt = (1 << 0); break;
+                    case 6: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
                     default: break;
                     }
                 } else {
-                    switch (comm_step) {
-                    case 1: curr_samp_volt = (1 << 0); break;
-                    case 2: curr_samp_volt = (1 << 1); break;
-                    case 3: curr_samp_volt = (1 << 1); break;
-                    case 4: curr_samp_volt = (1 << 0) || (1 << 1); break;
-                    case 5: curr_samp_volt = (1 << 0) || (1 << 1); break;
-                    case 6: curr_samp_volt = (1 << 0); break;
+                    switch (m_comm_step) {
+                    case 1: m_curr_samp_volt = (1 << 0); break;
+                    case 2: m_curr_samp_volt = (1 << 1); break;
+                    case 3: m_curr_samp_volt = (1 << 1); break;
+                    case 4: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
+                    case 5: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
+                    case 6: m_curr_samp_volt = (1 << 0); break;
                     default: break;
                     }
                 }
@@ -2460,7 +2458,7 @@ void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 }
 
 void update_rpm_tacho(void) {
-	int step = comm_step - 1;
+	int step = m_comm_step - 1;
 	static int last_step = 0;
 	int tacho_diff = (step - last_step) % 6;
 	last_step = step;
@@ -2478,72 +2476,72 @@ void update_rpm_tacho(void) {
 	}
 
 	// Tachometers
-	tachometer_for_direction += tacho_diff;
-	tachometer_abs += tacho_diff;
+	m_tachometer_for_direction += tacho_diff;
+	m_tachometer_abs += tacho_diff;
 
-	if (direction) {
-		tachometer += tacho_diff;
+	if (m_direction) {
+		m_tachometer += tacho_diff;
 	} else {
-		tachometer -= tacho_diff;
+		m_tachometer -= tacho_diff;
 	}
 }
 
 void update_sensor_mode(void) {
-	if (conf->sensor_mode == SENSOR_MODE_SENSORLESS ||
-			(conf->sensor_mode == SENSOR_MODE_HYBRID &&
-					fabsf(get_rpm()) > conf->hall_sl_erpm)) {
-		sensorless_now = true;
+	if (m_conf->sensor_mode == SENSOR_MODE_SENSORLESS ||
+			(m_conf->sensor_mode == SENSOR_MODE_HYBRID &&
+					fabsf(get_rpm()) > m_conf->hall_sl_erpm)) {
+		m_sensorless_now = true;
 	} else {
-		sensorless_now = false;
+		m_sensorless_now = false;
 	}
 }
 /*
  * @steps: how many steps to commutate forward. Typically 1 or, if motor is stuck, 2.
  */
 void commutate(int steps) {
-	last_pwm_cycles_sum = pwm_cycles_sum;
-	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
-	pwm_cycles_sum = 0;
-	pwm_cycles = 0;
+	m_last_pwm_cycles_sum = m_pwm_cycles_sum;
+	m_last_pwm_cycles_sums[m_comm_step - 1] = m_pwm_cycles_sum;
+	m_pwm_cycles_sum = 0;
+	m_pwm_cycles = 0;
 
-	if (sensorless_now) {
-		comm_step += steps;
-		while (comm_step > 6) {
-			comm_step -= 6;
+	if (m_sensorless_now) {
+		m_comm_step += steps;
+		while (m_comm_step > 6) {
+			m_comm_step -= 6;
 		}
-		while (comm_step < 1) {
-			comm_step += 6;
+		while (m_comm_step < 1) {
+			m_comm_step += 6;
 		}
 
 		update_rpm_tacho();
 
-		if (!(state == MC_STATE_RUNNING)) {
+		if (!(m_state == MC_STATE_RUNNING)) {
 			update_sensor_mode();
 			return;
 		}
 
-		set_next_comm_step(comm_step);
+		set_next_comm_step(m_comm_step);
 	}
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
-	has_commutated = 1;
+	m_has_commutated = 1;
 
-	mc_timer_struct timer_tmp;
+	MCTimer timer_tmp;
 
 	sys_lock_cnt();
-	timer_tmp = timer_struct;
+	timer_tmp = m_timer_struct;
 	sys_unlock_cnt();
 
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 	update_sensor_mode();
-	conf->comm_mode = comm_mode_next;
+	m_conf->comm_mode = m_comm_mode_next;
 }
 
-void set_next_timer_settings(mc_timer_struct const*settings) {
+void set_next_timer_settings(MCTimer const*settings) {
 	sys_lock_cnt();
-	timer_struct = *settings;
-	timer_struct.updated = false;
+	m_timer_struct = *settings;
+	m_timer_struct.updated = false;
 	sys_unlock_cnt();
 
 	update_timer_attempt();
@@ -2557,41 +2555,41 @@ void update_timer_attempt(void) {
 	sys_lock_cnt();
 
 	// Set the next timer settings if an update is far enough away
-	if (!timer_struct.updated && TIM1->CNT > 10 && TIM1->CNT < (TIM1->ARR - 500)) {
+	if (!m_timer_struct.updated && TIM1->CNT > 10 && TIM1->CNT < (TIM1->ARR - 500)) {
 		// Disable preload register updates
 		TIM1->CR1 |= TIM_CR1_UDIS;
 		TIM8->CR1 |= TIM_CR1_UDIS;
 
 		// Set the new configuration
-		TIM1->ARR = timer_struct.top;
-		TIM1->CCR1 = timer_struct.duty;
-		TIM1->CCR2 = timer_struct.duty;
-		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
-		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
+		TIM1->ARR = m_timer_struct.top;
+		TIM1->CCR1 = m_timer_struct.duty;
+		TIM1->CCR2 = m_timer_struct.duty;
+		TIM1->CCR3 = m_timer_struct.duty;
+		TIM8->CCR1 = m_timer_struct.val_sample;
+		TIM1->CCR4 = m_timer_struct.curr1_sample;
+		TIM8->CCR2 = m_timer_struct.curr2_sample;
 #ifdef HW_HAS_3_SHUNTS
-		TIM8->CCR3 = timer_struct.curr3_sample;
+		TIM8->CCR3 = m_timer_struct.curr3_sample;
 #endif
 
 		// Enables preload register updates
 		TIM1->CR1 &= ~TIM_CR1_UDIS;
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
-		timer_struct.updated = true;
+		m_timer_struct.updated = true;
 	}
 
 	sys_unlock_cnt();
 }
 
 void set_switching_frequency(float frequency) {
-	switching_frequency_now = frequency;
-	mc_timer_struct timer_tmp;
+	m_switching_frequency_now = frequency;
+	MCTimer timer_tmp;
 
 	sys_lock_cnt();
-	timer_tmp = timer_struct;
+	timer_tmp = m_timer_struct;
 	sys_unlock_cnt();
 
-	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
+	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)m_switching_frequency_now;
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }
@@ -2610,8 +2608,8 @@ void set_next_comm_step(int next_step) {
 	uint16_t negative_highside = TIM_CCx_Enable;
 	uint16_t negative_lowside = TIM_CCxN_Enable;
 
-	if (!IS_DETECTING()) {
-		switch (conf->pwm_mode) {
+	if (!is_detecting()) {
+		switch (m_conf->pwm_mode) {
 		case PWM_MODE_NONSYNCHRONOUS_HISW:
 			positive_lowside = TIM_CCxN_Disable;
 			break;
@@ -2626,7 +2624,7 @@ void set_next_comm_step(int next_step) {
 	}
 
 	if (next_step == 1) {
-		if (direction) {
+		if (m_direction) {
 #ifdef HW_HAS_DRV8313
 			DISABLE_BR1();
 			ENABLE_BR2();
@@ -2668,7 +2666,7 @@ void set_next_comm_step(int next_step) {
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
 		}
 	} else if (next_step == 2) {
-		if (direction) {
+		if (m_direction) {
 #ifdef HW_HAS_DRV8313
 			DISABLE_BR2();
 			ENABLE_BR1();
@@ -2710,7 +2708,7 @@ void set_next_comm_step(int next_step) {
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
 		}
 	} else if (next_step == 3) {
-		if (direction) {
+		if (m_direction) {
 #ifdef HW_HAS_DRV8313
 			DISABLE_BR3();
 			ENABLE_BR1();
@@ -2752,7 +2750,7 @@ void set_next_comm_step(int next_step) {
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
 		}
 	} else if (next_step == 4) {
-		if (direction) {
+		if (m_direction) {
 #ifdef HW_HAS_DRV8313
 			DISABLE_BR1();
 			ENABLE_BR3();
@@ -2794,7 +2792,7 @@ void set_next_comm_step(int next_step) {
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
 		}
 	} else if (next_step == 5) {
-		if (direction) {
+		if (m_direction) {
 #ifdef HW_HAS_DRV8313
 			DISABLE_BR2();
 			ENABLE_BR3();
@@ -2836,7 +2834,7 @@ void set_next_comm_step(int next_step) {
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
 		}
 	} else if (next_step == 6) {
-		if (direction) {
+		if (m_direction) {
 #ifdef HW_HAS_DRV8313
 			DISABLE_BR3();
 			ENABLE_BR2();
