@@ -68,7 +68,7 @@ static void icuwidthcb(ICUDriver *icup) {
 			float c = (len * 2.0 - len_set) / len_set;
 			static float c1 = 0.5;
 			static float c2 = 0.5;
-			float med = utils_middle_of_3(c, c1, c2);
+			float med = utils::middle_of_3(c, c1, c2);
 
 			c2 = c1;
 			c1 = c;
