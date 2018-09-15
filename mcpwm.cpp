@@ -51,9 +51,9 @@ volatile int mcpwm_vzero;
       volatile unsigned int val_sample;
       volatile unsigned int curr1_sample;
       volatile unsigned int curr2_sample;
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
       volatile unsigned int curr3_sample;
-  #endif
+#endif
   };
 
   // Private variables
@@ -112,37 +112,37 @@ volatile int mcpwm_vzero;
   volatile mc_comm_mode m_comm_mode_next;
 
 #ifdef HW_HAS_3_SHUNTS
-  volatile int curr2_sum;
-  volatile int curr2_offset;
+  volatile int m_curr2_sum;
+  volatile int m_curr2_offset;
 #endif
 
   // KV FIR filter
   constexpr int KV_FIR_TAPS_BITS = 7;
   constexpr int KV_FIR_LEN	     = (1 << KV_FIR_TAPS_BITS);
   constexpr float KV_FIR_FCUT    = 0.02;
-  volatile float kv_fir_coeffs[KV_FIR_LEN];
-  volatile float kv_fir_samples[KV_FIR_LEN];
-  volatile int kv_fir_index = 0;
+  volatile float m_kv_fir_coeffs[KV_FIR_LEN];
+  volatile float m_kv_fir_samples[KV_FIR_LEN];
+  volatile int m_kv_fir_index = 0;
 
   // Amplitude FIR filter
   constexpr int AMP_FIR_TAPS_BITS	= 7;
   constexpr int AMP_FIR_LEN         = (1 << AMP_FIR_TAPS_BITS);
   constexpr float AMP_FIR_FCUT      = 0.02;
-  volatile float amp_fir_coeffs[AMP_FIR_LEN];
-  volatile float amp_fir_samples[AMP_FIR_LEN];
-  volatile int amp_fir_index = 0;
+  volatile float m_amp_fir_coeffs[AMP_FIR_LEN];
+  volatile float m_amp_fir_samples[AMP_FIR_LEN];
+  volatile int m_amp_fir_index = 0;
 
   // Current FIR filter
   constexpr int CURR_FIR_TAPS_BITS = 4;
   constexpr int CURR_FIR_LEN       = (1 << CURR_FIR_TAPS_BITS);
   constexpr float CURR_FIR_FCUT    = 0.15f;
 
-  volatile float current_fir_coeffs[CURR_FIR_LEN];
-  volatile float current_fir_samples[CURR_FIR_LEN];
-  volatile int current_fir_index = 0;
+  volatile float m_current_fir_coeffs[CURR_FIR_LEN];
+  volatile float m_current_fir_samples[CURR_FIR_LEN];
+  volatile int m_current_fir_index = 0;
 
-  volatile float last_adc_isr_duration;
-  volatile float last_inj_adc_isr_duration;
+  volatile float m_last_adc_isr_duration;
+  volatile float m_last_inj_adc_isr_duration;
 
   // Private functions
   void set_duty_cycle_hl(float dutyCycle);
@@ -222,13 +222,13 @@ void init(mc_configuration *configuration) {
 	init_hall_table((int8_t*)m_conf->hall_table);
 
 	// Create KV FIR filter
-	filter_create_fir_lowpass((float*)kv_fir_coeffs, KV_FIR_FCUT, KV_FIR_TAPS_BITS, 1);
+	filter_create_fir_lowpass((float*)m_kv_fir_coeffs, KV_FIR_FCUT, KV_FIR_TAPS_BITS, 1);
 
 	// Create amplitude FIR filter
-	filter_create_fir_lowpass((float*)amp_fir_coeffs, AMP_FIR_FCUT, AMP_FIR_TAPS_BITS, 1);
+	filter_create_fir_lowpass((float*)m_amp_fir_coeffs, AMP_FIR_FCUT, AMP_FIR_TAPS_BITS, 1);
 
 	// Create current FIR filter
-	filter_create_fir_lowpass((float*)current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
+	filter_create_fir_lowpass((float*)m_current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
 
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM8);
@@ -566,7 +566,7 @@ void do_dc_cal(void) {
 	m_curr1_sum = 0;
 
 #ifdef HW_HAS_3_SHUNTS
-	curr2_sum = 0;
+	m_curr2_sum = 0;
 #endif
 
 	m_curr_start_samples = 0;
@@ -575,7 +575,7 @@ void do_dc_cal(void) {
 	m_curr1_offset = m_curr1_sum / m_curr_start_samples;
 
 #ifdef HW_HAS_3_SHUNTS
-	curr2_offset = curr2_sum / m_curr_start_samples;
+	m_curr2_offset = m_curr2_sum / m_curr_start_samples;
 #endif
 
 	DCCAL_OFF();
@@ -765,8 +765,8 @@ float get_kv(void) {
  * The filtered KV value.
  */
 float get_kv_filtered(void) {
-	float value = filter_run_fir_iteration((float*)kv_fir_samples,
-			(float*)kv_fir_coeffs, KV_FIR_TAPS_BITS, kv_fir_index);
+	float value = filter_run_fir_iteration((float*)m_kv_fir_samples,
+			(float*)m_kv_fir_coeffs, KV_FIR_TAPS_BITS, m_kv_fir_index);
 
 	return value;
 }
@@ -1338,8 +1338,8 @@ THD_FUNCTION(timer_thread, arg) {
 		if (m_state == MC_STATE_OFF) {
 			// Track the motor back-emf and follow it with dutycycle_now. Also track
 			// the direction of the motor.
-			amp = filter_run_fir_iteration((float*)amp_fir_samples,
-					(float*)amp_fir_coeffs, AMP_FIR_TAPS_BITS, amp_fir_index);
+			amp = filter_run_fir_iteration((float*)m_amp_fir_samples,
+					(float*)m_amp_fir_coeffs, AMP_FIR_TAPS_BITS, m_amp_fir_index);
 
 			// Direction tracking
             if (m_sensorless_now) {
@@ -1407,12 +1407,12 @@ THD_FUNCTION(timer_thread, arg) {
 		if (cnt_tmp >= 10) {
 			cnt_tmp = 0;
 			if (m_state == MC_STATE_RUNNING) {
-				filter_add_sample((float*)kv_fir_samples, get_kv(),
-						KV_FIR_TAPS_BITS, (uint32_t*)&kv_fir_index);
+				filter_add_sample((float*)m_kv_fir_samples, get_kv(),
+						KV_FIR_TAPS_BITS, (uint32_t*)&m_kv_fir_index);
 			} else if (m_state == MC_STATE_OFF) {
 				if (m_dutycycle_now >= m_conf->l_min_duty) {
-					filter_add_sample((float*)kv_fir_samples, get_kv(),
-							KV_FIR_TAPS_BITS, (uint32_t*)&kv_fir_index);
+					filter_add_sample((float*)m_kv_fir_samples, get_kv(),
+							KV_FIR_TAPS_BITS, (uint32_t*)&m_kv_fir_index);
 				}
 			}
 		}
@@ -1541,7 +1541,7 @@ void adc_inj_int_handler(void) {
 	m_curr0_sum += curr0;
 	m_curr1_sum += curr1;
 #ifdef HW_HAS_3_SHUNTS
-	curr2_sum += curr2;
+	m_curr2_sum += curr2;
 #endif
 
 	m_curr_start_samples++;
@@ -1554,8 +1554,8 @@ void adc_inj_int_handler(void) {
 	curr1_2 -= m_curr1_offset;
 
 #ifdef HW_HAS_3_SHUNTS
-	curr2_currsamp -= curr2_offset;
-	curr2 -= curr2_offset;
+	curr2_currsamp -= m_curr2_offset;
+	curr2 -= m_curr2_offset;
 #endif
 
 #if CURR1_DOUBLE_SAMPLE || CURR2_DOUBLE_SAMPLE
@@ -1684,13 +1684,13 @@ void adc_inj_int_handler(void) {
 		m_last_current_sample = SIGN(m_last_current_sample) * m_conf->l_abs_current_max * 1.2;
 	}
 
-	filter_add_sample((float*) current_fir_samples, m_last_current_sample,
-			CURR_FIR_TAPS_BITS, (uint32_t*) &current_fir_index);
+	filter_add_sample((float*) m_current_fir_samples, m_last_current_sample,
+			CURR_FIR_TAPS_BITS, (uint32_t*) &m_current_fir_index);
 	m_last_current_sample_filtered = filter_run_fir_iteration(
-			(float*) current_fir_samples, (float*) current_fir_coeffs,
-			CURR_FIR_TAPS_BITS, current_fir_index);
+			(float*) m_current_fir_samples, (float*) m_current_fir_coeffs,
+			CURR_FIR_TAPS_BITS, m_current_fir_index);
 
-	last_inj_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
+	m_last_inj_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
 }
 
 
@@ -1756,8 +1756,8 @@ void adc_int_handler(void *p, uint32_t flags) {
       }
 
       // Fill the amplitude FIR filter
-      filter_add_sample((float*)amp_fir_samples, amp,
-              AMP_FIR_TAPS_BITS, (uint32_t*)&amp_fir_index);
+      filter_add_sample((float*)m_amp_fir_samples, amp,
+              AMP_FIR_TAPS_BITS, (uint32_t*)&m_amp_fir_index);
     }
 
     if (m_sensorless_now) {
@@ -2048,7 +2048,7 @@ void adc_int_handler(void *p, uint32_t flags) {
 		run_pid_control_pos(1.0 / m_switching_frequency_now);
 	}
 
-	last_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
+	m_last_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
 }
 
 void set_detect(void) {
@@ -2136,11 +2136,11 @@ mc_comm_mode get_comm_mode(void) {
 }
 
 float get_last_adc_isr_duration(void) {
-	return last_adc_isr_duration;
+	return m_last_adc_isr_duration;
 }
 
 float get_last_inj_adc_isr_duration(void) {
-	return last_inj_adc_isr_duration;
+	return m_last_inj_adc_isr_duration;
 }
 
 mc_rpm_dep_struct const& get_rpm_dep(void) {
