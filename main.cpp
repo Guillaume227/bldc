@@ -194,11 +194,11 @@ int main(void) {
 	LED_RED_OFF();
 	LED_GREEN_OFF();
 
-	conf_general_init();
+	conf_general::init();
 	ledpwm_init();
 
 	mc_configuration mcconf;
-	conf_general_read_mc_configuration(&mcconf);
+	conf_general::read_mc_configuration(&mcconf);
 	mc_interface::init(&mcconf);
 
 	commands::init();
@@ -209,7 +209,7 @@ int main(void) {
 #endif
 
 	app_configuration appconf;
-	conf_general_read_app_configuration(&appconf);
+	conf_general::read_app_configuration(&appconf);
 	app_set_configuration(&appconf);
 
 #ifdef HW_HAS_PERMANENT_NRF

@@ -193,7 +193,7 @@ namespace terminal{
                   float coupling_k;
                   int8_t hall_table[8];
                   int hall_res;
-                  if (conf_general_detect_motor_param(current, min_rpm, low_duty, &cycle_integrator, &coupling_k, hall_table, &hall_res)) {
+                  if (conf_general::detect_motor_param(current, min_rpm, low_duty, &cycle_integrator, &coupling_k, hall_table, &hall_res)) {
                       printf("Cycle integrator limit: %.2f", (double)cycle_integrator);
                       printf("Coupling factor: %.2f", (double)coupling_k);
 
@@ -323,7 +323,7 @@ namespace terminal{
 
               if (current > 0.0 && current <= mcconf.l_current_max && min_erpm > 0.0 && duty > 0.02 && res >= 0.0) {
                   float linkage;
-                  conf_general_measure_flux_linkage(current, duty, min_erpm, res, &linkage);
+                  conf_general::measure_flux_linkage(current, duty, min_erpm, res, &linkage);
                   printf("Flux linkage: %.7f\n", (double)linkage);
               } else {
                   printf("Invalid argument(s).\n");
@@ -406,7 +406,7 @@ namespace terminal{
                   STM32_UUID_8[0], STM32_UUID_8[1], STM32_UUID_8[2], STM32_UUID_8[3],
                   STM32_UUID_8[4], STM32_UUID_8[5], STM32_UUID_8[6], STM32_UUID_8[7],
                   STM32_UUID_8[8], STM32_UUID_8[9], STM32_UUID_8[10], STM32_UUID_8[11]);
-          printf("Permanent NRF found: %s", conf_general_permanent_nrf_found ? "Yes" : "No");
+          printf("Permanent NRF found: %s", conf_general::permanent_nrf_found ? "Yes" : "No");
           printf(" ");
       } else if (strcmp(argv[0], "foc_openloop") == 0) {
           if (argc == 3) {

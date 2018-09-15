@@ -289,7 +289,7 @@ static THD_FUNCTION(rx_thread, arg) {
 					pairing_active = false;
 
 					from_nrf = true;
-					conf_general_store_app_configuration(&appconf);
+					conf_general::store_app_configuration(&appconf);
 					app_set_configuration(&appconf);
 					commands::send_appconf(COMM_GET_APPCONF, &appconf);
 

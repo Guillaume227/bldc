@@ -46,7 +46,7 @@ void app_set_configuration(app_configuration *conf) {
 	app_uartcomm_stop();
 	app::nunchuk::stop();
 
-	if (!conf_general_permanent_nrf_found) {
+	if (!conf_general::permanent_nrf_found) {
 		nrf_driver_stop();
 	}
 
@@ -89,7 +89,7 @@ void app_set_configuration(app_configuration *conf) {
 		break;
 
 	case APP_NRF:
-		if (!conf_general_permanent_nrf_found) {
+		if (!conf_general::permanent_nrf_found) {
 			nrf_driver_init();
 			rfhelp_restart();
 		}

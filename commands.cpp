@@ -398,7 +398,7 @@ namespace commands{
   #endif
   #endif
 
-          conf_general_store_mc_configuration(&mcconf);
+          conf_general::store_mc_configuration(&mcconf);
           mc_interface::set_configuration(&mcconf);
           chThdSleepMilliseconds(200);
 
@@ -412,7 +412,7 @@ namespace commands{
           if (packet_id == COMM_GET_MCCONF) {
               mcconf = mc_interface::get_configuration();
           } else {
-              conf_general_get_default_mc_configuration(&mcconf);
+              conf_general::get_default_mc_configuration(&mcconf);
           }
 
           ind = 0;
@@ -603,7 +603,7 @@ namespace commands{
           ind += 3;
           appconf.app_nrf_conf.send_crc_ack = data[ind++];
 
-          conf_general_store_app_configuration(&appconf);
+          conf_general::store_app_configuration(&appconf);
           app_set_configuration(&appconf);
           timeout::configure(appconf.timeout_msec, appconf.timeout_brake_current);
           chThdSleepMilliseconds(200);
@@ -618,7 +618,7 @@ namespace commands{
           if (packet_id == COMM_GET_APPCONF) {
               appconf = *app_get_configuration();
           } else {
-              conf_general_get_default_app_configuration(&appconf);
+              conf_general::get_default_app_configuration(&appconf);
           }
 
           send_appconf(packet_id, &appconf);
@@ -690,7 +690,7 @@ namespace commands{
           send_func_last = send_func;
 
           float linkage;
-          bool res = conf_general_measure_flux_linkage(current, duty, min_rpm, resistance, &linkage);
+          bool res = conf_general::measure_flux_linkage(current, duty, min_rpm, resistance, &linkage);
 
           if (!res) {
               linkage = 0.0;
@@ -1002,7 +1002,7 @@ namespace commands{
       send_packet(send_buffer, ind);
   }
 
-  static THD_FUNCTION(detect_thread, arg) {
+  THD_FUNCTION(detect_thread, arg) {
       (void)arg;
 
       chRegSetThreadName("Detect");
@@ -1012,7 +1012,7 @@ namespace commands{
       for(;;) {
           chEvtWaitAny((eventmask_t) 1);
 
-          if (!conf_general_detect_motor_param(detect_current, detect_min_rpm,
+          if (!conf_general::detect_motor_param(detect_current, detect_min_rpm,
                   detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k,
                   detect_hall_table, &detect_hall_res)) {
               detect_cycle_int_limit = 0.0;
