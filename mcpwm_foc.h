@@ -65,7 +65,7 @@ namespace mcpwm_foc{
   float get_phase_encoder(void);
   float get_vd(void);
   float get_vq(void);
-  void encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted);
+  void encoder_detect(float current, bool print, float &offset, float &ratio, bool &inverted);
   float measure_resistance(float current, int samples);
   float measure_inductance(float duty, int samples, float *curr);
   bool measure_res_ind(float *res, float *ind);

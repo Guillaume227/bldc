@@ -254,7 +254,7 @@ namespace terminal{
                       float offset = 0.0;
                       float ratio = 0.0;
                       bool inverted = false;
-                      mcpwm_foc::encoder_detect(current, true, &offset, &ratio, &inverted);
+                      mcpwm_foc::encoder_detect(current, true, offset, ratio, inverted);
 
                       mcconf.motor_type = type_old;
                       mc_interface::set_configuration(&mcconf);

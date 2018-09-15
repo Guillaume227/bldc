@@ -21,16 +21,16 @@
 
 namespace utils{
 
-  void step_towards(float *value, float goal, float step);
+  void step_towards(float& value, float const goal, float const step);
   float calc_ratio(float low, float high, float val);
-  void norm_angle(float *angle);
-  void norm_angle_rad(float *angle);
+  void norm_angle(float &angle);
+  void norm_angle_rad(float &angle);
   bool truncate_number(float &number, float min, float max);
   bool truncate_number(int &number, int min, int max);
   bool truncate_number_abs(float& number, float max);
   float map(float x, float in_min, float in_max, float out_min, float out_max);
   int map_int(int x, int in_min, int in_max, int out_min, int out_max);
-  void deadband(float *value, float tres, float max);
+  void deadband(float &value, float tres, float max);
   float angle_difference(float angle1, float angle2);
   float angle_difference_rad(float angle1, float angle2);
   float avg_angles_rad_fast(float *angles, float *weights, int angles_num);
@@ -38,7 +38,7 @@ namespace utils{
   int middle_of_3_int(int a, int b, int c);
   float fast_inv_sqrt(float x);
   float fast_atan2(float y, float x);
-  bool saturate_vector_2d(float *x, float *y, float max);
+  bool saturate_vector_2d(float &x, float &y, float max);
   void fast_sincos(float angle, float *sin, float *cos);
   void fast_sincos_better(float angle, float *sin, float *cos);
   float min_abs(float va, float vb);

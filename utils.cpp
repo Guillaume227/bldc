@@ -30,18 +30,18 @@ namespace{
 
 namespace utils{
 
-  void step_towards(float *value, float goal, float step) {
-      if (*value < goal) {
-          if ((*value + step) < goal) {
-              *value += step;
+  void step_towards(float& value, float const goal, float const step) {
+      if (value < goal) {
+          if ((value + step) < goal) {
+              value += step;
           } else {
-              *value = goal;
+              value = goal;
           }
-      } else if (*value > goal) {
-          if ((*value - step) > goal) {
-              *value -= step;
+      } else if (value > goal) {
+          if ((value - step) > goal) {
+              value -= step;
           } else {
-              *value = goal;
+              value = goal;
           }
       }
   }
@@ -56,11 +56,11 @@ namespace utils{
    * @param angle
    * The angle to normalize.
    */
-  void norm_angle(float *angle) {
-      *angle = fmodf(*angle, 360.0);
+  void norm_angle(float& angle) {
+      angle = fmodf(angle, 360.0);
 
-      if (*angle < 0.0) {
-          *angle += 360.0;
+      if (angle < 0.0) {
+          angle += 360.0;
       }
   }
 
@@ -73,13 +73,13 @@ namespace utils{
    * The angle to normalize in radians.
    * WARNING: Don't use too large angles.
    */
-  void norm_angle_rad(float *angle) {
-      while (*angle < -M_PI) {
-          *angle += 2.0 * M_PI;
+  void norm_angle_rad(float &angle) {
+      while (angle < -M_PI) {
+          angle += 2.0 * M_PI;
       }
 
-      while (*angle >  M_PI) {
-          *angle -= 2.0 * M_PI;
+      while (angle >  M_PI) {
+          angle -= 2.0 * M_PI;
       }
   }
 
@@ -127,15 +127,15 @@ namespace utils{
    * Truncate absolute values less than tres to zero. The value
    * tres will be mapped to 0 and the value max to max.
    */
-  void deadband(float *value, float tres, float max) {
-      if (fabsf(*value) < tres) {
-          *value = 0.0;
+  void deadband(float& value, float const tres, float const max) {
+      if (fabsf(value) < tres) {
+          value = 0.0;
       } else {
           float k = max / (max - tres);
-          if (*value > 0.0) {
-              *value = k * *value + max * (1.0 - k);
+          if (value > 0.0) {
+              value = k * value + max * (1.0 - k);
           } else {
-              *value = -(k * -*value + max * (1.0 - k));
+              value = -(k * -value + max * (1.0 - k));
           }
 
       }
@@ -337,9 +337,9 @@ namespace utils{
    * @return
    * True if saturation happened, false otherwise
    */
-  bool saturate_vector_2d(float *x, float *y, float max) {
+  bool saturate_vector_2d(float &x, float &y, float max) {
       bool retval = false;
-      float mag = sqrtf(*x * *x + *y * *y);
+      float mag = sqrtf(x * x + y * y);
       max = fabsf(max);
 
       if (mag < 1e-10) {
@@ -348,8 +348,8 @@ namespace utils{
 
       if (mag > max) {
           const float f = max / mag;
-          *x *= f;
-          *y *= f;
+          x *= f;
+          y *= f;
           retval = true;
       }
 

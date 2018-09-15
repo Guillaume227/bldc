@@ -397,7 +397,7 @@ namespace mc_interface{
       m_position_set = pos;
 
       pos *= DIR_MULT;
-      utils::norm_angle(&pos);
+      utils::norm_angle(pos);
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -927,7 +927,7 @@ namespace mc_interface{
       }
 
       ret *= DIR_MULT;
-      utils::norm_angle(&ret);
+      utils::norm_angle(ret);
 
       return ret;
   }

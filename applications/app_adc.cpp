@@ -277,7 +277,7 @@ namespace app {
             }
 
             // Apply deadband
-            utils::deadband(&pwr, config.hyst, 1.0);
+            utils::deadband(pwr, config.hyst, 1.0);
 
             // Apply throttle curve
             pwr = utils::throttle_curve(pwr, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
@@ -289,7 +289,7 @@ namespace app {
 
             if (ramp_time > 0.01) {
                 const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
-                utils::step_towards(&pwr_ramp, pwr, ramp_step);
+                utils::step_towards(pwr_ramp, pwr, ramp_step);
                 last_time = chVTGetSystemTimeX();
                 pwr = pwr_ramp;
             }

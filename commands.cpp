@@ -726,7 +726,7 @@ namespace commands{
               float offset = 0.0;
               float ratio = 0.0;
               bool inverted = false;
-              mcpwm_foc::encoder_detect(current, false, &offset, &ratio, &inverted);
+              mcpwm_foc::encoder_detect(current, false, offset, ratio, inverted);
               mc_interface::set_configuration(&mcconf_old);
 
               ind = 0;

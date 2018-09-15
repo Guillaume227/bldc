@@ -247,7 +247,7 @@ namespace app{
 			led_external_set_reversed(is_reverse);
 
 			float out_val = get_decoded_chuk();
-			utils::deadband(&out_val, config.hyst, 1.0);
+			utils::deadband(out_val, config.hyst, 1.0);
 			out_val = utils::throttle_curve(out_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
 			// LEDs
@@ -404,7 +404,7 @@ namespace app{
 
 				float current_goal = prev_current;
 				const float goal_tmp = current_goal;
-				utils::step_towards(&current_goal, current, ramp_step);
+				utils::step_towards(current_goal, current, ramp_step);
 				bool is_decreasing = current_goal < goal_tmp;
 
 				// Make sure the desired current is close to the actual current to avoid surprises
@@ -412,11 +412,11 @@ namespace app{
 				float goal_tmp2 = current_goal;
 				if (is_reverse) {
 					if (fabsf(current_goal + current_highest_abs) > max_current_diff) {
-						utils::step_towards(&goal_tmp2, -current_highest_abs, 2.0 * ramp_step);
+						utils::step_towards(goal_tmp2, -current_highest_abs, 2.0 * ramp_step);
 					}
 				} else {
 					if (fabsf(current_goal - current_highest_abs) > max_current_diff) {
-						utils::step_towards(&goal_tmp2, current_highest_abs, 2.0 * ramp_step);
+						utils::step_towards(goal_tmp2, current_highest_abs, 2.0 * ramp_step);
 					}
 				}
 

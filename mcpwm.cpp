@@ -1940,10 +1940,10 @@ void adc_int_handler(void *p, uint32_t flags) {
 
 			// Optionally apply startup boost.
 			if (fabsf(dutycycle_now_tmp) < start_boost) {
-				step_towards(&dutycycle_now_tmp,
-						m_current_set > 0.0 ?
-								start_boost :
-								-start_boost, ramp_step);
+				step_towards(dutycycle_now_tmp,
+						     m_current_set > 0.0 ? start_boost
+						                         :-start_boost,
+                             ramp_step);
 			} else {
 				dutycycle_now_tmp += step;
 			}
@@ -1996,26 +1996,26 @@ void adc_int_handler(void *p, uint32_t flags) {
 				}
 			}
 		} else {
-			step_towards((float*)&dutycycle_now_tmp, m_dutycycle_set, ramp_step);
+			step_towards((float&)dutycycle_now_tmp, m_dutycycle_set, ramp_step);
 		}
 
 		static int limit_delay = 0;
 
 		// Apply limits in priority order
 		if (current_nofilter > m_conf->lo_current_max) {
-			step_towards((float*) &m_dutycycle_now, 0.0,
+			step_towards((float&)m_dutycycle_now, 0.0,
 					ramp_step_no_lim * fabsf(current_nofilter - m_conf->lo_current_max) * m_conf->m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (current_nofilter < m_conf->lo_current_min) {
-			step_towards((float*) &m_dutycycle_now, m_direction ? m_conf->l_max_duty : -m_conf->l_max_duty,
+			step_towards((float&)m_dutycycle_now, m_direction ? m_conf->l_max_duty : -m_conf->l_max_duty,
 					ramp_step_no_lim * fabsf(current_nofilter - m_conf->lo_current_min) * m_conf->m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (current_in_nofilter > m_conf->lo_in_current_max) {
-			step_towards((float*) &m_dutycycle_now, 0.0,
+			step_towards((float&)m_dutycycle_now, 0.0,
 					ramp_step_no_lim * fabsf(current_in_nofilter - m_conf->lo_in_current_max) * m_conf->m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (current_in_nofilter < m_conf->lo_in_current_min) {
-			step_towards((float*) &m_dutycycle_now, m_direction ? m_conf->l_max_duty : -m_conf->l_max_duty,
+			step_towards((float&)m_dutycycle_now, m_direction ? m_conf->l_max_duty : -m_conf->l_max_duty,
 					ramp_step_no_lim * fabsf(current_in_nofilter - m_conf->lo_in_current_min) * m_conf->m_current_backoff_gain);
 			limit_delay = 1;
 		}
@@ -2110,7 +2110,7 @@ float get_detect_pos(void) {
 		res = 180 - ph[0];
 	}
 
-	norm_angle(&res);
+	norm_angle(res);
 
 	return res;
 }
