@@ -116,7 +116,7 @@ void nrf_driver_start_pairing(int ms) {
 	if (!pairing_active) {
 		pairing_active = true;
 
-		nrf_config conf = app::get_configuration()->app_nrf_conf;
+		nrf_config conf = app::get_configuration().app_nrf_conf;
 		conf.address[0] = 0xC6;
 		conf.address[1] = 0xC5;
 		conf.address[2] = 0x0;
@@ -275,7 +275,7 @@ static THD_FUNCTION(rx_thread, arg) {
 				case MOTE_PACKET_PAIRING_INFO: {
 					ind = 1;
 
-					app_configuration appconf = *app::get_configuration();
+					app_configuration appconf = app::get_configuration();
 					appconf.app_nrf_conf.address[0] = buf[ind++];
 					appconf.app_nrf_conf.address[1] = buf[ind++];
 					appconf.app_nrf_conf.address[2] = buf[ind++];
@@ -290,7 +290,7 @@ static THD_FUNCTION(rx_thread, arg) {
 
 					from_nrf = true;
 					conf_general::store_app_configuration(&appconf);
-					app::set_configuration(&appconf);
+					app::set_configuration(appconf);
 					commands::send_appconf(COMM_GET_APPCONF, &appconf);
 
 					unsigned char data[2];
@@ -317,7 +317,7 @@ static THD_FUNCTION(rx_thread, arg) {
 
 		if (chVTGetSystemTimeX() > pairing_time_end && pairing_active) {
 			pairing_active = false;
-			nrf_config conf = app::get_configuration()->app_nrf_conf;
+			nrf_config conf = app::get_configuration().app_nrf_conf;
 			rfhelp_update_conf(&conf);
 
 			unsigned char data[2];

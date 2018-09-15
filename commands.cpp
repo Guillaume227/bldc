@@ -527,7 +527,7 @@ namespace commands{
           break;
 
       case COMM_SET_APPCONF:
-          appconf = *app::get_configuration();
+          appconf = app::get_configuration();
 
           ind = 0;
           appconf.controller_id = data[ind++];
@@ -604,7 +604,7 @@ namespace commands{
           appconf.app_nrf_conf.send_crc_ack = data[ind++];
 
           conf_general::store_app_configuration(&appconf);
-          app::set_configuration(&appconf);
+          app::set_configuration(appconf);
           timeout::configure(appconf.timeout_msec, appconf.timeout_brake_current);
           chThdSleepMilliseconds(200);
 
@@ -616,7 +616,7 @@ namespace commands{
       case COMM_GET_APPCONF:
       case COMM_GET_APPCONF_DEFAULT:
           if (packet_id == COMM_GET_APPCONF) {
-              appconf = *app::get_configuration();
+              appconf = app::get_configuration();
           } else {
               conf_general::get_default_app_configuration(&appconf);
           }

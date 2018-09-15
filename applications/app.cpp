@@ -29,8 +29,8 @@ namespace app {
   // Private variables
   app_configuration appconf;
 
-  const app_configuration* get_configuration(void) {
-      return &appconf;
+  app_configuration const& get_configuration(void) {
+      return appconf;
   }
 
   /**
@@ -39,8 +39,8 @@ namespace app {
    * @param conf
    * The new configuration to use.
    */
-  void set_configuration(app_configuration *conf) {
-      appconf = *conf;
+  void set_configuration(app_configuration const& conf) {
+      appconf = conf;
 
       ppm::stop();
       adc::stop();

@@ -23,8 +23,8 @@
 
 namespace app {
   // Functions
-  const app_configuration* get_configuration(void);
-  void set_configuration(app_configuration *conf);
+  app_configuration const& get_configuration(void);
+  void set_configuration(app_configuration const& conf);
 
   // Standard apps
   namespace ppm {
