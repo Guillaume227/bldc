@@ -210,7 +210,7 @@ static THD_FUNCTION(rx_thread, arg) {
 					mstate.bt_c = buttons & (1 << 0);
 					mstate.bt_z = buttons & (1 << 1);
 					mstate.bt_push = buttons & (1 << 2);
-					mstate.vbat = (float)buffer_get_int16(buf, &ind) / 1000.0;
+					mstate.vbat = (float)buffer::get_int16(buf, &ind) / 1000.0;
 
 					cdata.js_x = 255 - mstate.js_x;
 					cdata.js_y = mstate.js_y;

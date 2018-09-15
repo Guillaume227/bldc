@@ -85,8 +85,8 @@ namespace mc_interface{
   CCM_SECTION volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
   CCM_SECTION volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
   CCM_SECTION volatile int8_t m_phase_samples[ADC_SAMPLE_MAX_LEN];
-  volatile int m_sample_len;
-  volatile int m_sample_int;
+  volatile int m_sample_len; // number of samples
+  volatile int m_sample_int; // sample decimation interval
   volatile debug_sampling_mode m_sample_mode;
   volatile debug_sampling_mode m_sample_mode_last;
   volatile int m_sample_now;
@@ -1575,25 +1575,26 @@ namespace mc_interface{
                   ind_samp += ADC_SAMPLE_MAX_LEN;
               }
 
+              using buffer::append_float32_auto;
               buffer[index++] = COMM_SAMPLE_PRINT;
-              buffer_append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
-              buffer_append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
-              buffer_append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
+              append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
+              append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
+              append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
   #ifdef HW_IS_IHM0xM1
               int16_t zero = m_vzero_samples[ind_samp];
               float zeroV = GET_BEMF_VOLTAGE(zero);
-              buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph1_samples[ind_samp]+zero))-zeroV, &index);
-              buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph2_samples[ind_samp]+zero))-zeroV, &index);
-              buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph3_samples[ind_samp]+zero))-zeroV, &index);
-              buffer_append_float32_auto(buffer, zeroV, &index);
+              append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph1_samples[ind_samp]+zero))-zeroV, &index);
+              append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph2_samples[ind_samp]+zero))-zeroV, &index);
+              append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph3_samples[ind_samp]+zero))-zeroV, &index);
+              append_float32_auto(buffer, zeroV, &index);
   #else
-              buffer_append_float32_auto(buffer, ((float)m_ph1_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
-              buffer_append_float32_auto(buffer, ((float)m_ph2_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
-              buffer_append_float32_auto(buffer, ((float)m_ph3_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
-              buffer_append_float32_auto(buffer, GET_BEMF_VOLTAGE(m_vzero_samples[ind_samp]), &index);
+              append_float32_auto(buffer, ((float)m_ph1_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
+              append_float32_auto(buffer, ((float)m_ph2_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
+              append_float32_auto(buffer, ((float)m_ph3_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
+              append_float32_auto(buffer, GET_BEMF_VOLTAGE(m_vzero_samples[ind_samp]), &index);
   #endif
-              buffer_append_float32_auto(buffer, (float)m_curr_fir_samples[ind_samp] / (8.0 / FAC_CURRENT), &index);
-              buffer_append_float32_auto(buffer, (float)m_f_sw_samples[ind_samp] * 10.0, &index);
+              append_float32_auto(buffer, (float)m_curr_fir_samples[ind_samp] / (8.0 / FAC_CURRENT), &index);
+              append_float32_auto(buffer, (float)m_f_sw_samples[ind_samp] * 10.0, &index);
               buffer[index++] = m_status_samples[ind_samp];
               buffer[index++] = m_phase_samples[ind_samp];
 

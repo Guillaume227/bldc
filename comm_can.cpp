@@ -171,31 +171,31 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 					switch (cmd) {
 					case CAN_PACKET_SET_DUTY:
 						ind = 0;
-						mc_interface::set_duty(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						mc_interface::set_duty(buffer::get_float32(rxmsg.data8, 1e5, &ind));
 						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT:
 						ind = 0;
-						mc_interface::set_current(buffer_get_float32(rxmsg.data8, 1e3, &ind));
+						mc_interface::set_current(buffer::get_float32(rxmsg.data8, 1e3, &ind));
 						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_BRAKE:
 						ind = 0;
-						mc_interface::set_brake_current(buffer_get_float32(rxmsg.data8, 1e3, &ind));
+						mc_interface::set_brake_current(buffer::get_float32(rxmsg.data8, 1e3, &ind));
 						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_RPM:
 						ind = 0;
-						mc_interface::set_pid_speed(buffer_get_float32(rxmsg.data8, 1e0, &ind));
+						mc_interface::set_pid_speed(buffer::get_float32(rxmsg.data8, 1e0, &ind));
 						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_POS:
 						ind = 0;
-						mc_interface::set_pid_pos(buffer_get_float32(rxmsg.data8, 1e6, &ind));
+						mc_interface::set_pid_pos(buffer::get_float32(rxmsg.data8, 1e6, &ind));
 						timeout::reset();
 						break;
 
@@ -253,25 +253,25 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 					case CAN_PACKET_SET_CURRENT_REL:
 						ind = 0;
-						mc_interface::set_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						mc_interface::set_current_rel(buffer::get_float32(rxmsg.data8, 1e5, &ind));
 						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_BRAKE_REL:
 						ind = 0;
-						mc_interface::set_brake_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						mc_interface::set_brake_current_rel(buffer::get_float32(rxmsg.data8, 1e5, &ind));
 						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_HANDBRAKE:
 						ind = 0;
-						mc_interface::set_handbrake(buffer_get_float32(rxmsg.data8, 1e3, &ind));
+						mc_interface::set_handbrake(buffer::get_float32(rxmsg.data8, 1e3, &ind));
 						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_HANDBRAKE_REL:
 						ind = 0;
-						mc_interface::set_handbrake_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						mc_interface::set_handbrake_rel(buffer::get_float32(rxmsg.data8, 1e5, &ind));
 						timeout::reset();
 						break;
 
@@ -288,9 +288,9 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 							ind = 0;
 							stat_tmp->id = id;
 							stat_tmp->rx_time = chVTGetSystemTime();
-							stat_tmp->rpm = (float)buffer_get_int32(rxmsg.data8, &ind);
-							stat_tmp->current = (float)buffer_get_int16(rxmsg.data8, &ind) / 10.0;
-							stat_tmp->duty = (float)buffer_get_int16(rxmsg.data8, &ind) / 1000.0;
+							stat_tmp->rpm = (float)buffer::get_int32(rxmsg.data8, &ind);
+							stat_tmp->current = (float)buffer::get_int16(rxmsg.data8, &ind) / 10.0;
+							stat_tmp->duty = (float)buffer::get_int16(rxmsg.data8, &ind) / 1000.0;
 							break;
 						}
 					}
@@ -321,9 +321,9 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 			// Send status message
 			int32_t send_index = 0;
 			uint8_t buffer[8];
-			buffer_append_int32(buffer, (int32_t)mc_interface::get_rpm(), &send_index);
-			buffer_append_int16(buffer, (int16_t)(mc_interface::get_tot_current() * 10.0), &send_index);
-			buffer_append_int16(buffer, (int16_t)(mc_interface::get_duty_cycle_now() * 1000.0), &send_index);
+			buffer::append_int32(buffer, (int32_t)mc_interface::get_rpm(), &send_index);
+			buffer::append_int16(buffer, (int16_t)(mc_interface::get_tot_current() * 10.0), &send_index);
+			buffer::append_int16(buffer, (int16_t)(mc_interface::get_duty_cycle_now() * 1000.0), &send_index);
 			comm_can_transmit_eid(app_get_configuration()->controller_id |
 					((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
 		}
@@ -480,7 +480,7 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 void comm_can_set_duty(uint8_t controller_id, float duty) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
-	buffer_append_int32(buffer, (int32_t)(duty * 100000.0), &send_index);
+	buffer::append_int32(buffer, (int32_t)(duty * 100000.0), &send_index);
 	comm_can_transmit_eid(controller_id |
 			((uint32_t)CAN_PACKET_SET_DUTY << 8), buffer, send_index);
 }
@@ -488,7 +488,7 @@ void comm_can_set_duty(uint8_t controller_id, float duty) {
 void comm_can_set_current(uint8_t controller_id, float current) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
-	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
+	buffer::append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
 	comm_can_transmit_eid(controller_id |
 			((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index);
 }
@@ -496,7 +496,7 @@ void comm_can_set_current(uint8_t controller_id, float current) {
 void comm_can_set_current_brake(uint8_t controller_id, float current) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
-	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
+	buffer::append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
 	comm_can_transmit_eid(controller_id |
 			((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE << 8), buffer, send_index);
 }
@@ -504,7 +504,7 @@ void comm_can_set_current_brake(uint8_t controller_id, float current) {
 void comm_can_set_rpm(uint8_t controller_id, float rpm) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
-	buffer_append_int32(buffer, (int32_t)rpm, &send_index);
+	buffer::append_int32(buffer, (int32_t)rpm, &send_index);
 	comm_can_transmit_eid(controller_id |
 			((uint32_t)CAN_PACKET_SET_RPM << 8), buffer, send_index);
 }
@@ -512,7 +512,7 @@ void comm_can_set_rpm(uint8_t controller_id, float rpm) {
 void comm_can_set_pos(uint8_t controller_id, float pos) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
-	buffer_append_int32(buffer, (int32_t)(pos * 1000000.0), &send_index);
+	buffer::append_int32(buffer, (int32_t)(pos * 1000000.0), &send_index);
 	comm_can_transmit_eid(controller_id |
 			((uint32_t)CAN_PACKET_SET_POS << 8), buffer, send_index);
 }
@@ -529,7 +529,7 @@ void comm_can_set_pos(uint8_t controller_id, float pos) {
 void comm_can_set_current_rel(uint8_t controller_id, float current_rel) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
-	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
+	buffer::append_float32(buffer, current_rel, 1e5, &send_index);
 	comm_can_transmit_eid(controller_id |
 			((uint32_t)CAN_PACKET_SET_CURRENT_REL << 8), buffer, send_index);
 }
@@ -546,7 +546,7 @@ void comm_can_set_current_rel(uint8_t controller_id, float current_rel) {
 void comm_can_set_current_brake_rel(uint8_t controller_id, float current_rel) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
-	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
+	buffer::append_float32(buffer, current_rel, 1e5, &send_index);
 	comm_can_transmit_eid(controller_id |
 			((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE_REL << 8), buffer, send_index);
 }
@@ -563,7 +563,7 @@ void comm_can_set_current_brake_rel(uint8_t controller_id, float current_rel) {
 void comm_can_set_handbrake(uint8_t controller_id, float current) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
-	buffer_append_float32(buffer, current, 1e3, &send_index);
+	buffer::append_float32(buffer, current, 1e3, &send_index);
 	comm_can_transmit_eid(controller_id |
 			((uint32_t)CAN_PACKET_SET_CURRENT_HANDBRAKE << 8), buffer, send_index);
 }
@@ -580,7 +580,7 @@ void comm_can_set_handbrake(uint8_t controller_id, float current) {
 void comm_can_set_handbrake_rel(uint8_t controller_id, float current_rel) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
-	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
+	buffer::append_float32(buffer, current_rel, 1e5, &send_index);
 	comm_can_transmit_eid(controller_id |
 			((uint32_t)CAN_PACKET_SET_CURRENT_HANDBRAKE_REL << 8), buffer, send_index);
 }
