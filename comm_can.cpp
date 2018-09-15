@@ -167,7 +167,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 				CAN_PACKET_ID cmd = rxmsg.EID >> 8;
 				can_status_msg *stat_tmp;
 
-				if (id == 255 || id == app_get_configuration()->controller_id) {
+				if (id == 255 || id == app::get_configuration()->controller_id) {
 					switch (cmd) {
 					case CAN_PACKET_SET_DUTY:
 						ind = 0;
@@ -317,18 +317,18 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 	chRegSetThreadName("CAN status");
 
 	for(;;) {
-		if (app_get_configuration()->send_can_status) {
+		if (app::get_configuration()->send_can_status) {
 			// Send status message
 			int32_t send_index = 0;
 			uint8_t buffer[8];
 			buffer::append_int32(buffer, (int32_t)mc_interface::get_rpm(), &send_index);
 			buffer::append_int16(buffer, (int16_t)(mc_interface::get_tot_current() * 10.0), &send_index);
 			buffer::append_int16(buffer, (int16_t)(mc_interface::get_duty_cycle_now() * 1000.0), &send_index);
-			comm_can_transmit_eid(app_get_configuration()->controller_id |
+			comm_can_transmit_eid(app::get_configuration()->controller_id |
 					((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
 		}
 
-		systime_t sleep_time = CH_CFG_ST_FREQUENCY / app_get_configuration()->send_can_status_rate_hz;
+		systime_t sleep_time = CH_CFG_ST_FREQUENCY / app::get_configuration()->send_can_status_rate_hz;
 		if (sleep_time == 0) {
 			sleep_time = 1;
 		}
@@ -418,7 +418,7 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 
 	if (len <= 6) {
 		uint32_t ind = 0;
-		send_buffer[ind++] = app_get_configuration()->controller_id;
+		send_buffer[ind++] = app::get_configuration()->controller_id;
 		send_buffer[ind++] = send;
 		memcpy(send_buffer + ind, data, len);
 		ind += len;
@@ -464,7 +464,7 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 		}
 
 		uint32_t ind = 0;
-		send_buffer[ind++] = app_get_configuration()->controller_id;
+		send_buffer[ind++] = app::get_configuration()->controller_id;
 		send_buffer[ind++] = send;
 		send_buffer[ind++] = len >> 8;
 		send_buffer[ind++] = len & 0xFF;

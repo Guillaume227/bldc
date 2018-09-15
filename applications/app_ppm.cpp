@@ -32,333 +32,337 @@
 // Only available if servo output is not active
 #if !SERVO_OUT_ENABLE
 
-// Settings
-#define MAX_CAN_AGE						0.1
-#define MIN_PULSES_WITHOUT_POWER		50
+namespace app {
+  namespace ppm {
+    // Settings
+    #define MAX_CAN_AGE						0.1
+    #define MIN_PULSES_WITHOUT_POWER		50
 
-// Threads
-static THD_FUNCTION(ppm_thread, arg);
-static THD_WORKING_AREA(ppm_thread_wa, 1024);
-static thread_t *ppm_tp;
-virtual_timer_t vt;
+    // Threads
+    THD_FUNCTION(ppm_thread, arg);
+    THD_WORKING_AREA(ppm_thread_wa, 1024);
+    thread_t *ppm_tp;
+    virtual_timer_t vt;
 
-// Private functions
-static void servodec_func(void);
+    // Private functions
+    void servodec_func(void);
 
-// Private variables
-static volatile bool is_running = false;
-static volatile bool stop_now = true;
-static ppm_config config;
-static volatile int pulses_without_power = 0;
-static float input_val = 0.0;
+    // Private variables
+    volatile bool is_running = false;
+    volatile bool stop_now = true;
+    ppm_config config;
+    volatile int pulses_without_power = 0;
+    float input_val = 0.0;
 
-// Private functions
-static void update(void *p);
+    // Private functions
+    void update(void *p);
 #endif
 
-void app_ppm_configure(ppm_config *conf) {
+    void configure(ppm_config *conf) {
 #if !SERVO_OUT_ENABLE
-	config = *conf;
-	pulses_without_power = 0;
+        config = *conf;
+        pulses_without_power = 0;
 
-	if (is_running) {
-		servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
-	}
+        if (is_running) {
+            servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
+        }
 #else
-	(void)conf;
+    (void)conf;
 #endif
-}
+    }
 
-void app_ppm_start(void) {
+    void start(void) {
 #if !SERVO_OUT_ENABLE
-	stop_now = false;
-	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
+        stop_now = false;
+        chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
 
-	chSysLock();
-	chVTSetI(&vt, MS2ST(1), update, NULL);
-	chSysUnlock();
+        chSysLock();
+        chVTSetI(&vt, MS2ST(1), update, NULL);
+        chSysUnlock();
 #endif
-}
+    }
 
-void app_ppm_stop(void) {
+    void stop(void) {
 #if !SERVO_OUT_ENABLE
-	stop_now = true;
+        stop_now = true;
 
-	if (is_running) {
-		chEvtSignalI(ppm_tp, (eventmask_t) 1);
-		servodec_stop();
-	}
+        if (is_running) {
+            chEvtSignalI(ppm_tp, (eventmask_t) 1);
+            servodec_stop();
+        }
 
-	while(is_running) {
-		chThdSleepMilliseconds(1);
-	}
+        while(is_running) {
+            chThdSleepMilliseconds(1);
+        }
 #endif
-}
+    }
 
-float app_ppm_get_decoded_level(void) {
+    float get_decoded_level(void) {
 #if !SERVO_OUT_ENABLE
-	return input_val;
+        return input_val;
 #else
-	return 0.0;
+        return 0.0;
 #endif
-}
+    }
 
 #if !SERVO_OUT_ENABLE
-static void servodec_func(void) {
-	chSysLockFromISR();
-	timeout::reset();
-	chEvtSignalI(ppm_tp, (eventmask_t) 1);
-	chSysUnlockFromISR();
-}
+    void servodec_func(void) {
+        chSysLockFromISR();
+        timeout::reset();
+        chEvtSignalI(ppm_tp, (eventmask_t) 1);
+        chSysUnlockFromISR();
+    }
 
-static void update(void *p) {
-	if (!is_running) {
-		return;
-	}
+    void update(void *p) {
+        if (!is_running) {
+            return;
+        }
 
-	chSysLockFromISR();
-	chVTSetI(&vt, MS2ST(2), update, p);
-	chEvtSignalI(ppm_tp, (eventmask_t) 1);
-	chSysUnlockFromISR();
-}
+        chSysLockFromISR();
+        chVTSetI(&vt, MS2ST(2), update, p);
+        chEvtSignalI(ppm_tp, (eventmask_t) 1);
+        chSysUnlockFromISR();
+    }
 
-static THD_FUNCTION(ppm_thread, arg) {
-	(void)arg;
+    THD_FUNCTION(ppm_thread, arg) {
+        (void)arg;
 
-	chRegSetThreadName("APP_PPM");
-	ppm_tp = chThdGetSelfX();
+        chRegSetThreadName("APP_PPM");
+        ppm_tp = chThdGetSelfX();
 
-	servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
-	servodec_init(servodec_func);
-	is_running = true;
+        servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
+        servodec_init(servodec_func);
+        is_running = true;
 
-	for(;;) {
-		chEvtWaitAny((eventmask_t) 1);
+        for(;;) {
+            chEvtWaitAny((eventmask_t) 1);
 
-		if (stop_now) {
-			is_running = false;
-			return;
-		}
+            if (stop_now) {
+                is_running = false;
+                return;
+            }
 
-		auto const& mcconf = mc_interface::get_configuration();
-		const float rpm_now = mc_interface::get_rpm();
-		float servo_val = servodec_get_servo(0);
-		float servo_ms = utils::map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
+            auto const& mcconf = mc_interface::get_configuration();
+            const float rpm_now = mc_interface::get_rpm();
+            float servo_val = servodec_get_servo(0);
+            float servo_ms = utils::map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
 
-		switch (config.ctrl_type) {
-		case PPM_CTRL_TYPE_CURRENT_NOREV:
-		case PPM_CTRL_TYPE_DUTY_NOREV:
-		case PPM_CTRL_TYPE_PID_NOREV:
-			input_val = servo_val;
-			servo_val += 1.0;
-			servo_val /= 2.0;
-			break;
+            switch (config.ctrl_type) {
+            case PPM_CTRL_TYPE_CURRENT_NOREV:
+            case PPM_CTRL_TYPE_DUTY_NOREV:
+            case PPM_CTRL_TYPE_PID_NOREV:
+                input_val = servo_val;
+                servo_val += 1.0;
+                servo_val /= 2.0;
+                break;
 
-		default:
-			// Mapping with respect to center pulsewidth
-			if (servo_ms < config.pulse_center) {
-				servo_val = utils::map(servo_ms, config.pulse_start,
-						config.pulse_center, -1.0, 0.0);
-			} else {
-				servo_val = utils::map(servo_ms, config.pulse_center,
-						config.pulse_end, 0.0, 1.0);
-			}
-			input_val = servo_val;
-			break;
-		}
+            default:
+                // Mapping with respect to center pulsewidth
+                if (servo_ms < config.pulse_center) {
+                    servo_val = utils::map(servo_ms, config.pulse_start,
+                            config.pulse_center, -1.0, 0.0);
+                } else {
+                    servo_val = utils::map(servo_ms, config.pulse_center,
+                            config.pulse_end, 0.0, 1.0);
+                }
+                input_val = servo_val;
+                break;
+            }
 
-		if (timeout::has_timeout() || servodec_get_time_since_update() > timeout::get_timeout_msec() ||
-				mc_interface::get_fault() != FAULT_CODE_NONE) {
-			pulses_without_power = 0;
-			continue;
-		}
+            if (timeout::has_timeout() || servodec_get_time_since_update() > timeout::get_timeout_msec() ||
+                    mc_interface::get_fault() != FAULT_CODE_NONE) {
+                pulses_without_power = 0;
+                continue;
+            }
 
-		// Apply deadband
-		utils::deadband(&servo_val, config.hyst, 1.0);
+            // Apply deadband
+            utils::deadband(&servo_val, config.hyst, 1.0);
 
-		// Apply throttle curve
-		servo_val = utils::throttle_curve(servo_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+            // Apply throttle curve
+            servo_val = utils::throttle_curve(servo_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
-		// Apply ramping
-		static systime_t last_time = 0;
-		static float servo_val_ramp = 0.0;
-		const float ramp_time = fabsf(servo_val) > fabsf(servo_val_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+            // Apply ramping
+            static systime_t last_time = 0;
+            static float servo_val_ramp = 0.0;
+            const float ramp_time = fabsf(servo_val) > fabsf(servo_val_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
 
-		if (ramp_time > 0.01) {
-			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
-			utils::step_towards(&servo_val_ramp, servo_val, ramp_step);
-			last_time = chVTGetSystemTimeX();
-			servo_val = servo_val_ramp;
-		}
+            if (ramp_time > 0.01) {
+                const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
+                utils::step_towards(&servo_val_ramp, servo_val, ramp_step);
+                last_time = chVTGetSystemTimeX();
+                servo_val = servo_val_ramp;
+            }
 
-		float current = 0;
-		bool current_mode = false;
-		bool current_mode_brake = false;
-		bool send_current = false;
+            float current = 0;
+            bool current_mode = false;
+            bool current_mode_brake = false;
+            bool send_current = false;
 
-		switch (config.ctrl_type) {
-		case PPM_CTRL_TYPE_CURRENT:
-		case PPM_CTRL_TYPE_CURRENT_NOREV:
-			current_mode = true;
-			if ((servo_val >= 0.0 && rpm_now > 0.0) || (servo_val < 0.0 && rpm_now < 0.0)) {
-				current = servo_val * mcconf.lo_current_motor_max_now;
-			} else {
-				current = servo_val * fabsf(mcconf.lo_current_motor_min_now);
-			}
+            switch (config.ctrl_type) {
+            case PPM_CTRL_TYPE_CURRENT:
+            case PPM_CTRL_TYPE_CURRENT_NOREV:
+                current_mode = true;
+                if ((servo_val >= 0.0 && rpm_now > 0.0) || (servo_val < 0.0 && rpm_now < 0.0)) {
+                    current = servo_val * mcconf.lo_current_motor_max_now;
+                } else {
+                    current = servo_val * fabsf(mcconf.lo_current_motor_min_now);
+                }
 
-			if (fabsf(servo_val) < 0.001) {
-				pulses_without_power++;
-			}
-			break;
+                if (fabsf(servo_val) < 0.001) {
+                    pulses_without_power++;
+                }
+                break;
 
-		case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
-			current_mode = true;
-			if (servo_val >= 0.0) {
-				current = servo_val * mcconf.lo_current_motor_max_now;
-			} else {
-				current = fabsf(servo_val * mcconf.lo_current_motor_min_now);
-				current_mode_brake = true;
-			}
+            case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
+                current_mode = true;
+                if (servo_val >= 0.0) {
+                    current = servo_val * mcconf.lo_current_motor_max_now;
+                } else {
+                    current = fabsf(servo_val * mcconf.lo_current_motor_min_now);
+                    current_mode_brake = true;
+                }
 
-			if (fabsf(servo_val) < 0.001) {
-				pulses_without_power++;
-			}
-			break;
+                if (fabsf(servo_val) < 0.001) {
+                    pulses_without_power++;
+                }
+                break;
 
-		case PPM_CTRL_TYPE_DUTY:
-		case PPM_CTRL_TYPE_DUTY_NOREV:
-			if (fabsf(servo_val) < 0.001) {
-				pulses_without_power++;
-			}
+            case PPM_CTRL_TYPE_DUTY:
+            case PPM_CTRL_TYPE_DUTY_NOREV:
+                if (fabsf(servo_val) < 0.001) {
+                    pulses_without_power++;
+                }
 
-			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface::set_duty(utils::map(servo_val, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
-				send_current = true;
-			}
-			break;
+                if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
+                    mc_interface::set_duty(utils::map(servo_val, -1.0, 1.0, -mcconf.l_max_duty, mcconf.l_max_duty));
+                    send_current = true;
+                }
+                break;
 
-		case PPM_CTRL_TYPE_PID:
-		case PPM_CTRL_TYPE_PID_NOREV:
-			if (fabsf(servo_val) < 0.001) {
-				pulses_without_power++;
-			}
+            case PPM_CTRL_TYPE_PID:
+            case PPM_CTRL_TYPE_PID_NOREV:
+                if (fabsf(servo_val) < 0.001) {
+                    pulses_without_power++;
+                }
 
-			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface::set_pid_speed(servo_val * config.pid_max_erpm);
-				send_current = true;
-			}
-			break;
+                if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
+                    mc_interface::set_pid_speed(servo_val * config.pid_max_erpm);
+                    send_current = true;
+                }
+                break;
 
-		default:
-			continue;
-		}
+            default:
+                continue;
+            }
 
-		if (pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start) {
-			static int pulses_without_power_before = 0;
-			if (pulses_without_power == pulses_without_power_before) {
-				pulses_without_power = 0;
-			}
-			pulses_without_power_before = pulses_without_power;
-			mc_interface::set_brake_current(timeout::get_brake_current());
-			continue;
-		}
+            if (pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start) {
+                static int pulses_without_power_before = 0;
+                if (pulses_without_power == pulses_without_power_before) {
+                    pulses_without_power = 0;
+                }
+                pulses_without_power_before = pulses_without_power;
+                mc_interface::set_brake_current(timeout::get_brake_current());
+                continue;
+            }
 
-		// Find lowest RPM
-		float rpm_local = mc_interface::get_rpm();
-		float rpm_lowest = rpm_local;
-		if (config.multi_esc) {
-			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-				can_status_msg *msg = comm_can_get_status_msg_index(i);
+            // Find lowest RPM
+            float rpm_local = mc_interface::get_rpm();
+            float rpm_lowest = rpm_local;
+            if (config.multi_esc) {
+                for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+                    can_status_msg *msg = comm_can_get_status_msg_index(i);
 
-				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-					float rpm_tmp = msg->rpm;
+                    if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                        float rpm_tmp = msg->rpm;
 
-					if (fabsf(rpm_tmp) < fabsf(rpm_lowest)) {
-						rpm_lowest = rpm_tmp;
-					}
-				}
-			}
-		}
+                        if (fabsf(rpm_tmp) < fabsf(rpm_lowest)) {
+                            rpm_lowest = rpm_tmp;
+                        }
+                    }
+                }
+            }
 
-		if (send_current && config.multi_esc) {
-			float current = mc_interface::get_tot_current_directional_filtered();
+            if (send_current && config.multi_esc) {
+                float current = mc_interface::get_tot_current_directional_filtered();
 
-			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-				can_status_msg *msg = comm_can_get_status_msg_index(i);
+                for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+                    can_status_msg *msg = comm_can_get_status_msg_index(i);
 
-				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-					comm_can_set_current(msg->id, current);
-				}
-			}
-		}
+                    if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                        comm_can_set_current(msg->id, current);
+                    }
+                }
+            }
 
-		if (current_mode) {
-			if (current_mode_brake) {
-				mc_interface::set_brake_current(current);
+            if (current_mode) {
+                if (current_mode_brake) {
+                    mc_interface::set_brake_current(current);
 
-				// Send brake command to all ESCs seen recently on the CAN bus
-				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-					can_status_msg *msg = comm_can_get_status_msg_index(i);
+                    // Send brake command to all ESCs seen recently on the CAN bus
+                    for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+                        can_status_msg *msg = comm_can_get_status_msg_index(i);
 
-					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_current_brake(msg->id, current);
-					}
-				}
-			} else {
-				float current_out = current;
-				bool is_reverse = false;
-				if (current_out < 0.0) {
-					is_reverse = true;
-					current_out = -current_out;
-					current = -current;
-					rpm_local = -rpm_local;
-					rpm_lowest = -rpm_lowest;
-				}
+                        if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                            comm_can_set_current_brake(msg->id, current);
+                        }
+                    }
+                } else {
+                    float current_out = current;
+                    bool is_reverse = false;
+                    if (current_out < 0.0) {
+                        is_reverse = true;
+                        current_out = -current_out;
+                        current = -current;
+                        rpm_local = -rpm_local;
+                        rpm_lowest = -rpm_lowest;
+                    }
 
-				// Traction control
-				if (config.multi_esc) {
-					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-						can_status_msg *msg = comm_can_get_status_msg_index(i);
+                    // Traction control
+                    if (config.multi_esc) {
+                        for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+                            can_status_msg *msg = comm_can_get_status_msg_index(i);
 
-						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-							if (config.tc) {
-								float rpm_tmp = msg->rpm;
-								if (is_reverse) {
-									rpm_tmp = -rpm_tmp;
-								}
+                            if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                                if (config.tc) {
+                                    float rpm_tmp = msg->rpm;
+                                    if (is_reverse) {
+                                        rpm_tmp = -rpm_tmp;
+                                    }
 
-								float diff = rpm_tmp - rpm_lowest;
-								current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
-								if (current_out < mcconf.cc_min_current) {
-									current_out = 0.0;
-								}
-							}
+                                    float diff = rpm_tmp - rpm_lowest;
+                                    current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
+                                    if (current_out < mcconf.cc_min_current) {
+                                        current_out = 0.0;
+                                    }
+                                }
 
-							if (is_reverse) {
-								comm_can_set_current(msg->id, -current_out);
-							} else {
-								comm_can_set_current(msg->id, current_out);
-							}
-						}
-					}
+                                if (is_reverse) {
+                                    comm_can_set_current(msg->id, -current_out);
+                                } else {
+                                    comm_can_set_current(msg->id, current_out);
+                                }
+                            }
+                        }
 
-					if (config.tc) {
-						float diff = rpm_local - rpm_lowest;
-						current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
-						if (current_out < mcconf.cc_min_current) {
-							current_out = 0.0;
-						}
-					}
-				}
+                        if (config.tc) {
+                            float diff = rpm_local - rpm_lowest;
+                            current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
+                            if (current_out < mcconf.cc_min_current) {
+                                current_out = 0.0;
+                            }
+                        }
+                    }
 
-				if (is_reverse) {
-					mc_interface::set_current(-current_out);
-				} else {
-					mc_interface::set_current(current_out);
-				}
-			}
-		}
+                    if (is_reverse) {
+                        mc_interface::set_current(-current_out);
+                    } else {
+                        mc_interface::set_current(current_out);
+                    }
+                }
+            }
 
-	}
+        }
+    }
+  }
 }
 #endif

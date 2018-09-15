@@ -17,12 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef COMM_USB_H_
-#define COMM_USB_H_
+#pragma once
 
 #include "conf_general.h"
 
-// Functions
-void comm_usb_init(void);
-
-#endif /* COMM_USB_H_ */
+namespace comm_usb {
+  // Functions
+  void init(void);
+}

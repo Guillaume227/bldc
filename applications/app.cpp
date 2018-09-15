@@ -25,95 +25,97 @@
 #include "rfhelp.h"
 #include "comm_can.h"
 
-// Private variables
-static app_configuration appconf;
+namespace app {
+  // Private variables
+  app_configuration appconf;
 
-const app_configuration* app_get_configuration(void) {
-	return &appconf;
-}
+  const app_configuration* get_configuration(void) {
+      return &appconf;
+  }
 
-/**
- * Reconfigure and restart all apps. Some apps don't have any configuration options.
- *
- * @param conf
- * The new configuration to use.
- */
-void app_set_configuration(app_configuration *conf) {
-	appconf = *conf;
+  /**
+   * Reconfigure and restart all apps. Some apps don't have any configuration options.
+   *
+   * @param conf
+   * The new configuration to use.
+   */
+  void set_configuration(app_configuration *conf) {
+      appconf = *conf;
 
-	app_ppm_stop();
-	app_adc_stop();
-	app_uartcomm_stop();
-	app::nunchuk::stop();
+      ppm::stop();
+      adc::stop();
+      uartcomm::stop();
+      nunchuk::stop();
 
-	if (!conf_general::permanent_nrf_found) {
-		nrf_driver_stop();
-	}
+      if (!conf_general::permanent_nrf_found) {
+          nrf_driver_stop();
+      }
 
-#if CAN_ENABLE
-	comm_can_set_baud(conf->can_baud_rate);
-#endif
+  #if CAN_ENABLE
+      comm_can_set_baud(conf->can_baud_rate);
+  #endif
 
-#ifdef APP_CUSTOM_TO_USE
-	app_custom_stop();
-#endif
+  #ifdef APP_CUSTOM_TO_USE
+      app_custom_stop();
+  #endif
 
-	switch (appconf.app_to_use) {
-	case APP_PPM:
-		app_ppm_start();
-		break;
+      switch (appconf.app_to_use) {
+      case APP_PPM:
+          ppm::start();
+          break;
 
-	case APP_ADC:
-		app_adc_start(true);
-		break;
+      case APP_ADC:
+          adc::start(true);
+          break;
 
-	case APP_UART:
-		hw_stop_i2c();
-		app_uartcomm_start();
-		break;
+      case APP_UART:
+          hw_stop_i2c();
+          uartcomm::start();
+          break;
 
-	case APP_PPM_UART:
-		hw_stop_i2c();
-		app_ppm_start();
-		app_uartcomm_start();
-		break;
+      case APP_PPM_UART:
+          hw_stop_i2c();
+          ppm::start();
+          uartcomm::start();
+          break;
 
-	case APP_ADC_UART:
-		hw_stop_i2c();
-		app_adc_start(false);
-		app_uartcomm_start();
-		break;
+      case APP_ADC_UART:
+          hw_stop_i2c();
+          adc::start(false);
+          uartcomm::start();
+          break;
 
-	case APP_NUNCHUK:
-		app::nunchuk::start();
-		break;
+      case APP_NUNCHUK:
+          nunchuk::start();
+          break;
 
-	case APP_NRF:
-		if (!conf_general::permanent_nrf_found) {
-			nrf_driver_init();
-			rfhelp_restart();
-		}
-		break;
+      case APP_NRF:
+          if (!conf_general::permanent_nrf_found) {
+              nrf_driver_init();
+              rfhelp_restart();
+          }
+          break;
 
-	case APP_CUSTOM:
-#ifdef APP_CUSTOM_TO_USE
-		hw_stop_i2c();
-		app_custom_start();
-#endif
-		break;
+      case APP_CUSTOM:
+  #ifdef APP_CUSTOM_TO_USE
+          hw_stop_i2c();
+          custom_start();
+  #endif
+          break;
 
-	default:
-		break;
-	}
+      default:
+          break;
+      }
 
-	app_ppm_configure(&appconf.app_ppm_conf);
-	app_adc_configure(&appconf.app_adc_conf);
-	app_uartcomm_configure(appconf.app_uart_baudrate);
-	app::nunchuk::configure(&appconf.app_chuk_conf);
+      ppm::configure(&appconf.app_ppm_conf);
+      adc::configure(&appconf.app_adc_conf);
+      uartcomm::configure(appconf.app_uart_baudrate);
+      nunchuk::configure(&appconf.app_chuk_conf);
 
-#ifdef APP_CUSTOM_TO_USE
-	app_custom_configure(&appconf);
-#endif
+  #ifdef APP_CUSTOM_TO_USE
+      custom_configure(&appconf);
+  #endif
 
-	rfhelp_update_conf(&appconf.app_nrf_conf);
+      rfhelp_update_conf(&appconf.app_nrf_conf);
+  }
 }

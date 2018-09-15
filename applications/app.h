@@ -17,34 +17,39 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef APP_H_
-#define APP_H_
+#pragma once
 
 #include "conf_general.h"
 
-// Functions
-const app_configuration* app_get_configuration(void);
-void app_set_configuration(app_configuration *conf);
+namespace app {
+  // Functions
+  const app_configuration* get_configuration(void);
+  void set_configuration(app_configuration *conf);
 
-// Standard apps
-void app_ppm_start(void);
-void app_ppm_stop(void);
-float app_ppm_get_decoded_level(void);
-void app_ppm_configure(ppm_config *conf);
+  // Standard apps
+  namespace ppm {
+    void start(void);
+    void stop(void);
+    float get_decoded_level(void);
+    void configure(ppm_config *conf);
+  }
 
-void app_adc_start(bool use_rx_tx);
-void app_adc_stop(void);
-void app_adc_configure(adc_config *conf);
-float app_adc_get_decoded_level(void);
-float app_adc_get_voltage(void);
-float app_adc_get_decoded_level2(void);
-float app_adc_get_voltage2(void);
+  namespace adc {
+    void start(bool use_rx_tx);
+    void stop(void);
+    void configure(adc_config *conf);
+    float get_decoded_level(void);
+    float get_voltage(void);
+    float get_decoded_level2(void);
+    float get_voltage2(void);
+  }
 
-void app_uartcomm_start(void);
-void app_uartcomm_stop(void);
-void app_uartcomm_configure(uint32_t baudrate);
+  namespace uartcomm {
+    void start(void);
+    void stop(void);
+    void configure(uint32_t baudrate);
+  }
 
-namespace app{
   namespace nunchuk{
     void start(void);
     void stop(void);
@@ -52,10 +57,11 @@ namespace app{
     float get_decoded_chuk(void);
     void update_output(chuck_data *data);
   }
-}
-// Custom apps
-void app_custom_start(void);
-void app_custom_stop(void);
-void app_custom_configure(app_configuration *conf);
 
-#endif /* APP_H_ */
+  // Custom apps
+  namespace custom {
+    void start(void);
+    void stop(void);
+    void configure(app_configuration *conf);
+  }
+}

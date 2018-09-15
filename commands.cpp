@@ -527,7 +527,7 @@ namespace commands{
           break;
 
       case COMM_SET_APPCONF:
-          appconf = *app_get_configuration();
+          appconf = *app::get_configuration();
 
           ind = 0;
           appconf.controller_id = data[ind++];
@@ -604,7 +604,7 @@ namespace commands{
           appconf.app_nrf_conf.send_crc_ack = data[ind++];
 
           conf_general::store_app_configuration(&appconf);
-          app_set_configuration(&appconf);
+          app::set_configuration(&appconf);
           timeout::configure(appconf.timeout_msec, appconf.timeout_brake_current);
           chThdSleepMilliseconds(200);
 
@@ -616,7 +616,7 @@ namespace commands{
       case COMM_GET_APPCONF:
       case COMM_GET_APPCONF_DEFAULT:
           if (packet_id == COMM_GET_APPCONF) {
-              appconf = *app_get_configuration();
+              appconf = *app::get_configuration();
           } else {
               conf_general::get_default_app_configuration(&appconf);
           }
@@ -804,7 +804,7 @@ namespace commands{
       case COMM_GET_DECODED_PPM:
           ind = 0;
           send_buffer[ind++] = COMM_GET_DECODED_PPM;
-          append_int32(send_buffer, (int32_t)(app_ppm_get_decoded_level() * 1000000.0), &ind);
+          append_int32(send_buffer, (int32_t)(app::ppm::get_decoded_level() * 1000000.0), &ind);
           append_int32(send_buffer, (int32_t)(servodec_get_last_pulse_len(0) * 1000000.0), &ind);
           send_packet(send_buffer, ind);
           break;
@@ -812,10 +812,10 @@ namespace commands{
       case COMM_GET_DECODED_ADC:
           ind = 0;
           send_buffer[ind++] = COMM_GET_DECODED_ADC;
-          append_int32(send_buffer, (int32_t)(app_adc_get_decoded_level() * 1000000.0), &ind);
-          append_int32(send_buffer, (int32_t)(app_adc_get_voltage() * 1000000.0), &ind);
-          append_int32(send_buffer, (int32_t)(app_adc_get_decoded_level2() * 1000000.0), &ind);
-          append_int32(send_buffer, (int32_t)(app_adc_get_voltage2() * 1000000.0), &ind);
+          append_int32(send_buffer, (int32_t)(app::adc::get_decoded_level() * 1000000.0), &ind);
+          append_int32(send_buffer, (int32_t)(app::adc::get_voltage() * 1'000'000.0), &ind);
+          append_int32(send_buffer, (int32_t)(app::adc::get_decoded_level2() * 1000000.0), &ind);
+          append_int32(send_buffer, (int32_t)(app::adc::get_voltage2() * 1000000.0), &ind);
           send_packet(send_buffer, ind);
           break;
 

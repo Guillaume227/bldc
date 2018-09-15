@@ -202,7 +202,7 @@ int main(void) {
 	mc_interface::init(&mcconf);
 
 	commands::init();
-	comm_usb_init();
+	comm_usb::init();
 
 #if CAN_ENABLE
 	comm_can_init();
@@ -210,7 +210,7 @@ int main(void) {
 
 	app_configuration appconf;
 	conf_general::read_app_configuration(&appconf);
-	app_set_configuration(&appconf);
+	app::set_configuration(&appconf);
 
 #ifdef HW_HAS_PERMANENT_NRF
 	conf_general_permanent_nrf_found = nrf_driver_init();
