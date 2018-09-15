@@ -458,10 +458,10 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	chThdSleepMilliseconds(1000);
 
 	// Disable timeout
-	systime_t tout = timeout_get_timeout_msec();
-	float tout_c = timeout_get_brake_current();
-	timeout_reset();
-	timeout_configure(60000, 0.0);
+	systime_t tout = timeout::get_timeout_msec();
+	float tout_c = timeout::get_brake_current();
+	timeout::reset();
+	timeout::configure(60000, 0.0);
 
 	mc_interface::lock();
 
@@ -524,7 +524,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	if (!started) {
 		mc_interface::set_current(0.0);
-		timeout_configure(tout, tout_c);
+		timeout::configure(tout, tout_c);
 		mc_interface::set_configuration(&mcconf_old);
 		mc_interface::unlock();
 		return false;
@@ -613,7 +613,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	// Restore settings
 	mc_interface::set_configuration(&mcconf_old);
-	timeout_configure(tout, tout_c);
+	timeout::configure(tout, tout_c);
 
 	mc_interface::unlock();
 
@@ -671,10 +671,10 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	chThdSleepMilliseconds(1000);
 
 	// Disable timeout
-	systime_t tout = timeout_get_timeout_msec();
-	float tout_c = timeout_get_brake_current();
-	timeout_reset();
-	timeout_configure(60000, 0.0);
+	systime_t tout = timeout::get_timeout_msec();
+	float tout_c = timeout::get_brake_current();
+	timeout::reset();
+	timeout::configure(60000, 0.0);
 
 	mc_interface::lock();
 
@@ -746,7 +746,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 
 	if (!started) {
 		mc_interface::set_current(0.0);
-		timeout_configure(tout, tout_c);
+		timeout::configure(tout, tout_c);
 		mc_interface::set_configuration(&mcconf_old);
 		mc_interface::unlock();
 		return false;
@@ -767,7 +767,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		chThdSleepMilliseconds(1.0);
 	}
 
-	timeout_configure(tout, tout_c);
+	timeout::configure(tout, tout_c);
 	mc_interface::set_configuration(&mcconf_old);
 	mc_interface::unlock();
 	mc_interface::set_current(0.0);

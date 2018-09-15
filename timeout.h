@@ -17,19 +17,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef TIMEOUT_H_
-#define TIMEOUT_H_
+#pragma once
 
 #include "ch.h"
 #include "chtypes.h"
 #include "chsystypes.h"
 
-// Functions
-void timeout_init(void);
-void timeout_configure(systime_t timeout, float brake_current);
-void timeout_reset(void);
-bool timeout_has_timeout(void);
-systime_t timeout_get_timeout_msec(void);
-float timeout_get_brake_current(void);
-
-#endif /* TIMEOUT_H_ */
+namespace timeout{
+  // Functions
+  void init(void);
+  void configure(systime_t timeout, float brake_current);
+  void reset(void);
+  bool has_timeout(void);
+  systime_t get_timeout_msec(void);
+  float get_brake_current(void);
+}

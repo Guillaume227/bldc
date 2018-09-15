@@ -217,7 +217,7 @@ static THD_FUNCTION(rx_thread, arg) {
 					cdata.bt_c = mstate.bt_c;
 					cdata.bt_z = mstate.bt_z;
 
-					app_nunchuk_update_output(&cdata);
+					app::nunchuk::update_output(&cdata);
 					break;
 
 				case MOTE_PACKET_FILL_RX_BUFFER:
@@ -254,9 +254,9 @@ static THD_FUNCTION(rx_thread, arg) {
 						// Wait a bit in case retries are still made
 						chThdSleepMilliseconds(2);
 
-						commands_set_send_func(nrf_driver_send_buffer);
+						commands::set_send_func(nrf_driver_send_buffer);
 						from_nrf = true;
-						commands_process_packet(rx_buffer, rxbuf_len);
+						commands::process_packet(rx_buffer, rxbuf_len);
 						from_nrf = false;
 					}
 				}
@@ -266,9 +266,9 @@ static THD_FUNCTION(rx_thread, arg) {
 					// Wait a bit in case retries are still made
 					chThdSleepMilliseconds(2);
 
-					commands_set_send_func(nrf_driver_send_buffer);
+					commands::set_send_func(nrf_driver_send_buffer);
 					from_nrf = true;
-					commands_process_packet(buf + 1, len - 1);
+					commands::process_packet(buf + 1, len - 1);
 					from_nrf = false;
 					break;
 
@@ -291,12 +291,12 @@ static THD_FUNCTION(rx_thread, arg) {
 					from_nrf = true;
 					conf_general_store_app_configuration(&appconf);
 					app_set_configuration(&appconf);
-					commands_send_appconf(COMM_GET_APPCONF, &appconf);
+					commands::send_appconf(COMM_GET_APPCONF, &appconf);
 
 					unsigned char data[2];
 					data[0] = COMM_NRF_START_PAIRING;
 					data[1] = NRF_PAIR_OK;
-					commands_send_packet(data, 2);
+					commands::send_packet(data, 2);
 
 					from_nrf = false;
 				} break;
@@ -323,7 +323,7 @@ static THD_FUNCTION(rx_thread, arg) {
 			unsigned char data[2];
 			data[0] = COMM_NRF_START_PAIRING;
 			data[1] = NRF_PAIR_FAIL;
-			commands_send_packet(data, 2);
+			commands::send_packet(data, 2);
 		}
 
 		chThdSleepMilliseconds(5);

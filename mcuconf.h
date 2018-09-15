@@ -17,8 +17,6 @@
 #ifndef MCUCONF_H
 #define MCUCONF_H
 
-#include "conf_general.h"
-
 /*
  * STM32F4xx drivers configuration.
  * The following settings override the default settings present in
@@ -34,6 +32,7 @@
  */
 
 #define STM32F4xx_MCUCONF
+#define HW_VERSION_ARA
 
 /*
  * HAL driver system settings.

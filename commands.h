@@ -17,22 +17,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef COMMANDS_H_
-#define COMMANDS_H_
+#pragma once
 
 #include "datatypes.h"
 
-// Functions
-void commands_init(void);
-void commands_set_send_func(void(*func)(unsigned char *data, unsigned int len));
-void commands_send_packet(unsigned char *data, unsigned int len);
-void commands_process_packet(unsigned char *data, unsigned int len);
-void commands_printf(const char* format, ...);
-void commands_send_rotor_pos(float rotor_pos);
-void commands_send_experiment_samples(float *samples, int len);
-disp_pos_mode commands_get_disp_pos_mode(void);
-void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int len));
-void commands_send_app_data(unsigned char *data, unsigned int len);
-void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf);
-
-#endif /* COMMANDS_H_ */
+namespace commands{
+  // Functions
+  void init(void);
+  void set_send_func(void(*func)(unsigned char *data, unsigned int len));
+  void send_packet(unsigned char *data, unsigned int len);
+  void process_packet(unsigned char *data, unsigned int len);
+  void printf(const char* format, ...);
+  void send_rotor_pos(float rotor_pos);
+  void send_experiment_samples(float *samples, int len);
+  disp_pos_mode get_disp_pos_mode(void);
+  void set_app_data_handler(void(*func)(unsigned char *data, unsigned int len));
+  void send_app_data(unsigned char *data, unsigned int len);
+  void send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf);
+}

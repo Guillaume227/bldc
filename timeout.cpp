@@ -20,60 +20,62 @@
 #include "timeout.h"
 #include "mc_interface.h"
 
-// Private variables
-static volatile systime_t timeout_msec;
-static volatile systime_t last_update_time;
-static volatile float timeout_brake_current;
-static volatile bool has_timeout;
+namespace timeout{
+  // Private variables
+  volatile systime_t m_timeout_msec;
+  volatile systime_t m_last_update_time;
+  volatile float m_brake_current;
+  volatile bool m_has_timeout;
 
-// Threads
-static THD_WORKING_AREA(timeout_thread_wa, 512);
-static THD_FUNCTION(timeout_thread, arg);
+  // Threads
+  THD_WORKING_AREA(timeout_thread_wa, 512);
+  THD_FUNCTION(timeout_thread, arg);
 
-void timeout_init(void) {
-	timeout_msec = 1000;
-	last_update_time = 0;
-	timeout_brake_current = 0.0;
-	has_timeout = false;
+  void init(void) {
+      m_timeout_msec = 1000;
+      m_last_update_time = 0;
+      m_brake_current = 0.0;
+      m_has_timeout = false;
 
-	chThdCreateStatic(timeout_thread_wa, sizeof(timeout_thread_wa), NORMALPRIO, timeout_thread, NULL);
-}
+      chThdCreateStatic(timeout_thread_wa, sizeof(timeout_thread_wa), NORMALPRIO, timeout_thread, NULL);
+  }
 
-void timeout_configure(systime_t timeout, float brake_current) {
-	timeout_msec = timeout;
-	timeout_brake_current = brake_current;
-}
+  void configure(systime_t timeout, float brake_current) {
+      m_timeout_msec = timeout;
+      m_brake_current = brake_current;
+  }
 
-void timeout_reset(void) {
-	last_update_time = chVTGetSystemTime();
-}
+  void reset(void) {
+      m_last_update_time = chVTGetSystemTime();
+  }
 
-bool timeout_has_timeout(void) {
-	return has_timeout;
-}
+  bool has_timeout(void) {
+      return m_has_timeout;
+  }
 
-systime_t timeout_get_timeout_msec(void) {
-	return timeout_msec;
-}
+  systime_t get_timeout_msec(void) {
+      return m_timeout_msec;
+  }
 
-float timeout_get_brake_current(void) {
-	return timeout_brake_current;
-}
+  float get_brake_current(void) {
+      return m_brake_current;
+  }
 
-static THD_FUNCTION(timeout_thread, arg) {
-	(void)arg;
+  static THD_FUNCTION(timeout_thread, arg) {
+      (void)arg;
 
-	chRegSetThreadName("Timeout");
+      chRegSetThreadName("Timeout");
 
-	for(;;) {
-		if (timeout_msec != 0 && chVTTimeElapsedSinceX(last_update_time) > MS2ST(timeout_msec)) {
-			mc_interface::unlock();
-			mc_interface::set_brake_current(timeout_brake_current);
-			has_timeout = true;
-		} else {
-			has_timeout = false;
-		}
+      for(;;) {
+          if (m_timeout_msec != 0 && chVTTimeElapsedSinceX(m_last_update_time) > MS2ST(m_timeout_msec)) {
+              mc_interface::unlock();
+              mc_interface::set_brake_current(m_brake_current);
+              m_has_timeout = true;
+          } else {
+              m_has_timeout = false;
+          }
 
-		chThdSleepMilliseconds(10);
-	}
+          chThdSleepMilliseconds(10);
+      }
+  }
 }

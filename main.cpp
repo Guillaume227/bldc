@@ -103,22 +103,22 @@ static THD_FUNCTION(periodic_thread, arg) {
 		}
 
 		if (mc_interface::get_state() == MC_STATE_DETECTING) {
-			commands_send_rotor_pos(mcpwm::get_detect_pos());
+			commands::send_rotor_pos(mcpwm::get_detect_pos());
 		}
 
-		disp_pos_mode display_mode = commands_get_disp_pos_mode();
+		auto display_mode = commands::get_disp_pos_mode();
 
 		switch (display_mode) {
 			case DISP_POS_MODE_ENCODER:
-				commands_send_rotor_pos(encoder_read_deg());
+				commands::send_rotor_pos(encoder::read_deg());
 				break;
 
 			case DISP_POS_MODE_PID_POS:
-				commands_send_rotor_pos(mc_interface::get_pid_pos_now());
+				commands::send_rotor_pos(mc_interface::get_pid_pos_now());
 				break;
 
 			case DISP_POS_MODE_PID_POS_ERROR:
-				commands_send_rotor_pos(utils::angle_difference(mc_interface::get_pid_pos_set(), mc_interface::get_pid_pos_now()));
+				commands::send_rotor_pos(utils::angle_difference(mc_interface::get_pid_pos_set(), mc_interface::get_pid_pos_now()));
 				break;
 
 			default:
@@ -128,11 +128,11 @@ static THD_FUNCTION(periodic_thread, arg) {
 		if (mc_interface::get_configuration().motor_type == MOTOR_TYPE_FOC) {
 			switch (display_mode) {
 			case DISP_POS_MODE_OBSERVER:
-				commands_send_rotor_pos(mcpwm_foc_get_phase_observer());
+				commands::send_rotor_pos(mcpwm_foc::get_phase_observer());
 				break;
 
 			case DISP_POS_MODE_ENCODER_OBSERVER_ERROR:
-				commands_send_rotor_pos(utils::angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
+				commands::send_rotor_pos(utils::angle_difference(mcpwm_foc::get_phase_observer(), mcpwm_foc::get_phase_encoder()));
 				break;
 
 			default:
@@ -146,7 +146,7 @@ static THD_FUNCTION(periodic_thread, arg) {
 
 //		chThdSleepMilliseconds(40);
 //		auto const& conf = mc_interface::get_configuration();
-//		float vq = mcpwm_foc_get_vq();
+//		float vq = mcpwm_foc::get_vq();
 //		float iq = mc_interface::get_tot_current_directional();
 //		float linkage = conf->foc_motor_flux_linkage;
 //		float speed = ((2.0 * M_PI) / 60.0) * mc_interface::get_rpm();
@@ -156,11 +156,11 @@ static THD_FUNCTION(periodic_thread, arg) {
 //			res *= 2.0 / 3.0;
 //			static float res_filtered = 0.0;
 //			utils::LP_FAST(res_filtered, res, 0.02);
-//			commands_printf("Res: %.4f", (double)res_filtered);
+//			commands::printf("Res: %.4f", (double)res_filtered);
 //		}
 
 //		chThdSleepMilliseconds(40);
-//		commands_printf("Max: %.2f Min: %.2f",
+//		commands::printf("Max: %.2f Min: %.2f",
 //				(double)mc_interface::get_configuration().lo_current_motor_max_now,
 //				(double)mc_interface::get_configuration().lo_current_motor_min_now);
 	}
@@ -201,7 +201,7 @@ int main(void) {
 	conf_general_read_mc_configuration(&mcconf);
 	mc_interface::init(&mcconf);
 
-	commands_init();
+	commands::init();
 	comm_usb_init();
 
 #if CAN_ENABLE
@@ -228,8 +228,8 @@ int main(void) {
 	}
 #endif
 
-	timeout_init();
-	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
+	timeout::init();
+	timeout::configure(appconf.timeout_msec, appconf.timeout_brake_current);
 
 #if WS2811_ENABLE
 	ws2811_init();
@@ -309,8 +309,8 @@ int main(void) {
 	for(;;) {
 		chThdSleepMilliseconds(10);
 
-		if (encoder_is_configured()) {
-			//		comm_can_set_pos(0, encoder_read_deg());
+		if (encoder::is_configured()) {
+			//		comm_can_set_pos(0, encoder::read_deg());
 		}
 	}
 }

@@ -106,7 +106,7 @@ float app_ppm_get_decoded_level(void) {
 #if !SERVO_OUT_ENABLE
 static void servodec_func(void) {
 	chSysLockFromISR();
-	timeout_reset();
+	timeout::reset();
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
 	chSysUnlockFromISR();
 }
@@ -167,7 +167,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			break;
 		}
 
-		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec() ||
+		if (timeout::has_timeout() || servodec_get_time_since_update() > timeout::get_timeout_msec() ||
 				mc_interface::get_fault() != FAULT_CODE_NONE) {
 			pulses_without_power = 0;
 			continue;
@@ -259,7 +259,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 				pulses_without_power = 0;
 			}
 			pulses_without_power_before = pulses_without_power;
-			mc_interface::set_brake_current(timeout_get_brake_current());
+			mc_interface::set_brake_current(timeout::get_brake_current());
 			continue;
 		}
 

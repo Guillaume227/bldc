@@ -17,18 +17,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef TERMINAL_H_
-#define TERMINAL_H_
+#pragma once
 
 #include "datatypes.h"
 
+namespace terminal {
 // Functions
-void terminal_process_string(char *str);
-void terminal_add_fault_data(fault_data *data);
-void terminal_register_command_callback(
+void process_string(char *str);
+void add_fault_data(fault_data *data);
+void register_command_callback(
 		const char* command,
 		const char *help,
 		const char *arg_names,
 		void(*cbf)(int argc, const char **argv));
-
-#endif /* TERMINAL_H_ */
+}

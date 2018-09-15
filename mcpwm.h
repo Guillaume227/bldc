@@ -62,7 +62,7 @@ void set_comm_mode(mc_comm_mode mode);
 mc_comm_mode get_comm_mode(void);
 float get_last_adc_isr_duration(void);
 float get_last_inj_adc_isr_duration(void);
-mc_rpm_dep_struct get_rpm_dep(void);
+mc_rpm_dep_struct const& get_rpm_dep(void);
 bool is_dccal_done(void);
 void switch_comm_mode(mc_comm_mode next);
 

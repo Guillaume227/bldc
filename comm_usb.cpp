@@ -93,8 +93,8 @@ static THD_FUNCTION(serial_process_thread, arg) {
 }
 
 static void process_packet(unsigned char *data, unsigned int len) {
-	commands_set_send_func(send_packet_wrapper);
-	commands_process_packet(data, len);
+	commands::set_send_func(send_packet_wrapper);
+	commands::process_packet(data, len);
 }
 
 static void send_packet_wrapper(unsigned char *data, unsigned int len) {

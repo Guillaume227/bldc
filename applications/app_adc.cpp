@@ -386,14 +386,14 @@ static THD_FUNCTION(adc_thread, arg) {
 				ms_without_power = 0;
 			}
 			pulses_without_power_before = ms_without_power;
-			mc_interface::set_brake_current(timeout_get_brake_current());
+			mc_interface::set_brake_current(timeout::get_brake_current());
 
 			if (config.multi_esc) {
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 					can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_current_brake(msg->id, timeout_get_brake_current());
+						comm_can_set_current_brake(msg->id, timeout::get_brake_current());
 					}
 				}
 			}
@@ -402,7 +402,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		// Reset timeout
-		timeout_reset();
+		timeout::reset();
 
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;

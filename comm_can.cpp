@@ -104,10 +104,10 @@ void comm_can_init(void) {
 
 void comm_can_set_baud(CAN_BAUD baud) {
 	switch (baud) {
-	case CAN_BAUD_125K:	set_timing(15, 14, 4); break;
-	case CAN_BAUD_250K:	set_timing(7, 14, 4); break;
-	case CAN_BAUD_500K:	set_timing(5, 9, 2); break;
-	case CAN_BAUD_1M:	set_timing(2, 9, 2); break;
+	case CAN_BAUD::CAN_BAUD_125K:	set_timing(15, 14, 4); break;
+	case CAN_BAUD::CAN_BAUD_250K:	set_timing(7, 14, 4); break;
+	case CAN_BAUD::CAN_BAUD_500K:	set_timing(5, 9, 2); break;
+	case CAN_BAUD::CAN_BAUD_1M:	set_timing(2, 9, 2); break;
 	default: break;
 	}
 }
@@ -172,31 +172,31 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 					case CAN_PACKET_SET_DUTY:
 						ind = 0;
 						mc_interface::set_duty(buffer_get_float32(rxmsg.data8, 1e5, &ind));
-						timeout_reset();
+						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT:
 						ind = 0;
 						mc_interface::set_current(buffer_get_float32(rxmsg.data8, 1e3, &ind));
-						timeout_reset();
+						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_BRAKE:
 						ind = 0;
 						mc_interface::set_brake_current(buffer_get_float32(rxmsg.data8, 1e3, &ind));
-						timeout_reset();
+						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_RPM:
 						ind = 0;
 						mc_interface::set_pid_speed(buffer_get_float32(rxmsg.data8, 1e0, &ind));
-						timeout_reset();
+						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_POS:
 						ind = 0;
 						mc_interface::set_pid_pos(buffer_get_float32(rxmsg.data8, 1e6, &ind));
-						timeout_reset();
+						timeout::reset();
 						break;
 
 					case CAN_PACKET_FILL_RX_BUFFER:
@@ -230,10 +230,10 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 										| (unsigned short) crc_low)) {
 
 							if (commands_send) {
-								commands_send_packet(rx_buffer, rxbuf_len);
+								commands::send_packet(rx_buffer, rxbuf_len);
 							} else {
-								commands_set_send_func(send_packet_wrapper);
-								commands_process_packet(rx_buffer, rxbuf_len);
+								commands::set_send_func(send_packet_wrapper);
+								commands::process_packet(rx_buffer, rxbuf_len);
 							}
 						}
 						break;
@@ -244,35 +244,35 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 						commands_send = rxmsg.data8[ind++];
 
 						if (commands_send) {
-							commands_send_packet(rxmsg.data8 + ind, rxmsg.DLC - ind);
+							commands::send_packet(rxmsg.data8 + ind, rxmsg.DLC - ind);
 						} else {
-							commands_set_send_func(send_packet_wrapper);
-							commands_process_packet(rxmsg.data8 + ind, rxmsg.DLC - ind);
+							commands::set_send_func(send_packet_wrapper);
+							commands::process_packet(rxmsg.data8 + ind, rxmsg.DLC - ind);
 						}
 						break;
 
 					case CAN_PACKET_SET_CURRENT_REL:
 						ind = 0;
 						mc_interface::set_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
-						timeout_reset();
+						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_BRAKE_REL:
 						ind = 0;
 						mc_interface::set_brake_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
-						timeout_reset();
+						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_HANDBRAKE:
 						ind = 0;
 						mc_interface::set_handbrake(buffer_get_float32(rxmsg.data8, 1e3, &ind));
-						timeout_reset();
+						timeout::reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_HANDBRAKE_REL:
 						ind = 0;
 						mc_interface::set_handbrake_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
-						timeout_reset();
+						timeout::reset();
 						break;
 
 					default:

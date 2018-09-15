@@ -44,12 +44,15 @@ void app_uartcomm_start(void);
 void app_uartcomm_stop(void);
 void app_uartcomm_configure(uint32_t baudrate);
 
-void app_nunchuk_start(void);
-void app_nunchuk_stop(void);
-void app_nunchuk_configure(chuk_config *conf);
-float app_nunchuk_get_decoded_chuk(void);
-void app_nunchuk_update_output(chuck_data *data);
-
+namespace app{
+  namespace nunchuk{
+    void start(void);
+    void stop(void);
+    void configure(chuk_config *conf);
+    float get_decoded_chuk(void);
+    void update_output(chuck_data *data);
+  }
+}
 // Custom apps
 void app_custom_start(void);
 void app_custom_stop(void);

@@ -1227,7 +1227,7 @@ void run_pid_control_pos(float dt) {
 	}
 
 	// Compute error
-	float error = angle_difference(encoder_read_deg(), m_pos_pid_set_pos);
+	float error = angle_difference(encoder::read_deg(), m_pos_pid_set_pos);
 
 	// Compute parameters
 	p_term = error * m_conf->p_pid_kp;
@@ -2044,7 +2044,7 @@ void adc_int_handler(void *p, uint32_t flags) {
 
 	mc_interface::mc_timer_isr();
 
-	if (encoder_is_configured()) {
+	if (encoder::is_configured()) {
 		run_pid_control_pos(1.0 / m_switching_frequency_now);
 	}
 
@@ -2143,7 +2143,7 @@ float get_last_inj_adc_isr_duration(void) {
 	return last_inj_adc_isr_duration;
 }
 
-mc_rpm_dep_struct get_rpm_dep(void) {
+mc_rpm_dep_struct const& get_rpm_dep(void) {
 	return rpm_dep;
 }
 

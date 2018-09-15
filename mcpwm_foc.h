@@ -23,58 +23,60 @@
 #include "conf_general.h"
 #include "datatypes.h"
 
-// Functions
-void mcpwm_foc_init(mc_configuration *configuration);
-void mcpwm_foc_deinit(void);
-bool mcpwm_foc_init_done(void);
-void mcpwm_foc_set_configuration(mc_configuration *configuration);
-mc_state mcpwm_foc_get_state(void);
-bool mcpwm_foc_is_dccal_done(void);
-void mcpwm_foc_stop_pwm(void);
-void mcpwm_foc_set_duty(float dutyCycle);
-void mcpwm_foc_set_duty_noramp(float dutyCycle);
-void mcpwm_foc_set_pid_speed(float rpm);
-void mcpwm_foc_set_pid_pos(float pos);
-void mcpwm_foc_set_current(float current);
-void mcpwm_foc_set_brake_current(float current);
-void mcpwm_foc_set_handbrake(float current);
-void mcpwm_foc_set_openloop(float current, float rpm);
-float mcpwm_foc_get_duty_cycle_set(void);
-float mcpwm_foc_get_duty_cycle_now(void);
-float mcpwm_foc_get_pid_pos_set(void);
-float mcpwm_foc_get_pid_pos_now(void);
-float mcpwm_foc_get_switching_frequency_now(void);
-float mcpwm_foc_get_sampling_frequency_now(void);
-float mcpwm_foc_get_rpm(void);
-float mcpwm_foc_get_tot_current(void);
-float mcpwm_foc_get_tot_current_filtered(void);
-float mcpwm_foc_get_abs_motor_current(void);
-float mcpwm_foc_get_abs_motor_voltage(void);
-float mcpwm_foc_get_abs_motor_current_filtered(void);
-float mcpwm_foc_get_tot_current_directional(void);
-float mcpwm_foc_get_tot_current_directional_filtered(void);
-float mcpwm_foc_get_id(void);
-float mcpwm_foc_get_iq(void);
-float mcpwm_foc_get_tot_current_in(void);
-float mcpwm_foc_get_tot_current_in_filtered(void);
-int mcpwm_foc_get_tachometer_value(bool reset);
-int mcpwm_foc_get_tachometer_abs_value(bool reset);
-float mcpwm_foc_get_phase(void);
-float mcpwm_foc_get_phase_observer(void);
-float mcpwm_foc_get_phase_encoder(void);
-float mcpwm_foc_get_vd(void);
-float mcpwm_foc_get_vq(void);
-void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted);
-float mcpwm_foc_measure_resistance(float current, int samples);
-float mcpwm_foc_measure_inductance(float duty, int samples, float *curr);
-bool mcpwm_foc_measure_res_ind(float *res, float *ind);
-bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table);
-void mcpwm_foc_print_state(void);
-float mcpwm_foc_get_last_inj_adc_isr_duration(void);
+namespace mcpwm_foc{
+  // Functions
+  void init(mc_configuration *configuration);
+  void deinit(void);
+  bool init_done(void);
+  void set_configuration(mc_configuration *configuration);
+  mc_state get_state(void);
+  bool is_dccal_done(void);
+  void stop_pwm(void);
+  void set_duty(float dutyCycle);
+  void set_duty_noramp(float dutyCycle);
+  void set_pid_speed(float rpm);
+  void set_pid_pos(float pos);
+  void set_current(float current);
+  void set_brake_current(float current);
+  void set_handbrake(float current);
+  void set_openloop(float current, float rpm);
+  float get_duty_cycle_set(void);
+  float get_duty_cycle_now(void);
+  float get_pid_pos_set(void);
+  float get_pid_pos_now(void);
+  float get_switching_frequency_now(void);
+  float get_sampling_frequency_now(void);
+  float get_rpm(void);
+  float get_tot_current(void);
+  float get_tot_current_filtered(void);
+  float get_abs_motor_current(void);
+  float get_abs_motor_voltage(void);
+  float get_abs_motor_current_filtered(void);
+  float get_tot_current_directional(void);
+  float get_tot_current_directional_filtered(void);
+  float get_id(void);
+  float get_iq(void);
+  float get_tot_current_in(void);
+  float get_tot_current_in_filtered(void);
+  int get_tachometer_value(bool reset);
+  int get_tachometer_abs_value(bool reset);
+  float get_phase(void);
+  float get_phase_observer(void);
+  float get_phase_encoder(void);
+  float get_vd(void);
+  float get_vq(void);
+  void encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted);
+  float measure_resistance(float current, int samples);
+  float measure_inductance(float duty, int samples, float *curr);
+  bool measure_res_ind(float *res, float *ind);
+  bool hall_detect(float current, uint8_t *hall_table);
+  void print_state(void);
+  float get_last_inj_adc_isr_duration(void);
 
-// Interrupt handlers
-void mcpwm_foc_tim_sample_int_handler(void);
-void mcpwm_foc_adc_int_handler(void *p, uint32_t flags);
+  // Interrupt handlers
+  void tim_sample_int_handler(void);
+  void adc_int_handler(void *p, uint32_t flags);
+}
 
 // Defines
 #define MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET		10 // Offset for the inductance measurement sample time in timer ticks
