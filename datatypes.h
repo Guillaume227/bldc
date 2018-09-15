@@ -24,43 +24,43 @@
 #include "ch.h"
 
 // Data types
-typedef enum {
+enum mc_state {
    MC_STATE_OFF = 0,
    MC_STATE_DETECTING,
    MC_STATE_RUNNING,
    MC_STATE_FULL_BRAKE,
-} mc_state;
+};
 
-typedef enum {
+enum mc_pwm_mode {
 	PWM_MODE_NONSYNCHRONOUS_HISW = 0, // This mode is not recommended
 	PWM_MODE_SYNCHRONOUS, // The recommended and most tested mode
 	PWM_MODE_BIPOLAR // Some glitches occasionally, can kill MOSFETs
-} mc_pwm_mode;
+};
 
-typedef enum {
-	COMM_MODE_INTEGRATE = 0,
-	COMM_MODE_DELAY
-} mc_comm_mode;
+enum mc_comm_mode {
+	COMM_MODE_INTEGRATE = 0, // More robust, but requires many parameters.
+	COMM_MODE_DELAY          // Like most hobby ESCs. Requires less parameters,
+};
 
-typedef enum {
+enum mc_sensor_mode {
 	SENSOR_MODE_SENSORLESS = 0,
 	SENSOR_MODE_SENSORED,
 	SENSOR_MODE_HYBRID
-} mc_sensor_mode;
+};
 
-typedef enum {
+enum mc_foc_sensor_mode {
 	FOC_SENSOR_MODE_SENSORLESS = 0,
 	FOC_SENSOR_MODE_ENCODER,
 	FOC_SENSOR_MODE_HALL
-} mc_foc_sensor_mode;
+};
 
-typedef enum {
+enum mc_motor_type {
 	MOTOR_TYPE_BLDC = 0,
 	MOTOR_TYPE_DC,
 	MOTOR_TYPE_FOC
-} mc_motor_type;
+};
 
-typedef enum {
+enum mc_fault_code {
 	FAULT_CODE_NONE = 0,
 	FAULT_CODE_OVER_VOLTAGE,
 	FAULT_CODE_UNDER_VOLTAGE,
@@ -68,9 +68,9 @@ typedef enum {
 	FAULT_CODE_ABS_OVER_CURRENT,
 	FAULT_CODE_OVER_TEMP_FET,
 	FAULT_CODE_OVER_TEMP_MOTOR
-} mc_fault_code;
+};
 
-typedef enum {
+enum mc_control_mode {
 	CONTROL_MODE_DUTY = 0,
 	CONTROL_MODE_SPEED,
 	CONTROL_MODE_CURRENT,
@@ -79,9 +79,9 @@ typedef enum {
 	CONTROL_MODE_HANDBRAKE,
 	CONTROL_MODE_OPENLOOP,
 	CONTROL_MODE_NONE
-} mc_control_mode;
+};
 
-typedef enum {
+enum disp_pos_mode {
 	DISP_POS_MODE_NONE = 0,
 	DISP_POS_MODE_INDUCTANCE,
 	DISP_POS_MODE_OBSERVER,
@@ -89,15 +89,15 @@ typedef enum {
 	DISP_POS_MODE_PID_POS,
 	DISP_POS_MODE_PID_POS_ERROR,
 	DISP_POS_MODE_ENCODER_OBSERVER_ERROR
-} disp_pos_mode;
+};
 
-typedef enum {
+enum sensor_port_mode {
 	SENSOR_PORT_MODE_HALL = 0,
 	SENSOR_PORT_MODE_ABI,
 	SENSOR_PORT_MODE_AS5047_SPI
-} sensor_port_mode;
+};
 
-typedef struct {
+struct mc_rpm_dep_struct {
 	float cycle_int_limit;
 	float cycle_int_limit_running;
 	float cycle_int_limit_max;
@@ -105,16 +105,16 @@ typedef struct {
 	float comm_time_sum_min_rpm;
 	int32_t comms;
 	uint32_t time_at_comm; // number of ticks spent at commutation step (6 step only)?
-} mc_rpm_dep_struct;
+};
 
-typedef enum {
+enum drv8301_oc_mode {
 	DRV8301_OC_LIMIT = 0,
 	DRV8301_OC_LATCH_SHUTDOWN,
 	DRV8301_OC_REPORT_ONLY,
 	DRV8301_OC_DISABLED
-} drv8301_oc_mode;
+};
 
-typedef enum {
+enum debug_sampling_mode {
 	DEBUG_SAMPLING_OFF = 0,
 	DEBUG_SAMPLING_NOW,
 	DEBUG_SAMPLING_START,
@@ -123,16 +123,16 @@ typedef enum {
 	DEBUG_SAMPLING_TRIGGER_START_NOSEND,
 	DEBUG_SAMPLING_TRIGGER_FAULT_NOSEND,
 	DEBUG_SAMPLING_SEND_LAST_SAMPLES
-} debug_sampling_mode;
+};
 
-typedef enum {
+enum CAN_BAUD {
 	CAN_BAUD_125K = 0,
 	CAN_BAUD_250K,
 	CAN_BAUD_500K,
 	CAN_BAUD_1M
-} CAN_BAUD;
+};
 
-typedef struct {
+struct mc_configuration {
 	// Switching and drive
 	mc_pwm_mode pwm_mode;
 	mc_comm_mode comm_mode;
@@ -259,10 +259,10 @@ typedef struct {
 	float m_bldc_f_sw_max;
 	float m_dc_f_sw;
 	float m_ntc_motor_beta;
-} mc_configuration;
+};
 
 // Applications to use
-typedef enum {
+enum app_use {
 	APP_NONE = 0,
 	APP_PPM,
 	APP_ADC,
@@ -272,17 +272,17 @@ typedef enum {
 	APP_NUNCHUK,
 	APP_NRF,
 	APP_CUSTOM
-} app_use;
+};
 
 // Throttle curve mode
-typedef enum {
+enum thr_exp_mode {
 	THR_EXP_EXPO = 0,
 	THR_EXP_NATURAL,
 	THR_EXP_POLY
-} thr_exp_mode;
+};
 
 // PPM control types
-typedef enum {
+enum ppm_control_type {
 	PPM_CTRL_TYPE_NONE = 0,
 	PPM_CTRL_TYPE_CURRENT,
 	PPM_CTRL_TYPE_CURRENT_NOREV,
@@ -291,9 +291,9 @@ typedef enum {
 	PPM_CTRL_TYPE_DUTY_NOREV,
 	PPM_CTRL_TYPE_PID,
 	PPM_CTRL_TYPE_PID_NOREV
-} ppm_control_type;
+};
 
-typedef struct {
+struct ppm_config {
 	ppm_control_type ctrl_type;
 	float pid_max_erpm;
 	float hyst;
@@ -310,10 +310,10 @@ typedef struct {
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;
-} ppm_config;
+};
 
 // ADC control types
-typedef enum {
+enum adc_control_type {
 	ADC_CTRL_TYPE_NONE = 0,
 	ADC_CTRL_TYPE_CURRENT,
 	ADC_CTRL_TYPE_CURRENT_REV_CENTER,
@@ -328,9 +328,9 @@ typedef enum {
 	ADC_CTRL_TYPE_PID,
 	ADC_CTRL_TYPE_PID_REV_CENTER,
 	ADC_CTRL_TYPE_PID_REV_BUTTON
-} adc_control_type;
+};
 
-typedef struct {
+struct adc_config {
 	adc_control_type ctrl_type;
 	float hyst;
 	float voltage_start;
@@ -353,16 +353,16 @@ typedef struct {
 	bool tc;
 	float tc_max_diff;
 	uint32_t update_rate_hz;
-} adc_config;
+};
 
 // Nunchuk control types
-typedef enum {
+enum chuk_control_type {
 	CHUK_CTRL_TYPE_NONE = 0,
 	CHUK_CTRL_TYPE_CURRENT,
 	CHUK_CTRL_TYPE_CURRENT_NOREV
-} chuk_control_type;
+};
 
-typedef struct {
+struct chuk_config {
 	chuk_control_type ctrl_type;
 	float hyst;
 	float ramp_time_pos;
@@ -374,36 +374,36 @@ typedef struct {
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;
-} chuk_config;
+};
 
 // NRF Datatypes
-typedef enum {
+enum NRF_SPEED {
 	NRF_SPEED_250K = 0,
 	NRF_SPEED_1M,
 	NRF_SPEED_2M
-} NRF_SPEED;
+};
 
-typedef enum {
+enum NRF_POWER {
 	NRF_POWER_M18DBM = 0,
 	NRF_POWER_M12DBM,
 	NRF_POWER_M6DBM,
 	NRF_POWER_0DBM,
   NRF_POWER_OFF
-} NRF_POWER;
+};
 
-typedef enum {
+enum NRF_AW {
 	NRF_AW_3 = 0,
 	NRF_AW_4,
 	NRF_AW_5
-} NRF_AW;
+};
 
-typedef enum {
+enum NRF_CRC {
 	NRF_CRC_DISABLED = 0,
 	NRF_CRC_1B,
 	NRF_CRC_2B
-} NRF_CRC;
+};
 
-typedef enum {
+enum NRF_RETR_DELAY {
 	NRF_RETR_DELAY_250US = 0,
 	NRF_RETR_DELAY_500US,
 	NRF_RETR_DELAY_750US,
@@ -420,9 +420,9 @@ typedef enum {
 	NRF_RETR_DELAY_3500US,
 	NRF_RETR_DELAY_3750US,
 	NRF_RETR_DELAY_4000US
-} NRF_RETR_DELAY;
+};
 
-typedef struct {
+struct nrf_config {
 	NRF_SPEED speed;
 	NRF_POWER power;
 	NRF_CRC crc_type;
@@ -431,9 +431,9 @@ typedef struct {
 	unsigned char channel;
 	unsigned char address[3];
 	bool send_crc_ack;
-} nrf_config;
+};
 
-typedef struct {
+struct app_configuration {
 	// Settings
 	uint8_t controller_id;
 	uint32_t timeout_msec;
@@ -459,10 +459,10 @@ typedef struct {
 
 	// NRF application settings
 	nrf_config app_nrf_conf;
-} app_configuration;
+};
 
 // Communication commands
-typedef enum {
+enum COMM_PACKET_ID {
 	COMM_FW_VERSION = 0,
 	COMM_JUMP_TO_BOOTLOADER,
 	COMM_ERASE_NEW_APP,
@@ -501,10 +501,10 @@ typedef enum {
 	COMM_SET_CHUCK_DATA,
 	COMM_CUSTOM_APP_DATA,
 	COMM_NRF_START_PAIRING
-} COMM_PACKET_ID;
+};
 
 // CAN commands
-typedef enum {
+enum CAN_PACKET_ID {
 	CAN_PACKET_SET_DUTY = 0,
 	CAN_PACKET_SET_CURRENT,
 	CAN_PACKET_SET_CURRENT_BRAKE,
@@ -519,10 +519,10 @@ typedef enum {
 	CAN_PACKET_SET_CURRENT_BRAKE_REL,
 	CAN_PACKET_SET_CURRENT_HANDBRAKE,
 	CAN_PACKET_SET_CURRENT_HANDBRAKE_REL
-} CAN_PACKET_ID;
+};
 
 // Logged fault data
-typedef struct {
+struct fault_data {
 	mc_fault_code fault;
 	float current;
 	float current_filtered;
@@ -537,10 +537,10 @@ typedef struct {
 	int comm_step;
 	float temperature;
 	int drv8301_faults;
-} fault_data;
+};
 
 // External LED state
-typedef enum {
+enum LED_EXT_STATE {
 	LED_EXT_OFF = 0,
 	LED_EXT_NORMAL,
 	LED_EXT_BRAKE,
@@ -549,9 +549,9 @@ typedef enum {
 	LED_EXT_BRAKE_TURN_LEFT,
 	LED_EXT_BRAKE_TURN_RIGHT,
 	LED_EXT_BATT
-} LED_EXT_STATE;
+};
 
-typedef struct {
+struct chuck_data {
 	int js_x;
 	int js_y;
 	int acc_x;
@@ -559,26 +559,26 @@ typedef struct {
 	int acc_z;
 	bool bt_c;
 	bool bt_z;
-} chuck_data;
+};
 
-typedef struct {
+struct can_status_msg {
 	int id;
 	systime_t rx_time;
 	float rpm;
 	float current;
 	float duty;
-} can_status_msg;
+};
 
-typedef struct {
+struct mote_state {
 	uint8_t js_x;
 	uint8_t js_y;
 	bool bt_c;
 	bool bt_z;
 	bool bt_push;
 	float vbat;
-} mote_state;
+};
 
-typedef enum {
+enum MOTE_PACKET {
 	MOTE_PACKET_BATT_LEVEL = 0,
 	MOTE_PACKET_BUTTONS,
 	MOTE_PACKET_ALIVE,
@@ -587,9 +587,9 @@ typedef enum {
 	MOTE_PACKET_PROCESS_RX_BUFFER,
 	MOTE_PACKET_PROCESS_SHORT_BUFFER,
 	MOTE_PACKET_PAIRING_INFO
-} MOTE_PACKET;
+};
 
-typedef struct {
+struct mc_values {
 	float v_in;
 	float temp_mos1;
 	float temp_mos2;
@@ -609,12 +609,12 @@ typedef struct {
     int tachometer;
     int tachometer_abs;
     mc_fault_code fault_code;
-} mc_values;
+};
 
-typedef enum {
+enum NRF_PAIR_RES {
 	NRF_PAIR_STARTED = 0,
 	NRF_PAIR_OK,
 	NRF_PAIR_FAIL
-} NRF_PAIR_RES;
+};
 
 #endif /* DATATYPES_H_ */
