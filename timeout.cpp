@@ -61,7 +61,7 @@ namespace timeout{
       return m_brake_current;
   }
 
-  static THD_FUNCTION(timeout_thread, arg) {
+  THD_FUNCTION(timeout_thread, arg) {
       (void)arg;
 
       chRegSetThreadName("Timeout");

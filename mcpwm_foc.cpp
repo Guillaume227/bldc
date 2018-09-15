@@ -1947,7 +1947,7 @@ namespace mcpwm_foc{
 
   // Private functions
 
-  static THD_FUNCTION(timer_thread, arg) {
+  THD_FUNCTION(timer_thread, arg) {
       (void)arg;
 
       chRegSetThreadName("mcpwm_foc timer");
@@ -2043,7 +2043,7 @@ namespace mcpwm_foc{
 
   }
 
-  static void do_dc_cal(void) {
+  void do_dc_cal(void) {
       DCCAL_ON();
 
       // Wait max 5 seconds
@@ -2138,7 +2138,7 @@ namespace mcpwm_foc{
       *phase = fast_atan2(*x2 - L_ib, *x1 - L_ia);
   }
 
-  static void pll_run(float phase, float dt, volatile float *phase_var,
+  void pll_run(float phase, float dt, volatile float *phase_var,
           volatile float *speed_var) {
       UTILS_NAN_ZERO(*phase_var);
       float delta_theta = phase - *phase_var;
@@ -2185,7 +2185,7 @@ namespace mcpwm_foc{
    * @param dt
    * The time step in seconds.
    */
-  static void control_current(volatile motor_state_t *state_m, float dt) {
+  void control_current(volatile motor_state_t *state_m, float dt) {
       float c,s;
       fast_sincos_better(state_m->phase, &s, &c);
 
@@ -2262,7 +2262,7 @@ namespace mcpwm_foc{
   }
 
   // Magnitude must not be larger than sqrt(3)/2, or 0.866
-  static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
+  void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
           uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
       uint32_t sector;
 
@@ -2396,7 +2396,7 @@ namespace mcpwm_foc{
       *svm_sector = sector;
   }
 
-  static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
+  void run_pid_control_pos(float angle_now, float angle_set, float dt) {
       static float i_term = 0;
       static float prev_error = 0;
       float p_term;
@@ -2463,7 +2463,7 @@ namespace mcpwm_foc{
       }
   }
 
-  static void run_pid_control_speed(float dt) {
+  void run_pid_control_speed(float dt) {
       static float i_term = 0.0;
       static float prev_error = 0.0;
       float p_term;
@@ -2520,7 +2520,7 @@ namespace mcpwm_foc{
       m_iq_set = output * m_conf->lo_current_max;
   }
 
-  static void stop_pwm_hw(void) {
+  void stop_pwm_hw(void) {
       TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
       TIM_CCxCmd(    TIM1, TIM_Channel_1, TIM_CCx_Enable);
       TIM_CCxNCmd(   TIM1, TIM_Channel_1, TIM_CCxN_Disable);
@@ -2541,7 +2541,7 @@ namespace mcpwm_foc{
       m_output_on = false;
   }
 
-  static void start_pwm_hw(void) {
+  void start_pwm_hw(void) {
       TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_PWM1);
       TIM_CCxCmd(    TIM1, TIM_Channel_1, TIM_CCx_Enable);
       TIM_CCxNCmd(   TIM1, TIM_Channel_1, TIM_CCxN_Enable);
@@ -2563,7 +2563,7 @@ namespace mcpwm_foc{
       m_output_on = true;
   }
 
-  static int read_hall(void) {
+  int read_hall(void) {
       int h1_1 = READ_HALL1();
       int h2_1 = READ_HALL2();
       int h3_1 = READ_HALL3();
@@ -2581,7 +2581,7 @@ namespace mcpwm_foc{
             (middle_of_3_int(h3_1, h3_2, h3_3) << 2);
   }
 
-  static float correct_encoder(float obs_angle, float enc_angle, float speed) {
+  float correct_encoder(float obs_angle, float enc_angle, float speed) {
       float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
       static bool using_encoder = true;
 
@@ -2600,7 +2600,7 @@ namespace mcpwm_foc{
       return using_encoder ? enc_angle : obs_angle;
   }
 
-  static float correct_hall(float angle, float speed, float dt) {
+  float correct_hall(float angle, float speed, float dt) {
       static int ang_hall_int_prev = -1;
       float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
       static bool using_hall = true;
