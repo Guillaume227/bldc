@@ -654,7 +654,7 @@ namespace mcpwm_foc{
           return;
       }
 
-      truncate_number(&current, -m_conf->l_current_max, m_conf->l_current_max);
+      truncate_number_abs(current, m_conf->l_current_max);
 
       m_control_mode = CONTROL_MODE_OPENLOOP;
       m_iq_set = current;
@@ -1669,7 +1669,7 @@ namespace mcpwm_foc{
 
           static float duty_filtered = 0.0;
           UTILS_LP_FAST(duty_filtered, m_motor_state.duty_now, 0.1);
-          truncate_number(&duty_filtered, -1.0, 1.0);
+          truncate_number_abs(duty_filtered, 1.0);
 
           float duty_set = m_duty_cycle_set;
           bool control_duty = m_control_mode == CONTROL_MODE_DUTY;
@@ -1709,11 +1709,11 @@ namespace mcpwm_foc{
                   duty_i_term += error * (m_conf->foc_duty_dowmramp_ki * dt) * scale;
 
                   // I-term wind-up protection
-                  truncate_number(&duty_i_term, -1.0, 1.0);
+                  truncate_number_abs(duty_i_term, 1.0);
 
                   // Calculate output
                   float output = p_term + duty_i_term;
-                  truncate_number(&output, -1.0, 1.0);
+                  truncate_number_abs(output, 1.0);
                   iq_set_tmp = output * m_conf->lo_current_max;
               } else {
                   // If the duty cycle is less than or equal to the set duty cycle just limit
@@ -1805,15 +1805,19 @@ namespace mcpwm_foc{
           // TODO: Consider D axis current for the input current as well.
           const float mod_q = m_motor_state.mod_q;
           if (mod_q > 0.001) {
-              truncate_number(&iq_set_tmp, m_conf->lo_in_current_min / mod_q, m_conf->lo_in_current_max / mod_q);
+              truncate_number(iq_set_tmp, m_conf->lo_in_current_min / mod_q,
+                                          m_conf->lo_in_current_max / mod_q);
           } else if (mod_q < -0.001) {
-              truncate_number(&iq_set_tmp, m_conf->lo_in_current_max / mod_q, m_conf->lo_in_current_min / mod_q);
+              truncate_number(iq_set_tmp, m_conf->lo_in_current_max / mod_q,
+                                          m_conf->lo_in_current_min / mod_q);
           }
 
           if (mod_q > 0.0) {
-              truncate_number(&iq_set_tmp, m_conf->lo_current_min, m_conf->lo_current_max);
+              truncate_number(iq_set_tmp, m_conf->lo_current_min,
+                                          m_conf->lo_current_max);
           } else {
-              truncate_number(&iq_set_tmp, -m_conf->lo_current_max, -m_conf->lo_current_min);
+              truncate_number(iq_set_tmp, -m_conf->lo_current_max,
+                                          -m_conf->lo_current_min);
           }
 
           saturate_vector_2d(&id_set_tmp, &iq_set_tmp,
@@ -1901,7 +1905,7 @@ namespace mcpwm_foc{
       float ph_tmp = m_motor_state.phase;
       norm_angle_rad(&ph_tmp);
       int step = (int)floorf((ph_tmp + M_PI) / (2.0 * M_PI) * 6.0);
-      truncate_number_int(&step, 0, 5);
+      truncate_number(step, 0, 5);
       static int step_last = 0;
       int diff = step - step_last;
       step_last = step;
@@ -1962,7 +1966,7 @@ namespace mcpwm_foc{
                   0.0, m_conf->l_current_max,
                   0.0, m_conf->foc_openloop_rpm);
 
-          truncate_number_abs(&openloop_rpm, m_conf->foc_openloop_rpm);
+          truncate_number_abs(openloop_rpm, m_conf->foc_openloop_rpm);
 
           const float dt = 0.001;
           const float min_rads = (openloop_rpm * 2.0 * M_PI) / 60.0;
@@ -2111,7 +2115,7 @@ namespace mcpwm_foc{
       for (int i = 0;i < iterations;i++) {
           float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
           float gamma_tmp = gamma_half;
-          if (truncate_number_abs(&err, lambda_2 * 0.2)) {
+          if (truncate_number_abs(err, lambda_2 * 0.2)) {
               gamma_tmp *= 10.0;
           }
           float x1_dot = -R_ia + v_alpha + gamma_tmp * (*x1 - L_ia) * err;
@@ -2124,7 +2128,7 @@ namespace mcpwm_foc{
       // Same as above, but without iterations.
   //	float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
   //	float gamma_tmp = gamma_half;
-  //	if (truncate_number_abs(&err, lambda_2 * 0.2)) {
+  //	if (truncate_number_abs(err, lambda_2 * 0.2)) {
   //		gamma_tmp *= 10.0;
   //	}
   //	float x1_dot = -R_ia + v_alpha + gamma_tmp * (*x1 - L_ia) * err;
@@ -2190,7 +2194,7 @@ namespace mcpwm_foc{
       fast_sincos_better(state_m->phase, &s, &c);
 
       float max_duty = fabsf(state_m->max_duty);
-      truncate_number(&max_duty, 0.0, m_conf->l_max_duty);
+      truncate_number(max_duty, 0.0, m_conf->l_max_duty);
 
       state_m->id = c * state_m->i_alpha + s * state_m->i_beta;
       state_m->iq = c * state_m->i_beta  - s * state_m->i_alpha;
@@ -2223,8 +2227,8 @@ namespace mcpwm_foc{
       // Windup protection
   //	saturate_vector_2d((float*)&state_m->vd_int, (float*)&state_m->vq_int,
   //			(2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
-      truncate_number_abs((float*)&state_m->vd_int, (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
-      truncate_number_abs((float*)&state_m->vq_int, (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
+      truncate_number_abs((float&)state_m->vd_int, (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
+      truncate_number_abs((float&)state_m->vq_int, (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
 
       // TODO: Have a look at this?
       state_m->i_bus = state_m->mod_d * state_m->id + state_m->mod_q * state_m->iq;
@@ -2441,15 +2445,15 @@ namespace mcpwm_foc{
 
 
       // I-term wind-up protection
-      truncate_number_abs(&p_term, 1.0);
-      truncate_number_abs(&i_term, 1.0 - fabsf(p_term));
+      truncate_number_abs(p_term, 1.0);
+      truncate_number_abs(i_term, 1.0 - fabsf(p_term));
 
       // Store previous error
       prev_error = error;
 
       // Calculate output
       float output = p_term + i_term + d_term;
-      truncate_number(&output, -1.0, 1.0);
+      truncate_number_abs(output, 1.0);
 
       if (encoder::is_configured()) {
           if (encoder::index_found()) {
@@ -2497,14 +2501,14 @@ namespace mcpwm_foc{
       d_term = d_filter;
 
       // I-term wind-up protection
-      truncate_number(&i_term, -1.0, 1.0);
+      truncate_number_abs(i_term, 1.0);
 
       // Store previous error
       prev_error = error;
 
       // Calculate output
       float output = p_term + i_term + d_term;
-      truncate_number(&output, -1.0, 1.0);
+      truncate_number_abs(output, 1.0);
 
       // Optionally disable braking
       if (!m_conf->s_pid_allow_braking) {

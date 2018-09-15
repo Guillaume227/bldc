@@ -170,7 +170,7 @@ namespace app {
             }
 
             // Truncate the read voltage
-            utils::truncate_number(&pwr, 0.0, 1.0);
+            utils::truncate_number(pwr, 0.0, 1.0);
 
             // Optionally invert the read voltage
             if (config.voltage_inverted) {
@@ -209,7 +209,7 @@ namespace app {
 
             // Map and truncate the read voltage
             brake = utils::map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
-            utils::truncate_number(&brake, 0.0, 1.0);
+            utils::truncate_number(brake, 0.0, 1.0);
 
             // Optionally invert the read voltage
             if (config.voltage2_inverted) {

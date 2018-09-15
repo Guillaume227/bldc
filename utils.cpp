@@ -83,46 +83,36 @@ namespace utils{
       }
   }
 
-  int truncate_number(float *number, float min, float max) {
-      int did_trunc = 0;
-
-      if (*number > max) {
-          *number = max;
-          did_trunc = 1;
-      } else if (*number < min) {
-          *number = min;
-          did_trunc = 1;
+  template<typename T>
+  constexpr bool _truncate_number(T &number, T const min, T const max) {
+      if (number > max) {
+          number = max;
+          return true;
+      } else if (number < min) {
+          number = min;
+          return true;
       }
-
-      return did_trunc;
+      return false;
   }
 
-  int truncate_number_int(int *number, int min, int max) {
-      int did_trunc = 0;
-
-      if (*number > max) {
-          *number = max;
-          did_trunc = 1;
-      } else if (*number < min) {
-          *number = min;
-          did_trunc = 1;
-      }
-
-      return did_trunc;
+  bool truncate_number(float &number, float min, float max){
+    return _truncate_number(number, min, max);
+  }
+  bool truncate_number(int &number, int min, int max){
+    return _truncate_number(number, min, max);
   }
 
-  int truncate_number_abs(float *number, float max) {
-      int did_trunc = 0;
+  bool truncate_number_abs(float &number, float const max) {
 
-      if (*number > max) {
-          *number = max;
-          did_trunc = 1;
-      } else if (*number < -max) {
-          *number = -max;
-          did_trunc = 1;
+      if (number > max) {
+          number = max;
+          return true;
+      } else if (number < -max) {
+          number = -max;
+          return true;
       }
 
-      return did_trunc;
+      return false;
   }
 
   float map(float x, float in_min, float in_max, float out_min, float out_max) {

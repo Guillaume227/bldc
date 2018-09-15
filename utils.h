@@ -25,9 +25,9 @@ namespace utils{
   float calc_ratio(float low, float high, float val);
   void norm_angle(float *angle);
   void norm_angle_rad(float *angle);
-  int truncate_number(float *number, float min, float max);
-  int truncate_number_int(int *number, int min, int max);
-  int truncate_number_abs(float *number, float max);
+  bool truncate_number(float &number, float min, float max);
+  bool truncate_number(int &number, int min, int max);
+  bool truncate_number_abs(float& number, float max);
   float map(float x, float in_min, float in_max, float out_min, float out_max);
   int map_int(int x, int in_min, int in_max, int out_min, int out_max);
   void deadband(float *value, float tres, float max);

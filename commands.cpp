@@ -368,33 +368,33 @@ namespace commands{
           // Apply limits if they are defined
   #ifndef DISABLE_HW_LIMITS
   #ifdef HW_LIM_CURRENT
-          truncate_number(&mcconf.l_current_max, HW_LIM_CURRENT);
-          truncate_number(&mcconf.l_current_min, HW_LIM_CURRENT);
+          truncate_number(mcconf.l_current_max, HW_LIM_CURRENT);
+          truncate_number(mcconf.l_current_min, HW_LIM_CURRENT);
   #endif
   #ifdef HW_LIM_CURRENT_IN
-          truncate_number(&mcconf.l_in_current_max, HW_LIM_CURRENT_IN);
-          truncate_number(&mcconf.l_in_current_min, HW_LIM_CURRENT);
+          truncate_number(mcconf.l_in_current_max, HW_LIM_CURRENT_IN);
+          truncate_number(mcconf.l_in_current_min, HW_LIM_CURRENT);
   #endif
   #ifdef HW_LIM_CURRENT_ABS
-          truncate_number(&mcconf.l_abs_current_max, HW_LIM_CURRENT_ABS);
+          truncate_number(mcconf.l_abs_current_max, HW_LIM_CURRENT_ABS);
   #endif
   #ifdef HW_LIM_VIN
-          truncate_number(&mcconf.l_max_vin, HW_LIM_VIN);
-          truncate_number(&mcconf.l_min_vin, HW_LIM_VIN);
+          truncate_number(mcconf.l_max_vin, HW_LIM_VIN);
+          truncate_number(mcconf.l_min_vin, HW_LIM_VIN);
   #endif
   #ifdef HW_LIM_ERPM
-          truncate_number(&mcconf.l_max_erpm, HW_LIM_ERPM);
-          truncate_number(&mcconf.l_min_erpm, HW_LIM_ERPM);
+          truncate_number(mcconf.l_max_erpm, HW_LIM_ERPM);
+          truncate_number(mcconf.l_min_erpm, HW_LIM_ERPM);
   #endif
   #ifdef HW_LIM_DUTY_MIN
-          truncate_number(&mcconf.l_min_duty, HW_LIM_DUTY_MIN);
+          truncate_number(mcconf.l_min_duty, HW_LIM_DUTY_MIN);
   #endif
   #ifdef HW_LIM_DUTY_MAX
-          truncate_number(&mcconf.l_max_duty, HW_LIM_DUTY_MAX);
+          truncate_number(mcconf.l_max_duty, HW_LIM_DUTY_MAX);
   #endif
   #ifdef HW_LIM_TEMP_FET
-          truncate_number(&mcconf.l_temp_fet_start, HW_LIM_TEMP_FET);
-          truncate_number(&mcconf.l_temp_fet_end, HW_LIM_TEMP_FET);
+          truncate_number(mcconf.l_temp_fet_start, HW_LIM_TEMP_FET);
+          truncate_number(mcconf.l_temp_fet_end, HW_LIM_TEMP_FET);
   #endif
   #endif
 

@@ -659,7 +659,7 @@ void set_current(float current) {
 		return;
 	}
 
-	truncate_number(&current, -m_conf->l_current_max, m_conf->l_current_max);
+	truncate_number_abs(current, m_conf->l_current_max);
 
 	m_control_mode = CONTROL_MODE_CURRENT;
 	m_current_set = current;
@@ -683,7 +683,7 @@ void set_brake_current(float current) {
 		return;
 	}
 
-	truncate_number(&current, -fabsf(m_conf->l_current_min), fabsf(m_conf->l_current_min));
+	truncate_number_abs(current, fabsf(m_conf->l_current_min));
 
 	m_control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	m_current_set = current;
@@ -955,7 +955,7 @@ void full_brake_hw(void) {
  * the motor phases will be shorted to brake the motor.
  */
 void set_duty_cycle_hl(float dutyCycle) {
-	truncate_number(&dutyCycle, -m_conf->l_max_duty, m_conf->l_max_duty);
+	truncate_number_abs(dutyCycle, m_conf->l_max_duty);
 
 	if (m_state == MC_STATE_DETECTING) {
 		stop_pwm_ll();
@@ -1085,7 +1085,7 @@ void set_duty_cycle_hw(float dutyCycle) {
 	timer_tmp = m_timer_struct;
 	sys_unlock_cnt();
 
-	truncate_number(&dutyCycle, m_conf->l_min_duty, m_conf->l_max_duty);
+	truncate_number(dutyCycle, m_conf->l_min_duty, m_conf->l_max_duty);
 
     if (is_detecting() || m_conf->pwm_mode == PWM_MODE_BIPOLAR) {
         m_switching_frequency_now = m_conf->m_bldc_f_sw_max;
@@ -1147,14 +1147,14 @@ void run_pid_control_speed(void) {
 	d_term = d_filter;
 
 	// I-term wind-up protection
-	truncate_number(&i_term, -1.0, 1.0);
+	truncate_number_abs(i_term, 1.0);
 
 	// Store previous error
 	prev_error = error;
 
 	// Calculate output
 	float output = p_term + i_term + d_term;
-	truncate_number(&output, -1.0, 1.0);
+	truncate_number_abs(output, 1.0);
 
 	// Optionally disable braking
 	if (!m_conf->s_pid_allow_braking) {
@@ -1187,7 +1187,7 @@ void run_pid_control_speed(void) {
 	d_term = d_filter;
 
 	// I-term wind-up protection
-	truncate_number(&i_term, -1.0, 1.0);
+	truncate_number_abs(i_term, 1.0);
 
 	// Store previous error
 	prev_error = error;
@@ -1240,14 +1240,14 @@ void run_pid_control_pos(float dt) {
 	d_term = d_filter;
 
 	// I-term wind-up protection
-	truncate_number(&i_term, -1.0, 1.0);
+	truncate_number_abs(i_term, 1.0);
 
 	// Store previous error
 	prev_error = error;
 
 	// Calculate output
 	float output = p_term + i_term + d_term;
-	truncate_number(&output, -1.0, 1.0);
+	truncate_number_abs(output, 1.0);
 
 	m_current_set = output * m_conf->lo_current_max;
 }
@@ -1339,7 +1339,9 @@ THD_FUNCTION(timer_thread, arg) {
 			// Track the motor back-emf and follow it with dutycycle_now. Also track
 			// the direction of the motor.
 			amp = filter_run_fir_iteration((float*)m_amp_fir_samples,
-					(float*)m_amp_fir_coeffs, AMP_FIR_TAPS_BITS, m_amp_fir_index);
+										   (float*)m_amp_fir_coeffs,
+										   AMP_FIR_TAPS_BITS,
+										   m_amp_fir_index);
 
 			// Direction tracking
             if (m_sensorless_now) {
@@ -1396,7 +1398,7 @@ THD_FUNCTION(timer_thread, arg) {
 			} else {
 				m_dutycycle_now = -amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
 			}
-			truncate_number((float*)&m_dutycycle_now, -m_conf->l_max_duty, m_conf->l_max_duty);
+			truncate_number_abs((float&)m_dutycycle_now, m_conf->l_max_duty);
 		} else { //state != MC_STATE_OFF
 			m_tachometer_for_direction = 0;
 		}
@@ -1406,14 +1408,14 @@ THD_FUNCTION(timer_thread, arg) {
 		cnt_tmp++;
 		if (cnt_tmp >= 10) {
 			cnt_tmp = 0;
-			if (m_state == MC_STATE_RUNNING) {
-				filter_add_sample((float*)m_kv_fir_samples, get_kv(),
-						KV_FIR_TAPS_BITS, (uint32_t*)&m_kv_fir_index);
-			} else if (m_state == MC_STATE_OFF) {
-				if (m_dutycycle_now >= m_conf->l_min_duty) {
-					filter_add_sample((float*)m_kv_fir_samples, get_kv(),
-							KV_FIR_TAPS_BITS, (uint32_t*)&m_kv_fir_index);
-				}
+			if (m_state == MC_STATE_RUNNING ||
+			   (m_state == MC_STATE_OFF && m_dutycycle_now >= m_conf->l_min_duty))
+			{
+				filter_add_sample((float*)m_kv_fir_samples,
+				                  get_kv(),
+                                  KV_FIR_TAPS_BITS,
+                                  (uint32_t*)&m_kv_fir_index);
+
 			}
 		}
 
@@ -1548,14 +1550,14 @@ void adc_inj_int_handler(void) {
 
 	curr0_currsamp -= m_curr0_offset;
 	curr1_currsamp -= m_curr1_offset;
-	curr0 -= m_curr0_offset;
-	curr1 -= m_curr1_offset;
-	curr0_2 -= m_curr0_offset;
-	curr1_2 -= m_curr1_offset;
+	curr0          -= m_curr0_offset;
+	curr1          -= m_curr1_offset;
+	curr0_2        -= m_curr0_offset;
+	curr1_2        -= m_curr1_offset;
 
 #ifdef HW_HAS_3_SHUNTS
 	curr2_currsamp -= m_curr2_offset;
-	curr2 -= m_curr2_offset;
+	curr2          -= m_curr2_offset;
 #endif
 
 #if CURR1_DOUBLE_SAMPLE || CURR2_DOUBLE_SAMPLE
@@ -1877,6 +1879,7 @@ void adc_int_handler(void *p, uint32_t flags) {
 
         m_pwm_cycles_sum += m_conf->m_bldc_f_sw_max / m_switching_frequency_now;
         m_pwm_cycles++;
+
     } else { // !sensorless_now
         const int hall_phase = read_hall_phase();
         if (m_comm_step != hall_phase) {
@@ -1925,7 +1928,7 @@ void adc_int_handler(void *p, uint32_t flags) {
 			const float start_boost = m_conf->cc_startup_boost_duty * voltage_scale;
 
 			// Do not ramp too much
-			truncate_number(&step, -m_conf->cc_ramp_step_max, m_conf->cc_ramp_step_max);
+			truncate_number_abs(step, m_conf->cc_ramp_step_max);
 
 			// Switching frequency correction
 			step /= m_switching_frequency_now / 1000.0;
@@ -1946,7 +1949,7 @@ void adc_int_handler(void *p, uint32_t flags) {
 			}
 
 			// Upper truncation
-			truncate_number((float*)&dutycycle_now_tmp, -m_conf->l_max_duty, m_conf->l_max_duty);
+			truncate_number_abs((float&)dutycycle_now_tmp, m_conf->l_max_duty);
 
 			// Lower truncation
 			if (fabsf(dutycycle_now_tmp) < m_conf->l_min_duty) {
@@ -1960,13 +1963,14 @@ void adc_int_handler(void *p, uint32_t flags) {
 			// The set dutycycle should be in the correct direction in case the output is lower
 			// than the minimum duty cycle and the mechanism below gets activated.
 			m_dutycycle_set = dutycycle_now_tmp >= 0.0 ? m_conf->l_min_duty : -m_conf->l_min_duty;
+
 		} else if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Compute error
 			const float error = -fabsf(m_current_set) - current_nofilter;
 			float step = error * m_conf->cc_gain * voltage_scale;
 
 			// Do not ramp too much
-			truncate_number(&step, -m_conf->cc_ramp_step_max, m_conf->cc_ramp_step_max);
+			truncate_number_abs(step, m_conf->cc_ramp_step_max);
 
 			// Switching frequency correction
 			step /= m_switching_frequency_now / 1000.0;
@@ -1979,7 +1983,7 @@ void adc_int_handler(void *p, uint32_t flags) {
 			dutycycle_now_tmp += SIGN(dutycycle_now_tmp) * step;
 
 			// Upper truncation
-			truncate_number((float*)&dutycycle_now_tmp, -m_conf->l_max_duty, m_conf->l_max_duty);
+			truncate_number_abs((float&)dutycycle_now_tmp, m_conf->l_max_duty);
 
 			// Lower truncation
 			if (fabsf(dutycycle_now_tmp) < m_conf->l_min_duty) {
