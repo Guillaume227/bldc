@@ -113,10 +113,10 @@ namespace mcpwm_foc{
   volatile bool m_init_done;
   volatile float m_gamma_now;
 
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
   volatile int m_curr2_sum;
   volatile int m_curr2_offset;
-  #endif
+#endif
 
   // Private functions
   void do_dc_cal(void);
@@ -143,21 +143,21 @@ namespace mcpwm_foc{
   volatile bool m_timer_thd_stop;
 
   // Macros
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
   #define TIMER_UPDATE_DUTY(duty1, duty2, duty3) \
           TIM1->CR1 |= TIM_CR1_UDIS; \
           TIM1->CCR1 = duty1; \
           TIM1->CCR2 = duty2; \
           TIM1->CCR3 = duty3; \
           TIM1->CR1 &= ~TIM_CR1_UDIS;
-  #else
+#else
   #define TIMER_UPDATE_DUTY(duty1, duty2, duty3) \
           TIM1->CR1 |= TIM_CR1_UDIS; \
           TIM1->CCR1 = duty1; \
           TIM1->CCR2 = duty3; \
           TIM1->CCR3 = duty2; \
           TIM1->CR1 &= ~TIM_CR1_UDIS;
-  #endif
+#endif
 
   #define TIMER_UPDATE_SAMP(samp) \
           TIM8->CCR1 = samp;
@@ -170,7 +170,7 @@ namespace mcpwm_foc{
           TIM1->CR1 &= ~TIM_CR1_UDIS; \
           TIM8->CR1 &= ~TIM_CR1_UDIS;
 
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
   #define TIMER_UPDATE_DUTY_SAMP(duty1, duty2, duty3, samp) \
           TIM1->CR1 |= TIM_CR1_UDIS; \
           TIM8->CR1 |= TIM_CR1_UDIS; \
@@ -180,7 +180,7 @@ namespace mcpwm_foc{
           TIM8->CCR1 = samp; \
           TIM1->CR1 &= ~TIM_CR1_UDIS; \
           TIM8->CR1 &= ~TIM_CR1_UDIS;
-  #else
+#else
   #define TIMER_UPDATE_DUTY_SAMP(duty1, duty2, duty3, samp) \
           TIM1->CR1 |= TIM_CR1_UDIS; \
           TIM8->CR1 |= TIM_CR1_UDIS; \
@@ -190,7 +190,7 @@ namespace mcpwm_foc{
           TIM8->CCR1 = samp; \
           TIM1->CR1 &= ~TIM_CR1_UDIS; \
           TIM8->CR1 &= ~TIM_CR1_UDIS;
-  #endif
+#endif
 
   void init(mc_configuration *configuration) {
       sys_lock_cnt();
@@ -944,7 +944,7 @@ namespace mcpwm_foc{
    * The detected direction.
    */
   void encoder_detect(float current, bool print, float &offset, float &ratio, bool &inverted) {
-      mc_interface::lock();
+      mc_interface::Lock interfaceLock;
 
       m_phase_override = true;
       m_id_set = current;
@@ -952,11 +952,7 @@ namespace mcpwm_foc{
       m_control_mode = CONTROL_MODE_CURRENT;
       m_state = MC_STATE_RUNNING;
 
-      // Disable timeout
-      systime_t tout = timeout::get_timeout_msec();
-      float tout_c = timeout::get_brake_current();
-      timeout::reset();
-      timeout::configure(600000, 0.0);
+      timeout::Disabler disabledTimeout;
 
       // Save configuration
       float offset_old = m_conf->foc_encoder_offset;
@@ -1138,11 +1134,6 @@ namespace mcpwm_foc{
       m_conf->foc_encoder_inverted = inverted_old;
       m_conf->foc_encoder_offset = offset_old;
       m_conf->foc_encoder_ratio = ratio_old;
-
-      // Enable timeout
-      timeout::configure(tout, tout_c);
-
-      mc_interface::unlock();
   }
 
   /**
@@ -1159,7 +1150,8 @@ namespace mcpwm_foc{
    * The calculated motor resistance.
    */
   float measure_resistance(float current, int samples) {
-      mc_interface::lock();
+
+      mc_interface::Lock interfaceLock;
 
       m_phase_override = true;
       m_phase_now_override = 0.0;
@@ -1168,11 +1160,7 @@ namespace mcpwm_foc{
       m_control_mode = CONTROL_MODE_CURRENT;
       m_state = MC_STATE_RUNNING;
 
-      // Disable timeout
-      systime_t tout = timeout::get_timeout_msec();
-      float tout_c = timeout::get_brake_current();
-      timeout::reset();
-      timeout::configure(60000, 0.0);
+      timeout::Disabler disabledTimeout;
 
       // Wait for the current to rise and the motor to lock.
       chThdSleepMilliseconds(500);
@@ -1203,11 +1191,6 @@ namespace mcpwm_foc{
       m_state = MC_STATE_OFF;
       stop_pwm_hw();
 
-      // Enable timeout
-      timeout::configure(tout, tout_c);
-
-      mc_interface::unlock();
-
       return (voltage_avg / current_avg) * (2.0 / 3.0);
   }
 
@@ -1232,40 +1215,33 @@ namespace mcpwm_foc{
       m_samples.sample_num = 0;
       m_samples.measure_inductance_duty = duty;
 
-      // Disable timeout
-      systime_t tout = timeout::get_timeout_msec();
-      float tout_c = timeout::get_brake_current();
-      timeout::reset();
-      timeout::configure(60000, 0.0);
+      {
+        timeout::Disabler disabledTimeout;
+        mc_interface::Lock interfaceLock;
 
-      mc_interface::lock();
+        int to_cnt = 0;
+        for (int i = 0;i < samples;i++) {
+            m_samples.measure_inductance_now = true;
 
-      int to_cnt = 0;
-      for (int i = 0;i < samples;i++) {
-          m_samples.measure_inductance_now = true;
+            do {
+                chThdSleepMicroseconds(100);
+                to_cnt++;
+                if (to_cnt > 50000) {
+                    break;
+                }
+            } while (m_samples.measure_inductance_now);
 
-          do {
-              chThdSleepMicroseconds(100);
-              to_cnt++;
-              if (to_cnt > 50000) {
-                  break;
-              }
-          } while (m_samples.measure_inductance_now);
+            if (to_cnt > 50000) {
+                break;
+            }
+        }
 
-          if (to_cnt > 50000) {
-              break;
-          }
       }
-
-      // Enable timeout
-      timeout::configure(tout, tout_c);
-
-      mc_interface::unlock();
 
       float avg_current = m_samples.avg_current_tot / (float)m_samples.sample_num;
       float avg_voltage = m_samples.avg_voltage_tot / (float)m_samples.sample_num;
       float t = (float)TIM1->ARR * m_samples.measure_inductance_duty / (float)SYSTEM_CORE_CLOCK -
-              (float)(MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET + MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP) / (float)SYSTEM_CORE_CLOCK;
+                (float)(MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET + MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP) / (float)SYSTEM_CORE_CLOCK;
 
       if (curr) {
           *curr = avg_current;
@@ -1356,7 +1332,7 @@ namespace mcpwm_foc{
    * false: Something went wrong
    */
   bool hall_detect(float current, uint8_t *hall_table) {
-      mc_interface::lock();
+      mc_interface::Lock interfaceLock;
 
       m_phase_override = true;
       m_id_set = current;
@@ -1364,11 +1340,7 @@ namespace mcpwm_foc{
       m_control_mode = CONTROL_MODE_CURRENT;
       m_state = MC_STATE_RUNNING;
 
-      // Disable timeout
-      systime_t tout = timeout::get_timeout_msec();
-      float tout_c = timeout::get_brake_current();
-      timeout::reset();
-      timeout::configure(60000, 0.0);
+      timeout::Disabler disabledTimeout;
 
       // Lock the motor
       m_phase_now_override = 0;
@@ -1418,9 +1390,6 @@ namespace mcpwm_foc{
       m_state = MC_STATE_OFF;
       stop_pwm_hw();
 
-      // Enable timeout
-      timeout::configure(tout, tout_c);
-
       int fails = 0;
       for(int i = 0;i < 8;i++) {
           if (hall_iterations[i] > 30) {
@@ -1432,8 +1401,6 @@ namespace mcpwm_foc{
               fails++;
           }
       }
-
-      mc_interface::unlock();
 
       return fails == 2;
   }

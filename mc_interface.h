@@ -23,6 +23,7 @@
 #include "hw.h"
 
 namespace mc_interface{
+
   // Functions
   void init(mc_configuration const*configuration);
   mc_configuration const& get_configuration(void);
@@ -31,6 +32,14 @@ namespace mc_interface{
   void lock(void);
   void unlock(void);
   void lock_override_once(void);
+
+  class Lock{
+  public:
+    Lock(){ lock(); }
+
+    ~Lock(){ unlock(); }
+  };
+
   mc_fault_code get_fault(void);
   const char* fault_to_string(mc_fault_code fault);
   mc_state get_state(void);

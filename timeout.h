@@ -24,6 +24,7 @@
 #include "chsystypes.h"
 
 namespace timeout{
+
   // Functions
   void init(void);
   void configure(systime_t timeout, float brake_current);
@@ -31,4 +32,24 @@ namespace timeout{
   bool has_timeout(void);
   systime_t get_timeout_msec(void);
   float get_brake_current(void);
+
+  class Disabler {
+    systime_t const m_timeout_msec;
+    float const m_brake_current;
+
+  public:
+    Disabler():
+      m_timeout_msec(get_timeout_msec()),
+      m_brake_current(get_brake_current())
+    {
+      // disable timeout
+      reset();
+      configure(60'000, 0.0);
+    }
+
+    ~Disabler(){
+      // enable timeout
+      configure(m_timeout_msec, m_brake_current);
+    }
+  };
 }
