@@ -66,8 +66,8 @@ namespace mcpwm_foc{
   float get_vd(void);
   float get_vq(void);
   void encoder_detect(float current, bool print, float &offset, float &ratio, bool &inverted);
-  float measure_resistance(float current, int samples);
-  float measure_inductance(float duty, int samples, float *curr);
+  float measure_resistance(float current, size_t samples);
+  float measure_inductance(float duty, size_t samples, float *curr);
   bool measure_res_ind(float &res, float &ind);
   bool hall_detect(float current, uint8_t *hall_table);
   void print_state(void);

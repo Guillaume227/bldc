@@ -69,11 +69,18 @@ namespace mcpwm_foc{
   };
 
   struct mc_sample_t{
-      int sample_num;
-      float avg_current_tot;
-      float avg_voltage_tot;
-      bool measure_inductance_now;
-      float measure_inductance_duty;
+      volatile size_t sample_num;
+      volatile float avg_current_tot;
+      volatile float avg_voltage_tot;
+      volatile bool measure_inductance_now;
+      volatile float measure_inductance_duty;
+
+      float get_avg_current() const {
+        return avg_current_tot / sample_num;
+      }
+      float get_avg_voltage() const {
+        return avg_voltage_tot / sample_num;
+      }
   };
 
   // Private variables
@@ -105,7 +112,7 @@ namespace mcpwm_foc{
   volatile float m_observer_x2;
   volatile float m_pll_phase;
   volatile float m_pll_speed;
-  volatile mc_sample_t m_samples;
+  mc_sample_t m_samples;
   volatile int m_tachometer;
   volatile int m_tachometer_abs;
   volatile float last_inj_adc_isr_duration;
@@ -1160,7 +1167,7 @@ namespace mcpwm_foc{
    * @return
    * The calculated motor resistance.
    */
-  float measure_resistance(float current, int samples) {
+  float measure_resistance(float current, size_t samples) {
 
       PhaseOverride lockedCurrentContext(0.0, current);
 
@@ -1179,8 +1186,8 @@ namespace mcpwm_foc{
           chThdSleepMilliseconds(1);
       }
 
-      const float current_avg = m_samples.avg_current_tot / (float)m_samples.sample_num;
-      const float voltage_avg = m_samples.avg_voltage_tot / (float)m_samples.sample_num;
+      const float current_avg = m_samples.get_avg_current();
+      const float voltage_avg = m_samples.get_avg_voltage();
 
       return (voltage_avg / current_avg) * (2.0 / 3.0);
   }
@@ -1200,7 +1207,7 @@ namespace mcpwm_foc{
    * @return
    * The average d and q axis inductance in microhenry.
    */
-  float measure_inductance(float const duty, int const samples, float * const curr) {
+  float measure_inductance(float const duty, size_t const samples, float * const curr) {
       m_samples.avg_current_tot = 0.0;
       m_samples.avg_voltage_tot = 0.0;
       m_samples.sample_num = 0;
@@ -1211,7 +1218,7 @@ namespace mcpwm_foc{
         mc_interface::Lock interfaceLock;
 
         int to_cnt = 0;
-        for (int i = 0;i < samples;i++) {
+        for (size_t i = 0; i < samples; i++) {
             m_samples.measure_inductance_now = true;
 
             do {
@@ -1229,8 +1236,8 @@ namespace mcpwm_foc{
 
       }
 
-      float avg_current = m_samples.avg_current_tot / (float)m_samples.sample_num;
-      float avg_voltage = m_samples.avg_voltage_tot / (float)m_samples.sample_num;
+      float avg_current = m_samples.get_avg_current();
+      float avg_voltage = m_samples.get_avg_voltage();
       float t = (float)TIM1->ARR * m_samples.measure_inductance_duty / (float)SYSTEM_CORE_CLOCK -
                 (float)(MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET + MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP) / (float)SYSTEM_CORE_CLOCK;
 
