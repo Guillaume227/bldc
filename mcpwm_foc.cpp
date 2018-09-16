@@ -121,12 +121,14 @@ namespace mcpwm_foc{
   // Private functions
   void do_dc_cal(void);
   void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-          float dt, volatile float *x1, volatile float *x2, volatile float *phase);
-  void pll_run(float phase, float dt, volatile float *phase_var,
-          volatile float *speed_var);
-  void control_current(volatile motor_state_t *state_m, float dt);
+          float dt, volatile float& x1, volatile float& x2, volatile float& phase);
+  void pll_run(float phase,
+               float dt,
+               volatile float& phase_var,
+               volatile float& speed_var);
+  void control_current(volatile motor_state_t& state_m, float dt);
   void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
-          uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector);
+          uint32_t& tAout, uint32_t& tBout, uint32_t& tCout, uint32_t& svm_sector);
   void run_pid_control_pos(float angle_now, float angle_set, float dt);
   void run_pid_control_speed(float dt);
   void stop_pwm_hw(void);
@@ -138,7 +140,7 @@ namespace mcpwm_foc{
   // Threads
   THD_WORKING_AREA(timer_thread_wa, 2048);
   THD_FUNCTION(timer_thread, arg);
-  volatile bool timer_thd_stop;
+  volatile bool m_timer_thd_stop;
 
   // Macros
   #ifdef HW_HAS_3_SHUNTS
@@ -443,7 +445,7 @@ namespace mcpwm_foc{
       TIM_Cmd(TIM12, ENABLE);
 
       // Start threads
-      timer_thd_stop = false;
+      m_timer_thd_stop = false;
       chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
       // WWDG configuration
@@ -460,9 +462,9 @@ namespace mcpwm_foc{
 
       WWDG_DeInit();
 
-      timer_thd_stop = true;
+      m_timer_thd_stop = true;
 
-      while (timer_thd_stop) {
+      while (m_timer_thd_stop) {
           chThdSleepMilliseconds(1);
       }
 
@@ -1224,7 +1226,7 @@ namespace mcpwm_foc{
    * @return
    * The average d and q axis inductance in microhenry.
    */
-  float measure_inductance(float duty, int samples, float *curr) {
+  float measure_inductance(float const duty, int const samples, float * const curr) {
       m_samples.avg_current_tot = 0.0;
       m_samples.avg_voltage_tot = 0.0;
       m_samples.sample_num = 0;
@@ -1284,12 +1286,12 @@ namespace mcpwm_foc{
    * @return
    * True if the measurement succeeded, false otherwise.
    */
-  bool measure_res_ind(float *res, float *ind) {
+  bool measure_res_ind(float &res, float &ind) {
       const float f_sw_old = m_conf->foc_f_sw;
       const float kp_old = m_conf->foc_current_kp;
       const float ki_old = m_conf->foc_current_ki;
 
-      m_conf->foc_f_sw = 10000.0;
+      m_conf->foc_f_sw = 10'000.0;
       m_conf->foc_current_kp = 0.01;
       m_conf->foc_current_ki = 10.0;
 
@@ -1311,7 +1313,7 @@ namespace mcpwm_foc{
           i_last = (m_conf->l_current_max / 2.0);
       }
 
-      *res = measure_resistance(i_last, 200);
+      res = measure_resistance(i_last, 200);
 
       m_conf->foc_f_sw = 3000.0;
       top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
@@ -1328,7 +1330,7 @@ namespace mcpwm_foc{
           }
       }
 
-      *ind = measure_inductance(duty_last, 200, 0);
+      ind = measure_inductance(duty_last, 200, 0);
 
       m_conf->foc_f_sw = f_sw_old;
       m_conf->foc_current_kp = kp_old;
@@ -1741,7 +1743,7 @@ namespace mcpwm_foc{
           if (!m_phase_override) {
               observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
                       m_motor_state.i_alpha, m_motor_state.i_beta, dt,
-                      &m_observer_x1, &m_observer_x2, &m_phase_now_observer);
+                      m_observer_x1, m_observer_x2, m_phase_now_observer);
           }
 
           switch (m_conf->foc_sensor_mode) {
@@ -1826,7 +1828,7 @@ namespace mcpwm_foc{
           m_motor_state.id_target = id_set_tmp;
           m_motor_state.iq_target = iq_set_tmp;
 
-          control_current(&m_motor_state, dt);
+          control_current(m_motor_state, dt);
       } else { // m_state != MC_STATE_RUNNING
           // Track back emf
   #ifdef HW_HAS_3_SHUNTS
@@ -1876,8 +1878,10 @@ namespace mcpwm_foc{
 
           // Run observer
           observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
-                  m_motor_state.i_alpha, m_motor_state.i_beta, dt, &m_observer_x1,
-                  &m_observer_x2, &m_phase_now_observer);
+                  m_motor_state.i_alpha, m_motor_state.i_beta, dt,
+                  m_observer_x1,
+                  m_observer_x2,
+                  m_phase_now_observer);
 
           switch (m_conf->foc_sensor_mode) {
           case FOC_SENSOR_MODE_ENCODER:
@@ -1899,7 +1903,7 @@ namespace mcpwm_foc{
                     m_motor_state.mod_q * m_motor_state.mod_q) / SQRT3_BY_2;
 
       // Run PLL for speed estimation
-      pll_run(m_motor_state.phase, dt, &m_pll_phase, &m_pll_speed);
+      pll_run(m_motor_state.phase, dt, m_pll_phase, m_pll_speed);
 
       // Update tachometer (resolution = 60 deg as for BLDC)
       float ph_tmp = m_motor_state.phase;
@@ -1957,8 +1961,8 @@ namespace mcpwm_foc{
       chRegSetThreadName("mcpwm_foc timer");
 
       for(;;) {
-          if (timer_thd_stop) {
-              timer_thd_stop = false;
+          if (m_timer_thd_stop) {
+              m_timer_thd_stop = false;
               return;
           }
 
@@ -2078,8 +2082,14 @@ namespace mcpwm_foc{
   }
 
   // See http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
-  void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-          float dt, volatile float *x1, volatile float *x2, volatile float *phase) {
+  void observer_update(float const v_alpha,
+                       float const v_beta,
+                       float const i_alpha,
+                       float const i_beta,
+                       float const dt,
+                       volatile float& x1,
+                       volatile float& x2,
+                       volatile float& phase) {
 
       const float L = (3.0 / 2.0) * m_conf->foc_motor_l;
       const float lambda = m_conf->foc_motor_flux_linkage;
@@ -2113,44 +2123,46 @@ namespace mcpwm_foc{
       const int iterations = 6;
       const float dt_iteration = dt / (float)iterations;
       for (int i = 0;i < iterations;i++) {
-          float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
+          float err = lambda_2 - (SQ(x1 - L_ia) + SQ(x2 - L_ib));
           float gamma_tmp = gamma_half;
           if (truncate_number_abs(err, lambda_2 * 0.2)) {
               gamma_tmp *= 10.0;
           }
-          float x1_dot = -R_ia + v_alpha + gamma_tmp * (*x1 - L_ia) * err;
-          float x2_dot = -R_ib + v_beta  + gamma_tmp * (*x2 - L_ib) * err;
+          float x1_dot = -R_ia + v_alpha + gamma_tmp * (x1 - L_ia) * err;
+          float x2_dot = -R_ib + v_beta  + gamma_tmp * (x2 - L_ib) * err;
 
-          *x1 += x1_dot * dt_iteration;
-          *x2 += x2_dot * dt_iteration;
+          x1 += x1_dot * dt_iteration;
+          x2 += x2_dot * dt_iteration;
       }
 
       // Same as above, but without iterations.
-  //	float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
+  //	float err = lambda_2 - (SQ(x1 - L_ia) + SQ(x2 - L_ib));
   //	float gamma_tmp = gamma_half;
   //	if (truncate_number_abs(err, lambda_2 * 0.2)) {
   //		gamma_tmp *= 10.0;
   //	}
-  //	float x1_dot = -R_ia + v_alpha + gamma_tmp * (*x1 - L_ia) * err;
-  //	float x2_dot = -R_ib + v_beta + gamma_tmp * (*x2 - L_ib) * err;
-  //	*x1 += x1_dot * dt;
-  //	*x2 += x2_dot * dt;
+  //	float x1_dot = -R_ia + v_alpha + gamma_tmp * (x1 - L_ia) * err;
+  //	float x2_dot = -R_ib + v_beta + gamma_tmp * (x2 - L_ib) * err;
+  //	x1 += x1_dot * dt;
+  //	x2 += x2_dot * dt;
 
-      UTILS_NAN_ZERO(*x1);
-      UTILS_NAN_ZERO(*x2);
+      UTILS_NAN_ZERO(x1);
+      UTILS_NAN_ZERO(x2);
 
-      *phase = fast_atan2(*x2 - L_ib, *x1 - L_ia);
+      phase = fast_atan2(x2 - L_ib, x1 - L_ia);
   }
 
-  void pll_run(float phase, float dt, volatile float *phase_var,
-          volatile float *speed_var) {
-      UTILS_NAN_ZERO(*phase_var);
-      float delta_theta = phase - *phase_var;
+  void pll_run(float const phase,
+               float const dt,
+               volatile float& phase_var,
+               volatile float& speed_var) {
+      UTILS_NAN_ZERO(phase_var);
+      float delta_theta = phase - phase_var;
       norm_angle_rad(delta_theta);
-      UTILS_NAN_ZERO(*speed_var);
-      *phase_var += (*speed_var + m_conf->foc_pll_kp * delta_theta) * dt;
+      UTILS_NAN_ZERO(speed_var);
+      phase_var += (speed_var + m_conf->foc_pll_kp * delta_theta) * dt;
       norm_angle_rad((float&)phase_var);
-      *speed_var += m_conf->foc_pll_ki * delta_theta * dt;
+      speed_var += m_conf->foc_pll_ki * delta_theta * dt;
   }
 
   /**
@@ -2189,23 +2201,23 @@ namespace mcpwm_foc{
    * @param dt
    * The time step in seconds.
    */
-  void control_current(volatile motor_state_t *state_m, float dt) {
+  void control_current(volatile motor_state_t& state_m, float dt) {
       float c,s;
-      fast_sincos_better(state_m->phase, &s, &c);
+      fast_sincos_better(state_m.phase, &s, &c);
 
-      float max_duty = fabsf(state_m->max_duty);
+      float max_duty = fabsf(state_m.max_duty);
       truncate_number(max_duty, 0.0, m_conf->l_max_duty);
 
-      state_m->id = c * state_m->i_alpha + s * state_m->i_beta;
-      state_m->iq = c * state_m->i_beta  - s * state_m->i_alpha;
-      UTILS_LP_FAST(state_m->id_filter, state_m->id, m_conf->foc_current_filter_const);
-      UTILS_LP_FAST(state_m->iq_filter, state_m->iq, m_conf->foc_current_filter_const);
+      state_m.id = c * state_m.i_alpha + s * state_m.i_beta;
+      state_m.iq = c * state_m.i_beta  - s * state_m.i_alpha;
+      UTILS_LP_FAST(state_m.id_filter, state_m.id, m_conf->foc_current_filter_const);
+      UTILS_LP_FAST(state_m.iq_filter, state_m.iq, m_conf->foc_current_filter_const);
 
-      float Ierr_d = state_m->id_target - state_m->id;
-      float Ierr_q = state_m->iq_target - state_m->iq;
+      float Ierr_d = state_m.id_target - state_m.id;
+      float Ierr_q = state_m.iq_target - state_m.iq;
 
-      state_m->vd = state_m->vd_int + Ierr_d * m_conf->foc_current_kp;
-      state_m->vq = state_m->vq_int + Ierr_q * m_conf->foc_current_kp;
+      state_m.vd = state_m.vd_int + Ierr_d * m_conf->foc_current_kp;
+      state_m.vq = state_m.vq_int + Ierr_q * m_conf->foc_current_kp;
 
       // Temperature compensation
       const float t = mc_interface::temp_motor_filtered();
@@ -2214,33 +2226,33 @@ namespace mcpwm_foc{
           ki += ki * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);
       }
 
-      state_m->vd_int += Ierr_d * (ki * dt);
-      state_m->vq_int += Ierr_q * (ki * dt);
+      state_m.vd_int += Ierr_d * (ki * dt);
+      state_m.vq_int += Ierr_q * (ki * dt);
 
       // Saturation
-      saturate_vector_2d((float&)state_m->vd, (float&)state_m->vq,
-              (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
+      saturate_vector_2d((float&)state_m.vd, (float&)state_m.vq,
+              (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m.v_bus);
 
-      state_m->mod_d = state_m->vd / ((2.0 / 3.0) * state_m->v_bus);
-      state_m->mod_q = state_m->vq / ((2.0 / 3.0) * state_m->v_bus);
+      state_m.mod_d = state_m.vd / ((2.0 / 3.0) * state_m.v_bus);
+      state_m.mod_q = state_m.vq / ((2.0 / 3.0) * state_m.v_bus);
 
       // Windup protection
-  //	saturate_vector_2d((float&)state_m->vd_int, (float&)state_m->vq_int,
-  //			(2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
-      truncate_number_abs((float&)state_m->vd_int, (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
-      truncate_number_abs((float&)state_m->vq_int, (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
+  //	saturate_vector_2d((float&)state_m.vd_int, (float&)state_m.vq_int,
+  //			(2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m.v_bus);
+      truncate_number_abs((float&)state_m.vd_int, (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m.v_bus);
+      truncate_number_abs((float&)state_m.vq_int, (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m.v_bus);
 
       // TODO: Have a look at this?
-      state_m->i_bus = state_m->mod_d * state_m->id + state_m->mod_q * state_m->iq;
-      state_m->i_abs = sqrtf(SQ(state_m->id) + SQ(state_m->iq));
-      state_m->i_abs_filter = sqrtf(SQ(state_m->id_filter) + SQ(state_m->iq_filter));
+      state_m.i_bus = state_m.mod_d * state_m.id + state_m.mod_q * state_m.iq;
+      state_m.i_abs = sqrtf(SQ(state_m.id) + SQ(state_m.iq));
+      state_m.i_abs_filter = sqrtf(SQ(state_m.id_filter) + SQ(state_m.iq_filter));
 
-      float mod_alpha = c * state_m->mod_d - s * state_m->mod_q;
-      float mod_beta  = c * state_m->mod_q + s * state_m->mod_d;
+      float mod_alpha = c * state_m.mod_d - s * state_m.mod_q;
+      float mod_beta  = c * state_m.mod_q + s * state_m.mod_d;
 
       // Deadtime compensation
-      const float i_alpha_filter = c * state_m->id_target - s * state_m->iq_target;
-      const float i_beta_filter  = c * state_m->iq_target + s * state_m->id_target;
+      const float i_alpha_filter = c * state_m.id_target - s * state_m.iq_target;
+      const float i_beta_filter  = c * state_m.iq_target + s * state_m.id_target;
       const float ia_filter = i_alpha_filter;
       const float ib_filter = -0.5 * i_alpha_filter + SQRT3_BY_2 * i_beta_filter;
       const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
@@ -2251,13 +2263,13 @@ namespace mcpwm_foc{
       const float mod_beta_comp  = mod_beta_filter_sgn * mod_comp_fact;
 
       // Apply compensation here so that 0 duty cycle has no glitches.
-      state_m->v_alpha = (mod_alpha - mod_alpha_comp) * (2.0 / 3.0) * state_m->v_bus;
-      state_m->v_beta = (mod_beta - mod_beta_comp) * (2.0 / 3.0) * state_m->v_bus;
+      state_m.v_alpha = (mod_alpha - mod_alpha_comp) * (2.0 / 3.0) * state_m.v_bus;
+      state_m.v_beta  = (mod_beta  - mod_beta_comp)  * (2.0 / 3.0) * state_m.v_bus;
 
       // Set output (HW Dependent)
       uint32_t duty1, duty2, duty3, top;
       top = TIM1->ARR;
-      svm(-mod_alpha, -mod_beta, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
+      svm(-mod_alpha, -mod_beta, top, duty1, duty2, duty3, (uint32_t&)state_m.svm_sector);
       TIMER_UPDATE_DUTY(duty1, duty2, duty3);
 
       if (!m_output_on) {
@@ -2266,8 +2278,8 @@ namespace mcpwm_foc{
   }
 
   // Magnitude must not be larger than sqrt(3)/2, or 0.866
-  void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
-          uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
+  void svm(float const alpha, float const beta, uint32_t const PWMHalfPeriod,
+          uint32_t& tAout, uint32_t& tBout, uint32_t& tCout, uint32_t& svm_sector) {
       uint32_t sector;
 
       if (beta >= 0.0f) {
@@ -2394,10 +2406,10 @@ namespace mcpwm_foc{
       }
       }
 
-      *tAout = tA;
-      *tBout = tB;
-      *tCout = tC;
-      *svm_sector = sector;
+      tAout = tA;
+      tBout = tB;
+      tCout = tC;
+      svm_sector = sector;
   }
 
   void run_pid_control_pos(float angle_now, float angle_set, float dt) {

@@ -337,7 +337,7 @@ namespace terminal{
 
           float res = 0.0;
           float ind = 0.0;
-          mcpwm_foc::measure_res_ind(&res, &ind);
+          mcpwm_foc::measure_res_ind(res, ind);
           printf("Resistance: %.6f ohm", (double)res);
           printf("Inductance: %.2f microhenry\n", (double)ind);
 

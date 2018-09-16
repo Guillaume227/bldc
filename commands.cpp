@@ -660,7 +660,7 @@ namespace commands{
 
           float r = 0.0;
           float l = 0.0;
-          bool res = mcpwm_foc::measure_res_ind(&r, &l);
+          bool res = mcpwm_foc::measure_res_ind(r, l);
           mc_interface::set_configuration(&mcconf_old);
 
           if (!res) {
