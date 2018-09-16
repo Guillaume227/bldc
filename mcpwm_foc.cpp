@@ -142,6 +142,31 @@ namespace mcpwm_foc{
   THD_FUNCTION(timer_thread, arg);
   volatile bool m_timer_thd_stop;
 
+
+  class PhaseOverride{
+    mc_interface::Lock _mc_interface_lock;
+    timeout::Disabler _timeout_disabler;
+
+  public:
+    PhaseOverride(float id, float iq){
+      m_phase_override = true;
+      m_phase_now_override = 0.0;
+      m_id_set = id;
+      m_iq_set = iq;
+      m_control_mode = CONTROL_MODE_CURRENT;
+      m_state = MC_STATE_RUNNING;
+    }
+    ~PhaseOverride(){
+      // undo locked settings and stop motor
+      m_id_set = 0.0;
+      m_iq_set = 0.0;
+      m_phase_override = false;
+      m_control_mode = CONTROL_MODE_NONE;
+      m_state = MC_STATE_OFF;
+      stop_pwm_hw();
+    }
+  };
+
   // Macros
 #ifdef HW_HAS_3_SHUNTS
   #define TIMER_UPDATE_DUTY(duty1, duty2, duty3) \
@@ -944,15 +969,8 @@ namespace mcpwm_foc{
    * The detected direction.
    */
   void encoder_detect(float current, bool print, float &offset, float &ratio, bool &inverted) {
-      mc_interface::Lock interfaceLock;
 
-      m_phase_override = true;
-      m_id_set = current;
-      m_iq_set = 0.0;
-      m_control_mode = CONTROL_MODE_CURRENT;
-      m_state = MC_STATE_RUNNING;
-
-      timeout::Disabler disabledTimeout;
+      PhaseOverride lockedCurrentContext(current, 0.0);
 
       // Save configuration
       float offset_old = m_conf->foc_encoder_offset;
@@ -1123,13 +1141,6 @@ namespace mcpwm_foc{
           commands::printf("Offset detected");
       }
 
-      m_id_set = 0.0;
-      m_iq_set = 0.0;
-      m_phase_override = false;
-      m_control_mode = CONTROL_MODE_NONE;
-      m_state = MC_STATE_OFF;
-      stop_pwm_hw();
-
       // Restore configuration
       m_conf->foc_encoder_inverted = inverted_old;
       m_conf->foc_encoder_offset = offset_old;
@@ -1151,16 +1162,7 @@ namespace mcpwm_foc{
    */
   float measure_resistance(float current, int samples) {
 
-      mc_interface::Lock interfaceLock;
-
-      m_phase_override = true;
-      m_phase_now_override = 0.0;
-      m_id_set = 0.0;
-      m_iq_set = current;
-      m_control_mode = CONTROL_MODE_CURRENT;
-      m_state = MC_STATE_RUNNING;
-
-      timeout::Disabler disabledTimeout;
+      PhaseOverride lockedCurrentContext(0.0, current);
 
       // Wait for the current to rise and the motor to lock.
       chThdSleepMilliseconds(500);
@@ -1170,26 +1172,15 @@ namespace mcpwm_foc{
       m_samples.avg_voltage_tot = 0.0;
       m_samples.sample_num = 0;
 
-      int cnt = 0;
-      while (m_samples.sample_num < samples) {
+      for(size_t cnt = 0;
+          cnt <= 10000 && m_samples.sample_num < samples;
+          cnt++)
+      {
           chThdSleepMilliseconds(1);
-          cnt++;
-          // Timeout
-          if (cnt > 10000) {
-              break;
-          }
       }
 
       const float current_avg = m_samples.avg_current_tot / (float)m_samples.sample_num;
       const float voltage_avg = m_samples.avg_voltage_tot / (float)m_samples.sample_num;
-
-      // Stop
-      m_id_set = 0.0;
-      m_iq_set = 0.0;
-      m_phase_override = false;
-      m_control_mode = CONTROL_MODE_NONE;
-      m_state = MC_STATE_OFF;
-      stop_pwm_hw();
 
       return (voltage_avg / current_avg) * (2.0 / 3.0);
   }
@@ -1332,63 +1323,51 @@ namespace mcpwm_foc{
    * false: Something went wrong
    */
   bool hall_detect(float current, uint8_t *hall_table) {
-      mc_interface::Lock interfaceLock;
 
-      m_phase_override = true;
-      m_id_set = current;
-      m_iq_set = 0.0;
-      m_control_mode = CONTROL_MODE_CURRENT;
-      m_state = MC_STATE_RUNNING;
+    float sin_hall[8];
+    float cos_hall[8];
+    int hall_iterations[8];
+    memset(sin_hall, 0, sizeof(sin_hall));
+    memset(cos_hall, 0, sizeof(cos_hall));
+    memset(hall_iterations, 0, sizeof(hall_iterations));
 
-      timeout::Disabler disabledTimeout;
+    {
+        // Lock the motor
+        PhaseOverride lockedCurrentContext(current, 0.0);
 
-      // Lock the motor
-      m_phase_now_override = 0;
-      chThdSleepMilliseconds(1000);
+        chThdSleepMilliseconds(1000);
 
-      float sin_hall[8];
-      float cos_hall[8];
-      int hall_iterations[8];
-      memset(sin_hall, 0, sizeof(sin_hall));
-      memset(cos_hall, 0, sizeof(cos_hall));
-      memset(hall_iterations, 0, sizeof(hall_iterations));
+        // Forwards
+        for (int i = 0;i < 3;i++) {
+            for (int i = 0;i < 360;i++) {
+                m_phase_now_override = (float)i * M_PI / 180.0;
+                chThdSleepMilliseconds(5);
 
-      // Forwards
-      for (int i = 0;i < 3;i++) {
-          for (int i = 0;i < 360;i++) {
-              m_phase_now_override = (float)i * M_PI / 180.0;
-              chThdSleepMilliseconds(5);
+                int hall = read_hall();
+                float s, c;
+                sincosf(m_phase_now_override, &s, &c);
+                sin_hall[hall] += s;
+                cos_hall[hall] += c;
+                hall_iterations[hall]++;
+            }
+        }
 
-              int hall = read_hall();
-              float s, c;
-              sincosf(m_phase_now_override, &s, &c);
-              sin_hall[hall] += s;
-              cos_hall[hall] += c;
-              hall_iterations[hall]++;
-          }
+        // Reverse
+        for (int i = 0;i < 3;i++) {
+            for (int i = 360;i >= 0;i--) {
+                m_phase_now_override = (float)i * M_PI / 180.0;
+                chThdSleepMilliseconds(5);
+
+                int hall = read_hall();
+                float s, c;
+                sincosf(m_phase_now_override, &s, &c);
+                sin_hall[hall] += s;
+                cos_hall[hall] += c;
+                hall_iterations[hall]++;
+            }
+        }
+
       }
-
-      // Reverse
-      for (int i = 0;i < 3;i++) {
-          for (int i = 360;i >= 0;i--) {
-              m_phase_now_override = (float)i * M_PI / 180.0;
-              chThdSleepMilliseconds(5);
-
-              int hall = read_hall();
-              float s, c;
-              sincosf(m_phase_now_override, &s, &c);
-              sin_hall[hall] += s;
-              cos_hall[hall] += c;
-              hall_iterations[hall]++;
-          }
-      }
-
-      m_id_set = 0.0;
-      m_iq_set = 0.0;
-      m_phase_override = false;
-      m_control_mode = CONTROL_MODE_NONE;
-      m_state = MC_STATE_OFF;
-      stop_pwm_hw();
 
       int fails = 0;
       for(int i = 0;i < 8;i++) {
