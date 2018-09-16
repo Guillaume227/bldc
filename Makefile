@@ -18,7 +18,7 @@ endif
 
 # C++ specific options here (added to USE_OPT).
 ifeq ($(USE_CPPOPT),)
-  USE_CPPOPT = -fno-rtti -std=c++17 -fpermissive
+  USE_CPPOPT = -fno-rtti -std=c++17 -fpermissive -fno-exceptions
 endif	
 
 # Enable this if you want the linker to remove unused code and data
