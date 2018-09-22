@@ -69,11 +69,17 @@ namespace mcpwm_foc{
   };
 
   struct mc_sample_t{
-      volatile size_t sample_num;
-      volatile float avg_current_tot;
-      volatile float avg_voltage_tot;
-      volatile bool measure_inductance_now;
-      volatile float measure_inductance_duty;
+      volatile size_t sample_num = 0;
+      volatile float avg_current_tot = 0.0;
+      volatile float avg_voltage_tot = 0.0;
+      volatile bool measure_inductance_now = false;
+      volatile float measure_inductance_duty = 0.0;
+
+      void reset() {
+        sample_num = 0;
+        avg_current_tot = 0.0;
+        avg_voltage_tot = 0.0;
+      }
 
       float get_avg_current() const {
         return avg_current_tot / sample_num;
@@ -1175,9 +1181,7 @@ namespace mcpwm_foc{
       chThdSleepMilliseconds(500);
 
       // Sample
-      m_samples.avg_current_tot = 0.0;
-      m_samples.avg_voltage_tot = 0.0;
-      m_samples.sample_num = 0;
+      m_samples.reset();
 
       for(size_t cnt = 0;
           cnt <= 10000 && m_samples.sample_num < samples;
@@ -1208,9 +1212,7 @@ namespace mcpwm_foc{
    * The average d and q axis inductance in microhenry.
    */
   float measure_inductance(float const duty, size_t const samples, float * const curr) {
-      m_samples.avg_current_tot = 0.0;
-      m_samples.avg_voltage_tot = 0.0;
-      m_samples.sample_num = 0;
+      m_samples.reset();
       m_samples.measure_inductance_duty = duty;
 
       {
