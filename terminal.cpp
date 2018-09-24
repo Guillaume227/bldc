@@ -58,6 +58,12 @@ namespace {
 }
 
 namespace terminal{
+
+  namespace{
+    // static to save some stack - used in process_string only
+    mc_configuration mcconf;
+    mc_configuration mcconf_old;
+  }
   void process_string(char *str) {
       enum { kMaxArgs = 64 };
       int argc = 0;
@@ -74,8 +80,6 @@ namespace terminal{
           return;
       }
 
-      static mc_configuration mcconf; // static to save some stack
-      static mc_configuration mcconf_old; // static to save some stack
       mcconf = mc_interface::get_configuration();
       mcconf_old = mcconf;
 

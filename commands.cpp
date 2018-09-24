@@ -105,6 +105,11 @@ namespace commands{
    * @param len
    * The length of the buffer.
    */
+  namespace{
+    // Static to save some stack space
+    mc_configuration mcconf;
+    mc_configuration mcconf_old;
+  }
   void process_packet(unsigned char *data, unsigned int len) {
       if (!len) {
           return;
@@ -112,7 +117,6 @@ namespace commands{
 
       COMM_PACKET_ID packet_id;
       int32_t ind = 0;
-      static mc_configuration mcconf, mcconf_old; // Static to save some stack space
       app_configuration appconf;
       uint16_t flash_res;
       uint32_t new_app_offset;
