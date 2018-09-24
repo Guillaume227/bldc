@@ -2,7 +2,7 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "stm32f4xx_conf.h"
+#include "hw.h"
 
 /*
  * Endpoints to be used for USBD2.

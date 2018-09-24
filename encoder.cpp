@@ -20,7 +20,6 @@
 #include "encoder.h"
 #include "ch.h"
 #include "hal.h"
-#include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "utils.h"
 

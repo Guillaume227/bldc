@@ -24,7 +24,6 @@
 #include "mc_interface.h"
 #include "hw.h"
 #include "utils.h"
-#include "stm32f4xx_conf.h"
 #include "timeout.h"
 
 #include <string.h>

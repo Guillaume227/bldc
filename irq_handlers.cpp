@@ -19,7 +19,6 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "stm32f4xx_conf.h"
 #include "isr_vector_table.h"
 #include "mc_interface.h"
 #include "mcpwm_foc.h"

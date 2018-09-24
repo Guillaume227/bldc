@@ -19,8 +19,8 @@
 
 #include <math.h>
 #include "ws2811.h"
-#include "stm32f4xx_conf.h"
 #include "ch.h"
+#include "hw.h"
 #include "hal.h"
 
 // Settings
