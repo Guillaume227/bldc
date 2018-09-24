@@ -15,8 +15,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef HW_ARA_H_
-#define HW_ARA_H_
+#pragma once
 
 // HW properties
 //assert(defined(BOARD_ST_NUCLEO64_F446RE))
@@ -342,4 +341,3 @@
 #define HW_LIM_DUTY_MAX         0.0, 0.99
 #define HW_LIM_TEMP_FET         celsius_t{-40.0}, celsius_t{110.0}
 
-#endif

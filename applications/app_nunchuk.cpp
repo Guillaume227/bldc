@@ -74,7 +74,7 @@ namespace app{
 	void start(void) {
 		chuck_d.js_y = 128;
 		stop_now = false;
-		hw_start_i2c();
+		hw::start_i2c();
 		chThdCreateStatic(chuk_thread_wa, sizeof(chuk_thread_wa), NORMALPRIO, chuk_thread, NULL);
 	}
 
@@ -82,7 +82,7 @@ namespace app{
 		stop_now = true;
 
 		if (is_running) {
-			hw_stop_i2c();
+			hw::stop_i2c();
 		}
 
 		while (is_running) {
@@ -120,7 +120,7 @@ namespace app{
 		i2caddr_t chuck_addr = 0x52;
 		chuck_data chuck_d_tmp;
 
-		hw_start_i2c();
+		hw::start_i2c();
 		chThdSleepMilliseconds(10);
 
 		for(;;) {
@@ -195,7 +195,7 @@ namespace app{
 				}
 			} else {
 				chuck_error = 2;
-				hw_try_restore_i2c();
+				hw::try_restore_i2c();
 				chThdSleepMilliseconds(100);
 			}
 
@@ -334,10 +334,10 @@ namespace app{
 					float current = mc_interface::get_tot_current_directional_filtered();
 
 					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-						can_status_msg *msg = comm_can_get_status_msg_index(i);
+						can_status_msg *msg = comm::can::get_status_msg_index(i);
 
 						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-							comm_can_set_current(msg->id, current);
+							comm::can::set_current(msg->id, current);
 						}
 					}
 				}
@@ -370,7 +370,7 @@ namespace app{
 
 			if (config.multi_esc) {
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-					can_status_msg *msg = comm_can_get_status_msg_index(i);
+					can_status_msg *msg = comm::can::get_status_msg_index(i);
 
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
 						float rpm_tmp = msg->rpm;
@@ -436,10 +436,10 @@ namespace app{
 
 				// Send brake command to all ESCs seen recently on the CAN bus
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-					can_status_msg *msg = comm_can_get_status_msg_index(i);
+					can_status_msg *msg = comm::can::get_status_msg_index(i);
 
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_current_brake(msg->id, current);
+						comm::can::set_current_brake(msg->id, current);
 					}
 				}
 			} else {
@@ -448,7 +448,7 @@ namespace app{
 				// Traction control
 				if (config.multi_esc) {
 					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-						can_status_msg *msg = comm_can_get_status_msg_index(i);
+						can_status_msg *msg = comm::can::get_status_msg_index(i);
 
 						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
 							if (config.tc) {
@@ -465,9 +465,9 @@ namespace app{
 							}
 
 							if (is_reverse) {
-								comm_can_set_current(msg->id, -current_out);
+								comm::can::set_current(msg->id, -current_out);
 							} else {
-								comm_can_set_current(msg->id, current_out);
+								comm::can::set_current(msg->id, current_out);
 							}
 						}
 					}

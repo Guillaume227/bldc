@@ -832,7 +832,7 @@ namespace commands{
           break;
 
       case COMM_FORWARD_CAN:
-          comm_can_send_buffer(data[0], data + 1, len - 1, false);
+          comm::can::send_buffer(data[0], data + 1, len - 1, false);
           break;
 
       case COMM_SET_CHUCK_DATA:

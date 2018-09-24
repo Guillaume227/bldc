@@ -378,7 +378,7 @@ namespace mcpwm {
     ADC_InjectedSequencerLengthConfig(ADC3, HW_ADC_INJ_CHANNELS);
 #endif
 
-    hw_setup_adc_channels();
+    hw::setup_adc_channels();
 
     // Interrupt
     ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE);

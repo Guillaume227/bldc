@@ -22,17 +22,19 @@
 #include "hal.h"
 #include "utils.h"
 
-// Variables
-static volatile bool i2c_running = false;
+namespace hw{
 
-// I2C configuration
-static const I2CConfig i2cfg = {
+  // Variables
+  volatile bool i2c_running = false;
+
+  // I2C configuration
+  constexpr I2CConfig i2cfg = {
 		OPMODE_I2C,
 		100000,
 		STD_DUTY_CYCLE
-};
+  };
 
-void hw_init_gpio(void) {
+  void init_gpio(void) {
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -136,7 +138,7 @@ void hw_init_gpio(void) {
     palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG); // BEMF2
     palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG); // BEMF3
 #endif
-}
+  }
 
 #ifdef HW_IS_IHM07M1
 #define ADC_CHAN_SENS1 ADC_Channel_13
@@ -150,132 +152,132 @@ void hw_init_gpio(void) {
 #define ADC_CHAN_POT   ADC_Channel_4
 #endif
 
-void hw_setup_adc_channels(void) {
-	// ADC1 regular channels
-	ADC_RegularChannelConfig(ADC1, ADC_CHAN_SENS3,      1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0,       2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_5,       3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_14,      4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);
+  void setup_adc_channels(void) {
+    // ADC1 regular channels
+    ADC_RegularChannelConfig(ADC1, ADC_CHAN_SENS3,      1, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_0,       2, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_5,       3, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_14,      4, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);
 
-	// ADC2 regular channels
-	ADC_RegularChannelConfig(ADC2, ADC_CHAN_SENS2, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_6,  3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_CHAN_POT,   4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_CHAN_SENS2, 5, ADC_SampleTime_15Cycles);
+    // ADC2 regular channels
+    ADC_RegularChannelConfig(ADC2, ADC_CHAN_SENS2, 1, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC2, ADC_Channel_6,  3, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC2, ADC_CHAN_POT,   4, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC2, ADC_CHAN_SENS2, 5, ADC_SampleTime_15Cycles);
 
-	// ADC3 regular channels
-	ADC_RegularChannelConfig(ADC3, ADC_CHAN_SENS1, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_1,  4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_CHAN_SENS1, 5, ADC_SampleTime_15Cycles);
+    // ADC3 regular channels
+    ADC_RegularChannelConfig(ADC3, ADC_CHAN_SENS1, 1, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC3, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC3, ADC_Channel_1,  4, ADC_SampleTime_15Cycles);
+    ADC_RegularChannelConfig(ADC3, ADC_CHAN_SENS1, 5, ADC_SampleTime_15Cycles);
 
-	// Injected channels
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  3, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
+    // Injected channels
+    ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  1, ADC_SampleTime_15Cycles);
+    ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 1, ADC_SampleTime_15Cycles);
+    ADC_InjectedChannelConfig(ADC3, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
+    ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  2, ADC_SampleTime_15Cycles);
+    ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
+    ADC_InjectedChannelConfig(ADC3, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
+    ADC_InjectedChannelConfig(ADC1, ADC_Channel_0,  3, ADC_SampleTime_15Cycles);
+    ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
+    ADC_InjectedChannelConfig(ADC3, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
+  }
+
+  void start_i2c(void) {
+    i2cAcquireBus(&HW_I2C_DEV);
+
+    if (!i2c_running) {
+        palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
+                PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+                PAL_STM32_OTYPE_OPENDRAIN |
+                PAL_STM32_OSPEED_MID1 |
+                PAL_STM32_PUPDR_PULLUP);
+        palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+                PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+                PAL_STM32_OTYPE_OPENDRAIN |
+                PAL_STM32_OSPEED_MID1 |
+                PAL_STM32_PUPDR_PULLUP);
+
+        i2cStart(&HW_I2C_DEV, &i2cfg);
+        i2c_running = true;
+    }
+
+    i2cReleaseBus(&HW_I2C_DEV);
+  }
+
+  void stop_i2c(void) {
+    i2cAcquireBus(&HW_I2C_DEV);
+
+    if (i2c_running) {
+        palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, PAL_MODE_INPUT);
+        palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN, PAL_MODE_INPUT);
+
+        i2cStop(&HW_I2C_DEV);
+        i2c_running = false;
+
+    }
+
+    i2cReleaseBus(&HW_I2C_DEV);
+  }
+
+  /**
+   * Try to restore the i2c bus
+   */
+  void try_restore_i2c(void) {
+    if (i2c_running) {
+        i2cAcquireBus(&HW_I2C_DEV);
+
+        palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
+                PAL_STM32_OTYPE_OPENDRAIN |
+                PAL_STM32_OSPEED_MID1 |
+                PAL_STM32_PUPDR_PULLUP);
+
+        palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+                PAL_STM32_OTYPE_OPENDRAIN |
+                PAL_STM32_OSPEED_MID1 |
+                PAL_STM32_PUPDR_PULLUP);
+
+        palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+        palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+
+        chThdSleep(1);
+
+        for(int i = 0;i < 16;i++) {
+            palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+            chThdSleep(1);
+            palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+            chThdSleep(1);
+        }
+
+        // Generate start then stop condition
+        palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+        chThdSleep(1);
+        palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+        chThdSleep(1);
+        palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+        chThdSleep(1);
+        palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+
+        palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
+                PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+                PAL_STM32_OTYPE_OPENDRAIN |
+                PAL_STM32_OSPEED_MID1 |
+                PAL_STM32_PUPDR_PULLUP);
+
+        palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+                PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+                PAL_STM32_OTYPE_OPENDRAIN |
+                PAL_STM32_OSPEED_MID1 |
+                PAL_STM32_PUPDR_PULLUP);
+
+        HW_I2C_DEV.state = I2C_STOP;
+        i2cStart(&HW_I2C_DEV, &i2cfg);
+
+        i2cReleaseBus(&HW_I2C_DEV);
+    }
+  }
 }
-
-void hw_start_i2c(void) {
-	i2cAcquireBus(&HW_I2C_DEV);
-
-	if (!i2c_running) {
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUPDR_PULLUP);
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUPDR_PULLUP);
-
-		i2cStart(&HW_I2C_DEV, &i2cfg);
-		i2c_running = true;
-	}
-
-	i2cReleaseBus(&HW_I2C_DEV);
-}
-
-void hw_stop_i2c(void) {
-	i2cAcquireBus(&HW_I2C_DEV);
-
-	if (i2c_running) {
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, PAL_MODE_INPUT);
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN, PAL_MODE_INPUT);
-
-		i2cStop(&HW_I2C_DEV);
-		i2c_running = false;
-
-	}
-
-	i2cReleaseBus(&HW_I2C_DEV);
-}
-
-/**
- * Try to restore the i2c bus
- */
-void hw_try_restore_i2c(void) {
-	if (i2c_running) {
-		i2cAcquireBus(&HW_I2C_DEV);
-
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUPDR_PULLUP);
-
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUPDR_PULLUP);
-
-		palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-		palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-
-		chThdSleep(1);
-
-		for(int i = 0;i < 16;i++) {
-			palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-			chThdSleep(1);
-			palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-			chThdSleep(1);
-		}
-
-		// Generate start then stop condition
-		palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-		chThdSleep(1);
-		palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-		chThdSleep(1);
-		palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-		chThdSleep(1);
-		palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUPDR_PULLUP);
-
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUPDR_PULLUP);
-
-		HW_I2C_DEV.state = I2C_STOP;
-		i2cStart(&HW_I2C_DEV, &i2cfg);
-
-		i2cReleaseBus(&HW_I2C_DEV);
-	}
-}
-
 #endif

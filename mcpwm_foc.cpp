@@ -396,7 +396,7 @@ namespace mcpwm_foc{
       // Enable DMA request after last transfer (Multi-ADC mode)
       ADC_MultiModeDMARequestAfterLastTransferCmd(ENABLE);
 
-      hw_setup_adc_channels();
+      hw::setup_adc_channels();
 
       // Enable ADC1
       ADC_Cmd(ADC1, ENABLE);

@@ -25,6 +25,7 @@
 
 #include "datatypes.h"
 #include "units_def.h"
+#include "hal.h"
 
 // Settings and parameters to override
 //#define VIN_R1						33000.0

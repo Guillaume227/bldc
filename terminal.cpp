@@ -233,7 +233,7 @@ namespace terminal{
       } else if (strcmp(argv[0], "can_devs") == 0) {
           printf("CAN devices seen on the bus the past second:\n");
           for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-              can_status_msg *msg = comm_can_get_status_msg_index(i);
+              can_status_msg *msg = comm::can::get_status_msg_index(i);
 
               if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 1.0) {
                   printf("ID                 : %i", msg->id);

@@ -22,9 +22,6 @@
  *      Author: benjamin
  */
 
-#ifndef HW_H_
-#define HW_H_
-
 #include "conf_general.h"
 #include "stm32f4xx_conf.h"
 
@@ -66,11 +63,12 @@
 #error "No hardware version defined"
 #endif
 
-// Functions
-void hw_init_gpio(void);
-void hw_setup_adc_channels(void);
-void hw_start_i2c(void);
-void hw_stop_i2c(void);
-void hw_try_restore_i2c(void);
+namespace hw{
 
-#endif /* HW_H_ */
+  // Functions
+  void init_gpio(void);
+  void setup_adc_channels(void);
+  void start_i2c(void);
+  void stop_i2c(void);
+  void try_restore_i2c(void);
+}

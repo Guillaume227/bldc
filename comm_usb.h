@@ -21,7 +21,9 @@
 
 #include "conf_general.h"
 
-namespace comm_usb {
-  // Functions
-  void init(void);
+namespace comm{
+  namespace usb {
+    // Functions
+    void init(void);
+  }
 }

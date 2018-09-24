@@ -24,98 +24,101 @@
 #include "comm_usb_serial.h"
 #include "commands.h"
 
-namespace comm_usb {
-  // Settings
-  #define PACKET_HANDLER				0
+namespace comm{
+  namespace usb {
 
-  // Private variables
-  #define SERIAL_RX_BUFFER_SIZE		2048
-  uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
-  int serial_rx_read_pos = 0;
-  int serial_rx_write_pos = 0;
-  THD_WORKING_AREA(serial_read_thread_wa, 512);
-  THD_WORKING_AREA(serial_process_thread_wa, 4096);
-  mutex_t send_mutex;
-  thread_t *process_tp;
+    // Settings
+    #define PACKET_HANDLER				0
 
-  // Private functions
-  void process_packet(unsigned char *data, unsigned int len);
-  void send_packet(unsigned char *buffer, unsigned int len);
-  void send_packet_wrapper(unsigned char *data, unsigned int len);
+    // Private variables
+    #define SERIAL_RX_BUFFER_SIZE		2048
+    uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
+    int serial_rx_read_pos = 0;
+    int serial_rx_write_pos = 0;
+    THD_WORKING_AREA(serial_read_thread_wa, 512);
+    THD_WORKING_AREA(serial_process_thread_wa, 4096);
+    mutex_t send_mutex;
+    thread_t *process_tp;
 
-  THD_FUNCTION(serial_read_thread, arg) {
-      (void)arg;
+    // Private functions
+    void process_packet(unsigned char *data, unsigned int len);
+    void send_packet(unsigned char *buffer, unsigned int len);
+    void send_packet_wrapper(unsigned char *data, unsigned int len);
 
-      chRegSetThreadName("USB-Serial read");
+    THD_FUNCTION(serial_read_thread, arg) {
+        (void)arg;
 
-      uint8_t buffer[128];
-      int i;
-      int len;
-      int had_data = 0;
+        chRegSetThreadName("USB-Serial read");
 
-      for(;;) {
-          len = streamRead(&SDU1, (uint8_t*) buffer, 1);
+        uint8_t buffer[128];
+        int i;
+        int len;
+        int had_data = 0;
 
-          for (i = 0;i < len;i++) {
-              serial_rx_buffer[serial_rx_write_pos++] = buffer[i];
+        for(;;) {
+            len = streamRead(&SDU1, (uint8_t*) buffer, 1);
 
-              if (serial_rx_write_pos == SERIAL_RX_BUFFER_SIZE) {
-                  serial_rx_write_pos = 0;
-              }
+            for (i = 0;i < len;i++) {
+                serial_rx_buffer[serial_rx_write_pos++] = buffer[i];
 
-              had_data = 1;
-          }
+                if (serial_rx_write_pos == SERIAL_RX_BUFFER_SIZE) {
+                    serial_rx_write_pos = 0;
+                }
 
-          if (had_data) {
-              chEvtSignal(process_tp, (eventmask_t) 1);
-              had_data = 0;
-          }
-      }
-  }
+                had_data = 1;
+            }
 
-  THD_FUNCTION(serial_process_thread, arg) {
-      (void)arg;
+            if (had_data) {
+                chEvtSignal(process_tp, (eventmask_t) 1);
+                had_data = 0;
+            }
+        }
+    }
 
-      chRegSetThreadName("USB-Serial process");
+    THD_FUNCTION(serial_process_thread, arg) {
+        (void)arg;
 
-      process_tp = chThdGetSelfX();
+        chRegSetThreadName("USB-Serial process");
 
-      for(;;) {
-          chEvtWaitAny((eventmask_t) 1);
+        process_tp = chThdGetSelfX();
 
-          while (serial_rx_read_pos != serial_rx_write_pos) {
-              packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], PACKET_HANDLER);
+        for(;;) {
+            chEvtWaitAny((eventmask_t) 1);
 
-              if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
-                  serial_rx_read_pos = 0;
-              }
-          }
-      }
-  }
+            while (serial_rx_read_pos != serial_rx_write_pos) {
+                packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], PACKET_HANDLER);
 
-  void process_packet(unsigned char *data, unsigned int len) {
-      commands::set_send_func(send_packet_wrapper);
-      commands::process_packet(data, len);
-  }
+                if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
+                    serial_rx_read_pos = 0;
+                }
+            }
+        }
+    }
 
-  void send_packet_wrapper(unsigned char *data, unsigned int len) {
-      chMtxLock(&send_mutex);
-      packet_send_packet(data, len, PACKET_HANDLER);
-      chMtxUnlock(&send_mutex);
-  }
+    void process_packet(unsigned char *data, unsigned int len) {
+        commands::set_send_func(send_packet_wrapper);
+        commands::process_packet(data, len);
+    }
 
-  void send_packet(unsigned char *buffer, unsigned int len) {
-      streamWrite(&SDU1, buffer, len);
-  }
+    void send_packet_wrapper(unsigned char *data, unsigned int len) {
+        chMtxLock(&send_mutex);
+        packet_send_packet(data, len, PACKET_HANDLER);
+        chMtxUnlock(&send_mutex);
+    }
 
-  void init(void) {
-      comm_usb_serial_init();
-      packet_init(send_packet, process_packet, PACKET_HANDLER);
+    void send_packet(unsigned char *buffer, unsigned int len) {
+        streamWrite(&SDU1, buffer, len);
+    }
 
-      chMtxObjectInit(&send_mutex);
+    void init(void) {
+        comm_usb_serial_init();
+        packet_init(send_packet, process_packet, PACKET_HANDLER);
 
-      // Threads
-      chThdCreateStatic(serial_read_thread_wa,    sizeof(serial_read_thread_wa),    NORMALPRIO, serial_read_thread, NULL);
-      chThdCreateStatic(serial_process_thread_wa, sizeof(serial_process_thread_wa), NORMALPRIO, serial_process_thread, NULL);
+        chMtxObjectInit(&send_mutex);
+
+        // Threads
+        chThdCreateStatic(serial_read_thread_wa,    sizeof(serial_read_thread_wa),    NORMALPRIO, serial_read_thread, NULL);
+        chThdCreateStatic(serial_process_thread_wa, sizeof(serial_process_thread_wa), NORMALPRIO, serial_process_thread, NULL);
+    }
   }
 }

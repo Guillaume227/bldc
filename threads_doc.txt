@@ -1,7 +1,26 @@
+===============
+VESC time scale
+
+(on F447)
+
+CH_CFG_ST_FREQUENCY  10000  Hz chconf.h    // Frequency of the system timer that drives the system ticks (minimal delay between thread scheduling change?)
+
+CPU freq    180 MHz 
+TIMER clock    = 1/CPU freq = 1 clk = 5.55 ns
+switching_freq 40000 Hz -> 25 us
+PWM Period     =CPU/switch_freq  = 4200 clk = 23.31us 
+APB2 bus freq 90 MHz (= 1 clk)
+ADC cycle : 42 MHz (APHB2 bus freq of 84MHz / prescaler=2) 24ns
+HW_DEAD_TIME_VALUE = 60 clk = 333ns
+
+
+
+==============
 Vesc 6 threads
 
 1- Main 10ms
-
+	if has encoder, sends encoder pos on CAN: comm_can_set_pos
+	
 2- DMA - ADC regular interrupt
     period ?
     * New ADC samples ready. Do commutation!
@@ -23,50 +42,51 @@ period ?
     sets duty cycle to 0.2
     mcpwm_detect_voltages // back-emf detection
 
-periodic_thread "Main periodic" main.c 10ms
-- status LEDs
-- sends rotor pos in detecting state
+4- periodic_thread "Main periodic" main.c 10ms
+- status LEDs (en regle l'intensité selon que l'état (ça tourne ou pas) pour la verte, rouge tout ou rien si 'fault' detected)
+- sends rotor pos if in detecting state (rotor_pos selon le mode disp_pos_mode peut servir à envoyer d'autres grandeurs: PID pos, encoder etc.)
 - sends rotor pos in FOC Observer modes
 
-timer_thread "msec_timer" main.c 1ms
-  packet_timerfunc()
+5- timer_thread "msec_timer" main.c 1ms
+   receive packets: packet_timerfunc()
   
-"Timeout" timeout.c 10ms
-- sets brake current on a timeout 
+6- "Timeout" timeout.c 10ms
+ - sets brake current on a timeout 
 		i.e. if (timeout_msec != 0 && chVTTimeElapsedSinceX(last_update_time) > MS2ST(timeout_msec)) 
 
     
-"mcpwm timer" mcpwm.c 1ms
-		if (state == MC_STATE_OFF) {
-			// Track the motor back-emf and follow it with dutycycle_now. Also track
-			// the direction of the motor.
+7- "mcpwm timer" mcpwm.c 1ms
+	if (state == MC_STATE_OFF) {
+		// Track the motor back-emf and follow it with dutycycle_now. Also track
+		// the direction of the motor.
     }
     // Fill KV filter vector at 100Hz
 
 
-"rpm timer" mcpwm.c 1ms
+8- "rpm timer" mcpwm.c 1ms
   run_pid_control_speed: asservissement PID current or speed (see macro BLDC_SPEED_CONTROL_CURRENT)
   
   
-"mcif timer" mcinterface.c loop 1ms
-  		// Decrease fault iterations
+9- "mcif timer" mcinterface.c loop 1ms
+		// Decrease fault iterations
       update_override_limits()
       
-"SampleSender" mcinterface.c chEvtWaitAny
+10- "SampleSender" mcinterface.c chEvtWaitAny
     sends COMM_SAMPLE_PRINT message (current, voltage samples etc.) to vesc-tool
   
   
-"Detect" commands.c chEvtWaitAny  
+11- "Detect" commands.c chEvtWaitAny  
     conf_general_detect_motor_param
     sends COMM_DETECT_MOTOR_PARAM message
   
-"USD-serial read" comm_usb.c chEvtWaitAny
+12- "USB-serial read" comm_usb.c chEvtWaitAny
 
-"USD-serial write" comm_usb.c chEvtWaitAny
+13- "USB-serial write" comm_usb.c chEvtWaitAny
+
+14- "LEDs External" led_external.c 1ms
 
 + 3 CAN related threads in comm_can.c (read status process)
 
-"LEDs External" led_external.c 1ms
   
   
 ****************  
@@ -78,4 +98,5 @@ bugs potentiels:
  Questions :
  where do the old values come from and why?
  // Correction factor for computations that depend on the old resistor division factor
-#define VDIV_CORR					((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2 / (2.2 + 33.0)))
+
+ #define VDIV_CORR					((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2 / (2.2 + 33.0)))

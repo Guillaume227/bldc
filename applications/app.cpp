@@ -69,18 +69,18 @@ namespace app {
           break;
 
       case APP_UART:
-          hw_stop_i2c();
+          hw::stop_i2c();
           uartcomm::start();
           break;
 
       case APP_PPM_UART:
-          hw_stop_i2c();
+          hw::stop_i2c();
           ppm::start();
           uartcomm::start();
           break;
 
       case APP_ADC_UART:
-          hw_stop_i2c();
+          hw::stop_i2c();
           adc::start(false);
           uartcomm::start();
           break;

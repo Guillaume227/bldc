@@ -189,7 +189,7 @@ int main(void) {
 
 	chThdSleepMilliseconds(1000);
 
-	hw_init_gpio();
+	hw::init_gpio();
 	LED_RED_OFF();
 	LED_GREEN_OFF();
 
@@ -201,7 +201,7 @@ int main(void) {
 	mc_interface::init(&mcconf);
 
 	commands::init();
-	comm_usb::init();
+	comm::usb::init();
 
 #if CAN_ENABLE
 	comm_can_init();
