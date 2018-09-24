@@ -655,7 +655,7 @@ namespace conf_general {
       mcconf.comm_mode = COMM_MODE_INTEGRATE;
       mcconf.sl_phase_advance_at_br = 1.0;
       mcconf.sl_min_erpm = min_erpm;
-      mcconf.m_bldc_f_sw_min = 10000.0;
+      mcconf.m_bldc_f_sw_min = 10'000_Hz;
       mcconf.sl_bemf_coupling_k = 300;
       mcconf.sl_cycle_int_limit = 50;
       mcconf.sl_min_erpm_cycle_int_limit = 1100;

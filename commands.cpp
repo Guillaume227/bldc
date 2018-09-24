@@ -355,7 +355,8 @@ namespace commands{
           mcconf.cc_gain = get_float32_auto(data, &ind);
           mcconf.cc_ramp_step_max = get_float32_auto(data, &ind);
 
-          mcconf.m_fault_stop_time_ms = get_int32(data, &ind);
+          // TODO: serialize as float format (check decoding end)
+          mcconf.m_fault_stop_time_ms = millisecond_t(get_int32(data, &ind));
           mcconf.m_duty_ramp_step = get_float32_auto(data, &ind);
           mcconf.m_current_backoff_gain = get_float32_auto(data, &ind);
           mcconf.m_encoder_counts = get_uint32(data, &ind);
@@ -363,9 +364,9 @@ namespace commands{
           mcconf.m_invert_direction = data[ind++];
           mcconf.m_drv8301_oc_mode = data[ind++];
           mcconf.m_drv8301_oc_adj = data[ind++];
-          mcconf.m_bldc_f_sw_min = get_float32_auto(data, &ind);
-          mcconf.m_bldc_f_sw_max = get_float32_auto(data, &ind);
-          mcconf.m_dc_f_sw = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.m_bldc_f_sw_min, data, &ind);
+          get_float32_auto(mcconf.m_bldc_f_sw_max, data, &ind);
+          get_float32_auto(mcconf.m_dc_f_sw, data, &ind);
           mcconf.m_ntc_motor_beta = get_float32_auto(data, &ind);
 
           using utils::truncate_number;
@@ -514,7 +515,8 @@ namespace commands{
           append_float32_auto(send_buffer, mcconf.cc_gain, &ind);
           append_float32_auto(send_buffer, mcconf.cc_ramp_step_max, &ind);
 
-          append_int32(send_buffer, mcconf.m_fault_stop_time_ms, &ind);
+          // TODO: serialize as float format (check decoding end)
+          append_int32(send_buffer, static_cast<float>(mcconf.m_fault_stop_time_ms), &ind);
           append_float32_auto(send_buffer, mcconf.m_duty_ramp_step, &ind);
           append_float32_auto(send_buffer, mcconf.m_current_backoff_gain, &ind);
           append_uint32(send_buffer, mcconf.m_encoder_counts, &ind);

@@ -18,30 +18,55 @@
     */
 
 #pragma once
+#include "units_def.h"
+//#include <type_traits>
 
 namespace utils{
 
   void step_towards(float& value, float const goal, float const step);
   float calc_ratio(float low, float high, float val);
-  void norm_angle(float &angle);
-  void norm_angle_rad(float &angle);
+  void norm_angle(degree_t &angle);
+  void norm_angle_rad(radian_t &angle);
+
   bool truncate_number(float &number, float min, float max);
+
+  //template<typename T, typename TT=typename unit_t_traits<T>::underlying_type>
+  template<typename T>
+  inline bool truncate_number(T& number, T const& va, T const& vb){
+    return truncate_number(static_cast<float&>(number),
+                           static_cast<float>(va),
+                           static_cast<float>(vb));
+  }
+
   bool truncate_number(int &number, int min, int max);
   bool truncate_number_abs(float& number, float max);
   float map(float x, float in_min, float in_max, float out_min, float out_max);
+
+  //std::enable_if_t<std::is_same<S, typename units::compound_unit<U, units::inverse<T>>>::value, T>
+  template<typename T, typename U>
+  U map(T const& x, T const& in_min, T const& in_max, U const& out_min, U const& out_max){
+    return U{map(static_cast<float>(x), static_cast<float>(in_min), static_cast<float>(in_max), static_cast<float>(out_min), static_cast<float>(out_max))};
+  }
+
   int map_int(int x, int in_min, int in_max, int out_min, int out_max);
   void deadband(float &value, float tres, float max);
-  float angle_difference(float angle1, float angle2);
-  float angle_difference_rad(float angle1, float angle2);
+  degree_t angle_difference(degree_t angle1, degree_t angle2);
+  radian_t angle_difference_rad(radian_t angle1, radian_t angle2);
   float avg_angles_rad_fast(float *angles, float *weights, int angles_num);
   float middle_of_3(float a, float b, float c);
   int middle_of_3_int(int a, int b, int c);
   float fast_inv_sqrt(float x);
   float fast_atan2(float y, float x);
   bool saturate_vector_2d(float &x, float &y, float max);
-  void fast_sincos(float angle, float *sin, float *cos);
-  void fast_sincos_better(float angle, float *sin, float *cos);
+  void fast_sincos(degree_t angle, float *sin, float *cos);
+  void fast_sincos_better(degree_t angle, float *sin, float *cos);
+
   float min_abs(float va, float vb);
+  template<typename T, typename TT=typename unit_t_traits<T>::underlying_type>
+  inline T min_abs(T va, T vb){
+    return min_abs(static_cast<float>(va), static_cast<float>(vb));
+  }
+
   float max_abs(float va, float vb);
   void byte_to_binary(int x, char *b);
   float throttle_curve(float val, float curve_acc, float curve_brake, int mode);

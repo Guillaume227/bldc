@@ -24,6 +24,7 @@
 #define FW_VERSION_MINOR		38
 
 #include "datatypes.h"
+#include "units_def.h"
 
 // Settings and parameters to override
 //#define VIN_R1						33000.0
@@ -99,8 +100,8 @@
 /*
  * Settings for the external LEDs (hardcoded for now)
  */
-#define LED_EXT_BATT_LOW			28.0
-#define LED_EXT_BATT_HIGH			33.0
+constexpr scalar_t LED_EXT_BATT_LOW	 = 28.0;
+constexpr scalar_t LED_EXT_BATT_HIGH = 33.0;
 
 /*
  * Output WS2811 signal on the HALL1 pin. Notice that hall sensors can't be used

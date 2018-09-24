@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef DATATYPES_H_
-#define DATATYPES_H_
+#pragma once
 
 #include <stdint.h>
 #include "ch.h"
+#include "units_def.h"
 
 // Data types
 enum mc_state {
@@ -139,37 +139,37 @@ struct mc_configuration {
 	mc_motor_type motor_type;
 	mc_sensor_mode sensor_mode;
 	// Limits
-	float l_current_max;
-	float l_current_min;
-	float l_in_current_max;
-	float l_in_current_min;
-	float l_abs_current_max;
+	ampere_t l_current_max;
+	ampere_t l_current_min;
+	ampere_t l_in_current_max;
+	ampere_t l_in_current_min;
+	ampere_t l_abs_current_max;
 	float l_min_erpm;
 	float l_max_erpm;
 	float l_erpm_start;
 	float l_max_erpm_fbrake;
 	float l_max_erpm_fbrake_cc;
-	float l_min_vin;
-	float l_max_vin;
-	float l_battery_cut_start;
-	float l_battery_cut_end;
+	volt_t l_min_vin;
+	volt_t l_max_vin;
+	volt_t l_battery_cut_start;
+	volt_t l_battery_cut_end;
 	bool l_slow_abs_current;
-	float l_temp_fet_start;
-	float l_temp_fet_end;
-	float l_temp_motor_start;
-	float l_temp_motor_end;
-	float l_temp_accel_dec;
-	float l_min_duty;
-	float l_max_duty;
-	float l_watt_max;
-	float l_watt_min;
+	celsius_t l_temp_fet_start;
+	celsius_t l_temp_fet_end;
+	celsius_t l_temp_motor_start;
+	celsius_t l_temp_motor_end;
+	celsius_t l_temp_accel_dec;
+	dutycycle_t l_min_duty;
+	dutycycle_t l_max_duty;
+	watt_t l_watt_max;
+	watt_t l_watt_min;
 	// Overridden limits (Computed during runtime)
-	float lo_current_max;
-	float lo_current_min;
-	float lo_in_current_max;
-	float lo_in_current_min;
-	float lo_current_motor_max_now;
-	float lo_current_motor_min_now;
+	ampere_t lo_current_max;
+	ampere_t lo_current_min;
+	ampere_t lo_in_current_max;
+	ampere_t lo_in_current_min;
+	ampere_t lo_current_motor_max_now;
+	ampere_t lo_current_motor_min_now;
 	// Sensorless (bldc)
 	float sl_min_erpm;
 	float sl_min_erpm_cycle_int_limit;
@@ -247,7 +247,7 @@ struct mc_configuration {
 	float cc_gain;
 	float cc_ramp_step_max;
 	// Misc
-	int32_t m_fault_stop_time_ms;
+	millisecond_t m_fault_stop_time_ms;
 	float m_duty_ramp_step;
 	float m_current_backoff_gain;
 	uint32_t m_encoder_counts;
@@ -255,9 +255,9 @@ struct mc_configuration {
 	bool m_invert_direction;
 	drv8301_oc_mode m_drv8301_oc_mode;
 	int m_drv8301_oc_adj;
-	float m_bldc_f_sw_min;
-	float m_bldc_f_sw_max;
-	float m_dc_f_sw;
+	hertz_t m_bldc_f_sw_min;
+	hertz_t m_bldc_f_sw_max;
+	hertz_t m_dc_f_sw;
 	float m_ntc_motor_beta;
 };
 
@@ -333,11 +333,11 @@ enum adc_control_type {
 struct adc_config {
 	adc_control_type ctrl_type;
 	float hyst;
-	float voltage_start;
-	float voltage_end;
-	float voltage_center;
-	float voltage2_start;
-	float voltage2_end;
+	volt_t voltage_start;
+	volt_t voltage_end;
+	volt_t voltage_center;
+	volt_t voltage2_start;
+	volt_t voltage2_end;
 	bool use_filter;
 	bool safe_start;
 	bool cc_button_inverted;
@@ -524,18 +524,18 @@ enum CAN_PACKET_ID {
 // Logged fault data
 struct fault_data {
 	mc_fault_code fault;
-	float current;
-	float current_filtered;
-	float voltage;
-	float duty;
-	float rpm;
+	ampere_t current;
+	ampere_t current_filtered;
+	volt_t voltage;
+	dutycycle_t duty;
+	rpm_t rpm;
 	int tacho;
 	int cycles_running;
 	int tim_val_samp;
 	int tim_current_samp;
 	int tim_top;
 	int comm_step;
-	float temperature;
+    celsius_t temperature;
 	int drv8301_faults;
 };
 
@@ -590,16 +590,16 @@ enum MOTE_PACKET {
 };
 
 struct mc_values {
-	float v_in;
-	float temp_mos1;
-	float temp_mos2;
-	float temp_mos3;
-	float temp_mos4;
-    float temp_mos5;
-    float temp_mos6;
-    float temp_pcb;
-    float current_motor;
-    float current_in;
+	volt_t v_in;
+	celsius_t temp_mos1;
+	celsius_t temp_mos2;
+	celsius_t temp_mos3;
+	celsius_t temp_mos4;
+	celsius_t temp_mos5;
+	celsius_t temp_mos6;
+	celsius_t temp_pcb;
+	ampere_t current_motor;
+    ampere_t current_in;
     float rpm;
     float duty_now;
     float amp_hours;
@@ -616,5 +616,3 @@ enum NRF_PAIR_RES {
 	NRF_PAIR_OK,
 	NRF_PAIR_FAIL
 };
-
-#endif /* DATATYPES_H_ */

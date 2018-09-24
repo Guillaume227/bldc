@@ -25,7 +25,7 @@
 
 namespace{
   // Private variables
-  static volatile int _sys_lock_cnt = 0;
+  volatile int _sys_lock_cnt = 0;
 }
 
 namespace utils{
@@ -56,7 +56,7 @@ namespace utils{
    * @param angle
    * The angle to normalize.
    */
-  void norm_angle(float& angle) {
+  void norm_angle(degree_t& angle) {
       angle = fmodf(angle, 360.0);
 
       if (angle < 0.0) {
@@ -73,7 +73,7 @@ namespace utils{
    * The angle to normalize in radians.
    * WARNING: Don't use too large angles.
    */
-  void norm_angle_rad(float &angle) {
+  void norm_angle_rad(radian_t &angle) {
       while (angle < -M_PI) {
           angle += 2.0 * M_PI;
       }
@@ -98,6 +98,7 @@ namespace utils{
   bool truncate_number(float &number, float min, float max){
     return _truncate_number(number, min, max);
   }
+
   bool truncate_number(int &number, int min, int max){
     return _truncate_number(number, min, max);
   }
@@ -150,7 +151,7 @@ namespace utils{
    * @return
    * The difference between the angles
    */
-  float angle_difference(float angle1, float angle2) {
+  degree_t angle_difference(degree_t angle1, degree_t angle2) {
   //	norm_angle(&angle1);
   //	norm_angle(&angle2);
   //
@@ -165,7 +166,7 @@ namespace utils{
   //	return angle1 - angle2;
 
       // Faster in most cases
-      float difference = angle1 - angle2;
+      auto difference = angle1 - angle2;
       while (difference < -180.0) difference += 2.0 * 180.0;
       while (difference > 180.0) difference -= 2.0 * 180.0;
       return difference;
@@ -180,8 +181,8 @@ namespace utils{
    * @return
    * The difference between the angles in radians
    */
-  float angle_difference_rad(float angle1, float angle2) {
-      float difference = angle1 - angle2;
+  radian_t angle_difference_rad(radian_t angle1, radian_t angle2) {
+      auto difference = angle1 - angle2;
       while (difference < -M_PI) difference += 2.0 * M_PI;
       while (difference > M_PI) difference -= 2.0 * M_PI;
       return difference;

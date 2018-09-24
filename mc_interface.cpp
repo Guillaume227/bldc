@@ -47,12 +47,12 @@ namespace mc_interface{
   // Private variables
   /*volatile*/ mc_configuration m_conf;
   mc_fault_code m_fault_now;
-  int m_ignore_iterations;
+  millisecond_t m_ignore_iterations;
   volatile unsigned int m_cycles_running;
   volatile bool m_lock_enabled;
   volatile bool m_lock_override_once;
-  volatile float m_motor_current_sum;
-  volatile float m_input_current_sum;
+  volatile ampere_t m_motor_current_sum;
+  volatile ampere_t m_input_current_sum;
   volatile float m_motor_current_iterations;
   volatile float m_input_current_iterations;
   volatile float m_motor_id_sum;
@@ -63,9 +63,9 @@ namespace mc_interface{
   volatile float m_amp_seconds_charged;
   volatile float m_watt_seconds;
   volatile float m_watt_seconds_charged;
-  volatile float m_position_set;
-  volatile float m_temp_fet;
-  volatile float m_temp_motor;
+  volatile degree_t m_position_set;
+  volatile celsius_t m_temp_fet;
+  volatile celsius_t m_temp_motor;
 
   // Sampling variables
 #ifdef HW_NO_CCM_RAM
@@ -91,7 +91,7 @@ namespace mc_interface{
   volatile debug_sampling_mode m_sample_mode_last;
   volatile int m_sample_now;
   volatile int m_sample_trigger;
-  volatile float m_last_adc_duration_sample;
+  volatil_ second_t m_last_adc_duration_sample;
 
   // Private functions
   void update_override_limits(volatile mc_configuration *conf);
@@ -109,7 +109,7 @@ namespace mc_interface{
   void init(mc_configuration const*configuration) {
       m_conf = *configuration;
       m_fault_now = FAULT_CODE_NONE;
-      m_ignore_iterations = 0;
+      m_ignore_iterations = 0_ms;
       m_cycles_running = 0;
       m_lock_enabled = false;
       m_lock_override_once = false;
@@ -126,7 +126,7 @@ namespace mc_interface{
       m_watt_seconds = 0.0;
       m_watt_seconds_charged = 0.0;
       m_position_set = 0.0;
-      m_last_adc_duration_sample = 0.0;
+      m_last_adc_duration_sample = 0_s;
       m_temp_fet = 0.0;
       m_temp_motor = 0.0;
 
@@ -329,7 +329,7 @@ namespace mc_interface{
       }
   }
 
-  void set_duty(float dutyCycle) {
+  void set_duty(dutycycle_t dutyCycle) {
       if (try_input()) {
           return;
       }
@@ -349,7 +349,7 @@ namespace mc_interface{
       }
   }
 
-  void set_duty_noramp(float dutyCycle) {
+  void set_duty_noramp(dutycycle_t dutyCycle) {
       if (try_input()) {
           return;
       }
@@ -369,7 +369,7 @@ namespace mc_interface{
       }
   }
 
-  void set_pid_speed(float rpm) {
+  void set_pid_speed(rpm_t rpm) {
       if (try_input()) {
           return;
       }
@@ -389,7 +389,7 @@ namespace mc_interface{
       }
   }
 
-  void set_pid_pos(float pos) {
+  void set_pid_pos(degree_t pos) {
       if (try_input()) {
           return;
       }
@@ -569,8 +569,8 @@ namespace mc_interface{
       return DIR_MULT * ret;
   }
 
-  float get_sampling_frequency_now(void) {
-      float ret = 0.0;
+  hertz_t get_sampling_frequency_now(void) {
+      hertz_t ret = 0.0_Hz;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -579,7 +579,7 @@ namespace mc_interface{
           break;
 
       case MOTOR_TYPE_FOC:
-          ret = mcpwm_foc::get_sampling_frequency_now();
+          ret = hertz_t(mcpwm_foc::get_sampling_frequency_now());
           break;
 
       default:
@@ -685,7 +685,7 @@ namespace mc_interface{
       return val;
   }
 
-  float get_tot_current(void) {
+  ampere_t get_tot_current(void) {
       float ret = 0.0;
 
       switch (m_conf.motor_type) {
@@ -705,27 +705,22 @@ namespace mc_interface{
       return ret;
   }
 
-  float get_tot_current_filtered(void) {
-      float ret = 0.0;
-
+  ampere_t get_tot_current_filtered(void) {
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
       case MOTOR_TYPE_DC:
-          ret = mcpwm::get_tot_current_filtered();
-          break;
+          return mcpwm::get_tot_current_filtered();
 
       case MOTOR_TYPE_FOC:
-          ret = mcpwm_foc::get_tot_current_filtered();
-          break;
+          return mcpwm_foc::get_tot_current_filtered();
 
       default:
-          break;
+          return 0.0;
       }
 
-      return ret;
   }
 
-  float get_tot_current_directional(void) {
+  ampere_t get_tot_current_directional(void) {
       float ret = 0.0;
 
       switch (m_conf.motor_type) {
@@ -745,7 +740,7 @@ namespace mc_interface{
       return DIR_MULT * ret;
   }
 
-  float get_tot_current_directional_filtered(void) {
+  ampere_t get_tot_current_directional_filtered(void) {
       float ret = 0.0;
 
       switch (m_conf.motor_type) {
@@ -765,7 +760,7 @@ namespace mc_interface{
       return DIR_MULT * ret;
   }
 
-  float get_tot_current_in(void) {
+  ampere_t get_tot_current_in(void) {
       float ret = 0.0;
 
       switch (m_conf.motor_type) {
@@ -785,7 +780,7 @@ namespace mc_interface{
       return ret;
   }
 
-  float get_tot_current_in_filtered(void) {
+  ampere_t get_tot_current_in_filtered(void) {
       float ret = 0.0;
 
       switch (m_conf.motor_type) {
@@ -845,8 +840,8 @@ namespace mc_interface{
       return ret;
   }
 
-  float get_last_inj_adc_isr_duration(void) {
-      float ret = 0.0;
+  second_t get_last_inj_adc_isr_duration(void) {
+      second_t ret = 0_s;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -855,7 +850,7 @@ namespace mc_interface{
           break;
 
       case MOTOR_TYPE_FOC:
-          ret = mcpwm_foc::get_last_inj_adc_isr_duration();
+          ret = second_t(mcpwm_foc::get_last_inj_adc_isr_duration());
           break;
 
       default:
@@ -866,14 +861,14 @@ namespace mc_interface{
   }
 
   float read_reset_avg_motor_current(void) {
-      float res = m_motor_current_sum / m_motor_current_iterations;
+      auto res = m_motor_current_sum / m_motor_current_iterations;
       m_motor_current_sum = 0.0;
       m_motor_current_iterations = 0.0;
       return res;
   }
 
   float read_reset_avg_input_current(void) {
-      float res = m_input_current_sum / m_input_current_iterations;
+      auto res = m_input_current_sum / m_input_current_iterations;
       m_input_current_sum = 0.0;
       m_input_current_iterations = 0.0;
       return res;
@@ -886,7 +881,7 @@ namespace mc_interface{
    * The average D axis current.
    */
   float read_reset_avg_id(void) {
-      float res = m_motor_id_sum / m_motor_id_iterations;
+      auto res = m_motor_id_sum / m_motor_id_iterations;
       m_motor_id_sum = 0.0;
       m_motor_id_iterations = 0.0;
       return DIR_MULT * res; // TODO: DIR_MULT?
@@ -899,18 +894,18 @@ namespace mc_interface{
    * The average Q axis current.
    */
   float read_reset_avg_iq(void) {
-      float res = m_motor_iq_sum / m_motor_iq_iterations;
+      auto res = m_motor_iq_sum / m_motor_iq_iterations;
       m_motor_iq_sum = 0.0;
       m_motor_iq_iterations = 0.0;
       return DIR_MULT * res;
   }
 
-  float get_pid_pos_set(void) {
+  degree_t get_pid_pos_set(void) {
       return m_position_set;
   }
 
-  float get_pid_pos_now(void) {
-      float ret = 0.0;
+  degree_t get_pid_pos_now(void) {
+      degree_t ret = 0.0;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -932,7 +927,7 @@ namespace mc_interface{
       return ret;
   }
 
-  float get_last_sample_adc_isr_duration(void) {
+  second_t get_last_sample_adc_isr_duration(void) {
       return m_last_adc_duration_sample;
   }
 
@@ -959,7 +954,7 @@ namespace mc_interface{
    * @return
    * The filtered MOSFET temperature.
    */
-  float temp_fet_filtered(void) {
+  celsius_t temp_fet_filtered(void) {
       return m_temp_fet;
   }
 
@@ -970,7 +965,7 @@ namespace mc_interface{
    * @return
    * The filtered motor temperature.
    */
-  float temp_motor_filtered(void) {
+  celsius_t temp_motor_filtered(void) {
       return m_temp_motor;
   }
 
@@ -981,22 +976,20 @@ namespace mc_interface{
    * the motor. If the state is detecting, the detection will be stopped.
    *
    * @return
-   * The amount of milliseconds left until user commands are allowed again.
+   * whether user commands are still blocked or allowed again.
    *
    */
-  int try_input(void) {
+  bool try_input(void) {
       // TODO: Remove this later
       if (get_state() == MC_STATE_DETECTING) {
           mcpwm::stop_pwm();
           m_ignore_iterations = mcpwm::DETECT_STOP_TIME;
       }
 
-      int retval = m_ignore_iterations;
+      bool retval = m_ignore_iterations > 0_ms;
 
-      if (!m_ignore_iterations && m_lock_enabled) {
-          if (!m_lock_override_once) {
-              retval = 1;
-          } else {
+      if (retval && m_lock_enabled) {
+          if (m_lock_override_once) {
               m_lock_override_once = false;
           }
       }
@@ -1005,13 +998,13 @@ namespace mc_interface{
       case MOTOR_TYPE_BLDC:
       case MOTOR_TYPE_DC:
           if (!mcpwm::init_done()) {
-              retval = 1;
+              retval = true;
           }
           break;
 
       case MOTOR_TYPE_FOC:
           if (!mcpwm_foc::init_done()) {
-              retval = 1;
+              retval = true;
           }
           break;
 
@@ -1085,12 +1078,12 @@ namespace mc_interface{
   void mc_timer_isr(void) {
       ledpwm_update_pwm(); // LED PWM Driver update
 
-      const float input_voltage = GET_INPUT_VOLTAGE();
+      const volt_t input_voltage = GET_INPUT_VOLTAGE();
 
       // Check for faults that should stop the motor
       static int wrong_voltage_iterations = 0;
       if (input_voltage < m_conf.l_min_vin ||
-              input_voltage > m_conf.l_max_vin) {
+          input_voltage > m_conf.l_max_vin) {
           wrong_voltage_iterations++;
 
           if ((wrong_voltage_iterations >= 8)) {
@@ -1111,8 +1104,8 @@ namespace mc_interface{
           pwn_done_func();
       }
 
-      const float current = get_tot_current_filtered();
-      const float current_in = get_tot_current_in_filtered();
+      auto const current = get_tot_current_filtered();
+      auto const current_in = get_tot_current_in_filtered();
       m_motor_current_sum += current;
       m_input_current_sum += current_in;
       m_motor_current_iterations++;
@@ -1123,8 +1116,8 @@ namespace mc_interface{
       m_motor_id_iterations++;
       m_motor_iq_iterations++;
 
-      float abs_current = get_tot_current();
-      float abs_current_filtered = current;
+      auto abs_current = get_tot_current();
+      auto abs_current_filtered = current;
       if (m_conf.motor_type == MOTOR_TYPE_FOC) {
           // TODO: Make this more general
           abs_current = mcpwm_foc::get_abs_motor_current();
@@ -1148,7 +1141,7 @@ namespace mc_interface{
       }
 
       // Watt and ah counters
-      const float f_samp = get_sampling_frequency_now();
+      auto const f_samp = static_cast<float>(get_sampling_frequency_now());
       if (fabsf(current) > 1.0) {
           // Some extra filtering
           static float curr_diff_sum = 0.0;
@@ -1159,10 +1152,10 @@ namespace mc_interface{
 
           if (curr_diff_samples >= 0.01) {
               if (curr_diff_sum > 0.0) {
-                  m_amp_seconds += curr_diff_sum;
+                  m_amp_seconds  += curr_diff_sum;
                   m_watt_seconds += curr_diff_sum * input_voltage;
               } else {
-                  m_amp_seconds_charged -= curr_diff_sum;
+                  m_amp_seconds_charged  -= curr_diff_sum;
                   m_watt_seconds_charged -= curr_diff_sum * input_voltage;
               }
 
@@ -1176,7 +1169,7 @@ namespace mc_interface{
       switch (m_sample_mode) {
       case DEBUG_SAMPLING_NOW:
           if (m_sample_now == m_sample_len) {
-              m_sample_mode = DEBUG_SAMPLING_OFF;
+              m_sample_mode      = DEBUG_SAMPLING_OFF;
               m_sample_mode_last = DEBUG_SAMPLING_NOW;
               chSysLockFromISR();
               chEvtSignalI(sample_send_tp, (eventmask_t) 1);
@@ -1338,15 +1331,15 @@ namespace mc_interface{
    * The configuration to update.
    */
   void update_override_limits(volatile mc_configuration *conf) {
-      const float v_in = GET_INPUT_VOLTAGE();
-      const float rpm_now = get_rpm();
+      auto const v_in = GET_INPUT_VOLTAGE();
+      auto const rpm_now = get_rpm();
 
-      UTILS_LP_FAST(m_temp_fet, NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
-      UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
+      UTILS_LP_FAST(m_temp_fet,   celsius_t{NTC_TEMP(ADC_IND_TEMP_MOS)}, 0.1_degC);
+      UTILS_LP_FAST(m_temp_motor, celsius_t{NTC_TEMP_MOTOR(conf->m_ntc_motor_beta)}, 0.1_degC);
 
       // Temperature MOSFET
-      float lo_min_mos = conf->l_current_min;
-      float lo_max_mos = conf->l_current_max;
+      auto lo_min_mos = conf->l_current_min;
+      auto lo_max_mos = conf->l_current_max;
       if (m_temp_fet < conf->l_temp_fet_start) {
           // Keep values
       } else if (m_temp_fet > conf->l_temp_fet_end) {
@@ -1359,7 +1352,7 @@ namespace mc_interface{
               maxc = fabsf(conf->l_current_min);
           }
 
-          maxc = utils::map(m_temp_fet, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0.0);
+          maxc = utils::map(m_temp_fet, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0.0_degC);
           using utils::SIGN;
           if (fabsf(conf->l_current_min) > maxc) {
               lo_min_mos = SIGN(conf->l_current_min) * maxc;
@@ -1371,8 +1364,8 @@ namespace mc_interface{
       }
 
       // Temperature MOTOR
-      float lo_min_mot = conf->l_current_min;
-      float lo_max_mot = conf->l_current_max;
+      auto lo_min_mot = conf->l_current_min;
+      auto lo_max_mot = conf->l_current_max;
       if (m_temp_motor < conf->l_temp_motor_start) {
           // Keep values
       } else if (m_temp_motor > conf->l_temp_motor_end) {
@@ -1385,7 +1378,7 @@ namespace mc_interface{
               maxc = fabsf(conf->l_current_min);
           }
 
-          maxc = utils::map(m_temp_motor, conf->l_temp_motor_start, conf->l_temp_motor_end, maxc, 0.0);
+          maxc = utils::map(m_temp_motor, conf->l_temp_motor_start, conf->l_temp_motor_end, maxc, 0.0_degC);
 
           using utils::SIGN;
           if (fabsf(conf->l_current_min) > maxc) {
@@ -1399,10 +1392,13 @@ namespace mc_interface{
 
       // Decreased temperatures during acceleration
       // in order to still have braking torque available
-      const float temp_fet_accel_start = utils::map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_fet_start, 25.0);
-      const float temp_fet_accel_end = utils::map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_fet_end, 25.0);
-      const float temp_motor_accel_start = utils::map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_start, 25.0);
-      const float temp_motor_accel_end = utils::map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_end, 25.0);
+      //float x, float in_min, float in_max, float out_min, float out_max
+      //return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+      //conf->l_temp_accel_dec * (25.0 - conf->l_temp_fet_start) + conf->l_temp_fet_start
+      celsius_t const temp_fet_accel_start   = utils::map(conf->l_temp_accel_dec, 0.0_degC, 1.0_degC, conf->l_temp_fet_start, 25.0_degC);
+      celsius_t const temp_fet_accel_end     = utils::map(conf->l_temp_accel_dec, 0.0_degC, 1.0_degC, conf->l_temp_fet_end, 25.0_degC);
+      celsius_t const temp_motor_accel_start = utils::map(conf->l_temp_accel_dec, 0.0_degC, 1.0_degC, conf->l_temp_motor_start, 25.0_degC);
+      celsius_t const temp_motor_accel_end   = utils::map(conf->l_temp_accel_dec, 0.0_degC, 1.0_degC, conf->l_temp_motor_end, 25.0_degC);
 
       float lo_fet_temp_accel = 0.0;
       if (m_temp_fet < temp_fet_accel_start) {
@@ -1411,7 +1407,7 @@ namespace mc_interface{
           lo_fet_temp_accel = 0.0;
       } else {
           lo_fet_temp_accel = utils::map(m_temp_fet, temp_fet_accel_start,
-                  temp_fet_accel_end, conf->l_current_max, 0.0);
+                  temp_fet_accel_end, conf->l_current_max, 0.0_A);
       }
 
       float lo_motor_temp_accel = 0.0;
@@ -1420,8 +1416,11 @@ namespace mc_interface{
       } else if (m_temp_motor > temp_motor_accel_end) {
           lo_motor_temp_accel = 0.0;
       } else {
-          lo_motor_temp_accel = utils::map(m_temp_motor, temp_motor_accel_start,
-                  temp_motor_accel_end, conf->l_current_max, 0.0);
+          lo_motor_temp_accel = utils::map(m_temp_motor,
+                                           temp_motor_accel_start,
+                                           temp_motor_accel_end,
+                                           conf->l_current_max,
+                                           0.0_A);
       }
 
       // RPM max
@@ -1514,12 +1513,13 @@ namespace mc_interface{
       (void)arg;
 
       chRegSetThreadName("mcif timer");
-
+      millisecond_t const thread_delay = 1_ms;
       for(;;) {
           // Decrease fault iterations
-          if (m_ignore_iterations > 0) {
-              m_ignore_iterations--;
+          if (m_ignore_iterations > 0_ms) {
+              m_ignore_iterations -= thread_delay;
           } else {
+              m_ignore_iterations = 0_ms;
               if (!IS_DRV_FAULT()) {
                   m_fault_now = FAULT_CODE_NONE;
               }

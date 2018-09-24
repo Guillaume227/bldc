@@ -28,41 +28,41 @@ namespace mcpwm {
   bool init_done(void);
   void set_configuration(mc_configuration *configuration);
   void init_hall_table(int8_t *table);
-  void set_duty(float dutyCycle);
-  void set_duty_noramp(float dutyCycle);
-  void set_pid_speed(float rpm);
-  void set_pid_pos(float pos);
-  void set_current(float current);
-  void set_brake_current(float current);
+  void set_duty(dutycycle_t dutyCycle);
+  void set_duty_noramp(dutycycle_t dutyCycle);
+  void set_pid_speed(rpm_t rpm);
+  void set_pid_pos(degree_t pos);
+  void set_current(ampere_t current);
+  void set_brake_current(ampere_t current);
   void brake_now(void);
   void release_motor(void);
   int get_comm_step(void);
-  float get_duty_cycle_set(void);
-  float get_duty_cycle_now(void);
-  float get_switching_frequency_now(void);
-  float get_rpm(void);
+  dutycycle_t get_duty_cycle_set(void);
+  dutycycle_t get_duty_cycle_now(void);
+  hertz_t get_switching_frequency_now(void);
+  rpm_t get_rpm(void);
   mc_state get_state(void);
-  float get_kv(void);
-  float get_kv_filtered(void);
+  kv_t get_kv(void);
+  kv_t get_kv_filtered(void);
   int get_tachometer_value(bool reset);
   int get_tachometer_abs_value(bool reset);
   void stop_pwm(void);
-  float get_tot_current(void);
-  float get_tot_current_filtered(void);
-  float get_tot_current_directional(void);
-  float get_tot_current_directional_filtered(void);
-  float get_tot_current_in(void);
-  float get_tot_current_in_filtered(void);
+  ampere_t get_tot_current(void);
+  ampere_t get_tot_current_filtered(void);
+  ampere_t get_tot_current_directional(void);
+  ampere_t get_tot_current_directional_filtered(void);
+  ampere_t get_tot_current_in(void);
+  ampere_t get_tot_current_in_filtered(void);
   void set_detect(void); // detect BLDC motor params
-  float get_detect_pos(void);
+  degree_t get_detect_pos(void);
   void reset_hall_detect_table(void);
   int get_hall_detect_result(int8_t *table);
   int read_hall_phase(void);
   float read_reset_avg_cycle_integrator(void);
   void set_comm_mode(mc_comm_mode mode);
   mc_comm_mode get_comm_mode(void);
-  float get_last_adc_isr_duration(void);
-  float get_last_inj_adc_isr_duration(void);
+  second_t get_last_adc_isr_duration(void);
+  second_t get_last_inj_adc_isr_duration(void);
   mc_rpm_dep_struct const& get_rpm_dep(void);
   bool is_dccal_done(void);
   void switch_comm_mode(mc_comm_mode next);
@@ -80,10 +80,10 @@ namespace mcpwm {
   /*
    * Fixed parameters
    */
-  constexpr float RPM_TIMER_FREQ   = 1000000.0;// Frequency of the RPM measurement timer
-  constexpr int CMD_STOP_TIME      = 0;        // Ignore commands for this duration in msec after a stop has been sent
-  constexpr int DETECT_STOP_TIME   = 500;      // Ignore commands for this duration in msec after a detect command
+  constexpr hertz_t RPM_TIMER_FREQ   = 1'000'000.0_Hz; // Frequency of the RPM measurement timer
+  constexpr millisecond_t CMD_STOP_TIME      = 0_ms;  // Ignore commands for this duration in msec after a stop has been sent
+  constexpr millisecond_t DETECT_STOP_TIME   = 500_ms;// Ignore commands for this duration in msec after a detect command
 
   // Speed PID parameters
-  constexpr float PID_TIME_K       = 0.001;    // Pid controller sample time in seconds
+  constexpr float /*second_t*/ PID_TIME_K       = 0.001;//_s;    // Pid controller sample time in seconds
 }

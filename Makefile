@@ -193,7 +193,8 @@ INCDIR = $(CHIBIOS)/os/license \
          appconf \
          $(HWINC) \
          $(APPINC) \
-         $(NRFINC)
+         $(NRFINC) \
+         units/include
 
 #
 # Project, sources and paths

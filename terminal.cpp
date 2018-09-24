@@ -89,9 +89,9 @@ namespace terminal{
           mc_interface::set_duty(0);
           printf("Motor stopped\n");
       } else if (strcmp(argv[0], "last_adc_duration") == 0) {
-          printf("Latest ADC duration: %.4f ms", (double)(mcpwm::get_last_adc_isr_duration() * 1000.0));
-          printf("Latest injected ADC duration: %.4f ms", (double)(mc_interface::get_last_inj_adc_isr_duration() * 1000.0));
-          printf("Latest sample ADC duration: %.4f ms\n", (double)(mc_interface::get_last_sample_adc_isr_duration() * 1000.0));
+          printf("Latest ADC duration: %.4f ms", static_cast<float>(mcpwm::get_last_adc_isr_duration() * 1000.0));
+          printf("Latest injected ADC duration: %.4f ms", static_cast<float>(mc_interface::get_last_inj_adc_isr_duration() * 1000.0));
+          printf("Latest sample ADC duration: %.4f ms\n", static_cast<float>(mc_interface::get_last_sample_adc_isr_duration() * 1000.0));
       } else if (strcmp(argv[0], "kv") == 0) {
           printf("Calculated KV: %.2f rpm/volt\n", (double)mcpwm::get_kv_filtered());
       } else if (strcmp(argv[0], "mem") == 0) {
@@ -135,7 +135,7 @@ namespace terminal{
                   printf("TIM current samp : %d", fault_vec[i].tim_current_samp);
                   printf("TIM top          : %d", fault_vec[i].tim_top);
                   printf("Comm step        : %d", fault_vec[i].comm_step);
-                  printf("Temperature      : %.2f", (double)fault_vec[i].temperature);
+                  printf("Temperature      : %.2f", (double)static_cast<float>(fault_vec[i].temperature));
   #ifdef HW_HAS_DRV8301
                   if (fault_vec[i].fault == FAULT_CODE_DRV) {
                       printf("DRV8301_FAULTS   : %s", drv8301_faults_to_string(fault_vec[i].drv8301_faults));

@@ -17,8 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef MCCONF_DEFAULT_H_
-#define MCCONF_DEFAULT_H_
+#pragma once
 
 // Default settings
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
@@ -36,31 +35,31 @@
 
 // Limits
 #ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX			60.0	// Current limit in Amperes (Upper)
+#define MCCONF_L_CURRENT_MAX			60.0_A	// Current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_CURRENT_MIN
-#define MCCONF_L_CURRENT_MIN			-60.0	// Current limit in Amperes (Lower)
+#define MCCONF_L_CURRENT_MIN			-60.0_A	// Current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX			60.0_A	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-40.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-40.0_A	// Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		130.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT		130.0_A	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_L_MIN_VOLTAGE
-#define MCCONF_L_MIN_VOLTAGE			8.0		// Minimum input voltage
+#define MCCONF_L_MIN_VOLTAGE			8.0_V		// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			57.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			57.0_V	// Maximum input voltage
 #endif
 #ifndef MCCONF_L_BATTERY_CUT_START
-#define MCCONF_L_BATTERY_CUT_START		10.0	// Start limiting the positive current at this voltage
+#define MCCONF_L_BATTERY_CUT_START		10.0_V	// Start limiting the positive current at this voltage
 #endif
 #ifndef MCCONF_L_BATTERY_CUT_END
-#define MCCONF_L_BATTERY_CUT_END		8.0		// Limit the positive current completely at this voltage
+#define MCCONF_L_BATTERY_CUT_END		8.0_V		// Limit the positive current completely at this voltage
 #endif
 #ifndef MCCONF_L_RPM_MAX
 #define MCCONF_L_RPM_MAX				100000.0	// The motor speed limit (Upper)
@@ -87,16 +86,16 @@
 #define MCCONF_L_CURR_MAX_RPM_FBRAKE_CC	1500	// Maximum electrical RPM to use full brake at with current control
 #endif
 #ifndef MCCONF_L_LIM_TEMP_FET_START
-#define MCCONF_L_LIM_TEMP_FET_START		85.0	// MOSFET temperature where current limiting should begin
+#define MCCONF_L_LIM_TEMP_FET_START		85.0_degC	// MOSFET temperature where current limiting should begin
 #endif
 #ifndef MCCONF_L_LIM_TEMP_FET_END
-#define MCCONF_L_LIM_TEMP_FET_END		100.0	// MOSFET temperature where everything should be shut off
+#define MCCONF_L_LIM_TEMP_FET_END		100.0_degC	// MOSFET temperature where everything should be shut off
 #endif
 #ifndef MCCONF_L_LIM_TEMP_MOTOR_START
-#define MCCONF_L_LIM_TEMP_MOTOR_START	85.0	// MOTOR temperature where current limiting should begin
+#define MCCONF_L_LIM_TEMP_MOTOR_START	85.0_degC	// MOTOR temperature where current limiting should begin
 #endif
 #ifndef MCCONF_L_LIM_TEMP_MOTOR_END
-#define MCCONF_L_LIM_TEMP_MOTOR_END		100.0	// MOTOR temperature where everything should be shut off
+#define MCCONF_L_LIM_TEMP_MOTOR_END		100.0_degC	// MOTOR temperature where everything should be shut off
 #endif
 #ifndef MCCONF_L_LIM_TEMP_ACCEL_DEC
 #define MCCONF_L_LIM_TEMP_ACCEL_DEC		0.15	// Decrease temperature limits this much during acceleration
@@ -150,7 +149,7 @@
 #define MCCONF_CC_GAIN					0.0046	// Current controller error gain
 #endif
 #ifndef MCCONF_CC_MIN_CURRENT
-#define MCCONF_CC_MIN_CURRENT			0.1		// Minimum allowed current
+#define MCCONF_CC_MIN_CURRENT			0.1_A		// Minimum allowed current
 #endif
 #ifndef MCCONF_CC_STARTUP_BOOST_DUTY
 #define MCCONF_CC_STARTUP_BOOST_DUTY	0.01	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
@@ -318,7 +317,7 @@
 #define MCCONF_FOC_TEMP_COMP			false	// Motor temperature compensation
 #endif
 #ifndef MCCONF_FOC_TEMP_COMP_BASE_TEMP
-#define MCCONF_FOC_TEMP_COMP_BASE_TEMP	25.0	// Motor temperature compensation base temperature
+#define MCCONF_FOC_TEMP_COMP_BASE_TEMP	25.0_degC	// Motor temperature compensation base temperature
 #endif
 #ifndef MCCONF_FOC_CURRENT_FILTER_CONST
 #define MCCONF_FOC_CURRENT_FILTER_CONST	0.1		// Filter constant for the filtered currents
@@ -326,7 +325,7 @@
 
 // Misc
 #ifndef MCCONF_M_FAULT_STOP_TIME
-#define MCCONF_M_FAULT_STOP_TIME		500	// Ignore commands for this duration in msec when faults occur
+#define MCCONF_M_FAULT_STOP_TIME		500_ms	// Ignore commands for this duration in msec when faults occur
 #endif
 #ifndef MCCONF_M_RAMP_STEP
 #define MCCONF_M_RAMP_STEP				0.02	// Duty cycle ramping step (1000 times/sec) at maximum duty cycle
@@ -350,16 +349,15 @@
 #define MCCONF_M_DRV8301_OC_ADJ			16 // DRV8301 over current protection threshold
 #endif
 #ifndef MCCONF_M_BLDC_F_SW_MIN
-#define MCCONF_M_BLDC_F_SW_MIN			3000 // Minimum switching frequency in bldc mode
+#define MCCONF_M_BLDC_F_SW_MIN			3000_Hz // Minimum switching frequency in bldc mode
 #endif
 #ifndef MCCONF_M_BLDC_F_SW_MAX
-#define MCCONF_M_BLDC_F_SW_MAX			40000 // Maximum switching frequency in bldc mode
+#define MCCONF_M_BLDC_F_SW_MAX			40000_Hz // Maximum switching frequency in bldc mode
 #endif
 #ifndef MCCONF_M_DC_F_SW
-#define MCCONF_M_DC_F_SW				35000 // Switching frequency in dc mode
+#define MCCONF_M_DC_F_SW				35000_Hz // Switching frequency in dc mode
 #endif
 #ifndef MCCONF_M_NTC_MOTOR_BETA
 #define MCCONF_M_NTC_MOTOR_BETA			3380.0 // Beta value for motor termistor
 #endif
 
-#endif /* MCCONF_DEFAULT_H_ */

@@ -75,8 +75,8 @@ namespace mcpwm {
   volatile int m_curr1_offset;
   volatile mc_state m_state;
   volatile mc_control_mode m_control_mode;
-  volatile float m_last_current_sample;
-  volatile float m_last_current_sample_filtered;
+  volatile ampere_t m_last_current_sample;
+  volatile ampere_t m_last_current_sample_filtered;
   volatile float m_detect_currents_avg[6];
   volatile float m_detect_avg_samples[6];
 
@@ -89,10 +89,10 @@ namespace mcpwm {
    * Lower switching frequency also decreases switching losses,
    * which is a positive side-effect.
    */
-  volatile float m_switching_frequency_now; // PWM switching frequency
-  volatile int m_ignore_iterations;
+  volatil_ hertz_t m_switching_frequency_now; // PWM switching frequency
+  volatil_ millisecond_t m_ignore_iterations;
   MCTimer m_timer_struct;
-  volatile int m_curr_samp_volt; // Use the voltage-synchronized samples for this current sample
+  volatile int m_use_curr_samp_volt; // bitmap - Use the voltage-synchronized samples for this current sample
   int m_hall_to_phase_table[16];
   volatile unsigned int m_slow_ramping_cycles;
   volatile int m_has_commutated;
@@ -100,7 +100,7 @@ namespace mcpwm {
   volatile float m_cycle_integrator_sum;
   volatile float m_cycle_integrator_iterations;
   mc_configuration *m_conf;
-  volatile float m_pwm_cycles_sum;
+  volatil_ scalar_t m_pwm_cycles_sum;
   volatile int m_pwm_cycles;
   volatile float m_last_pwm_cycles_sum;
   volatile float m_last_pwm_cycles_sums[6];
@@ -140,8 +140,8 @@ namespace mcpwm {
   volatile float m_current_fir_samples[CURR_FIR_LEN];
   volatile uint32_t m_current_fir_index = 0;
 
-  volatile float m_last_adc_isr_duration;
-  volatile float m_last_inj_adc_isr_duration;
+  volatil_ second_t m_last_adc_isr_duration;
+  volatil_ second_t m_last_inj_adc_isr_duration;
 
   // Private functions
   void set_duty_cycle_hl(float dutyCycle);
@@ -152,7 +152,7 @@ namespace mcpwm {
   void full_brake_ll(void);
   void full_brake_hw(void);
   void run_pid_control_speed(void);
-  void run_pid_control_pos(float dt);
+  void run_pid_control_pos(second_t dt);
   void set_next_comm_step(int next_step);
   void update_rpm_tacho(void);
   void update_sensor_mode(void);
@@ -161,7 +161,7 @@ namespace mcpwm {
   void commutate(int steps);
   void set_next_timer_settings(MCTimer const*settings);
   void update_timer_attempt(void);
-  void set_switching_frequency(float frequency);
+  void set_switching_frequency(hertz_t frequency);
   void do_dc_cal(void);
   inline bool is_detecting() {
     return m_state == MC_STATE_DETECTING;
@@ -204,8 +204,8 @@ namespace mcpwm {
     m_last_current_sample = 0.0;
     m_last_current_sample_filtered = 0.0;
     m_switching_frequency_now = m_conf->m_bldc_f_sw_max;
-    m_ignore_iterations = 0;
-    m_curr_samp_volt = 0;
+    m_ignore_iterations = 0_ms;
+    m_use_curr_samp_volt = 0;
     m_slow_ramping_cycles = 0;
     m_has_commutated = 0;
     memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
@@ -247,7 +247,7 @@ namespace mcpwm {
     TIM_TimeBaseStructure.TIM_Prescaler = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK
-        / (int)m_switching_frequency_now; // ARR value
+        / (int)static_cast<float>(m_switching_frequency_now); // ARR value
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;
     TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -440,7 +440,7 @@ namespace mcpwm {
 
     // 32-bit timer for RPM measurement
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-    uint16_t PrescalerValue = (uint16_t)(TIM2_CLOCK / RPM_TIMER_FREQ) - 1;
+    uint16_t PrescalerValue = (uint16_t)static_cast<float>(TIM2_CLOCK / RPM_TIMER_FREQ) - 1;
 
     // Time base configuration
     TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -469,7 +469,7 @@ namespace mcpwm {
 
     // Various time measurements
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
-    PrescalerValue = (uint16_t)(TIM12_CLOCK / TIM12_FREQ) - 1;
+    PrescalerValue = (uint16_t)static_cast<float>(TIM12_CLOCK / TIM12_FREQ) - 1;
 
     // Time base configuration
     TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -668,7 +668,7 @@ namespace mcpwm {
    * @param current
    * The current to use.
    */
-  void set_current(float current) {
+  void set_current(ampere_t current) {
     if (fabsf(current) < m_conf->cc_min_current) {
       m_control_mode = CONTROL_MODE_NONE;
       stop_pwm_ll();
@@ -692,7 +692,7 @@ namespace mcpwm {
    * @param current
    * The current to use. Positive and negative values give the same effect.
    */
-  void set_brake_current(float current) {
+  void set_brake_current(ampere_t current) {
     if (fabsf(current) < m_conf->cc_min_current) {
       m_control_mode = CONTROL_MODE_NONE;
       stop_pwm_ll();
@@ -741,7 +741,7 @@ namespace mcpwm {
    * @return
    * The switching frequency in Hz.
    */
-  float get_switching_frequency_now(void) {
+  hertz_t get_switching_frequency_now(void) {
     return m_switching_frequency_now;
   }
 
@@ -798,7 +798,7 @@ namespace mcpwm {
    * @return
    * The motor current.
    */
-  float get_tot_current(void) {
+  ampere_t get_tot_current(void) {
     return m_last_current_sample;
   }
 
@@ -810,7 +810,7 @@ namespace mcpwm {
    * @return
    * The filtered motor current.
    */
-  float get_tot_current_filtered(void) {
+  ampere_t get_tot_current_filtered(void) {
     return m_last_current_sample_filtered;
   }
 
@@ -821,8 +821,8 @@ namespace mcpwm {
    * @return
    * The motor current.
    */
-  float get_tot_current_directional(void) {
-    const float retval = get_tot_current();
+  ampere_t get_tot_current_directional(void) {
+    auto const retval = get_tot_current();
     return m_dutycycle_now > 0.0 ? retval : -retval;
   }
 
@@ -833,8 +833,8 @@ namespace mcpwm {
    * @return
    * The filtered motor current.
    */
-  float get_tot_current_directional_filtered(void) {
-    const float retval = get_tot_current_filtered();
+  ampere_t get_tot_current_directional_filtered(void) {
+    auto const retval = get_tot_current_filtered();
     return m_dutycycle_now > 0.0 ? retval : -retval;
   }
 
@@ -844,7 +844,7 @@ namespace mcpwm {
    * @return
    * The input current.
    */
-  float get_tot_current_in(void) {
+  ampere_t get_tot_current_in(void) {
     return get_tot_current() * fabsf(m_dutycycle_now);
   }
 
@@ -854,7 +854,7 @@ namespace mcpwm {
    * @return
    * The filtered input current.
    */
-  float get_tot_current_in_filtered(void) {
+  ampere_t get_tot_current_in_filtered(void) {
     return get_tot_current_filtered() * fabsf(m_dutycycle_now);
   }
 
@@ -1122,12 +1122,12 @@ namespace mcpwm {
       m_switching_frequency_now = m_conf->m_bldc_f_sw_max;
     }
     else {
-      m_switching_frequency_now = (float)m_conf->m_bldc_f_sw_min
+      m_switching_frequency_now = m_conf->m_bldc_f_sw_min
           * (1.0 - fabsf(dutyCycle))
           + m_conf->m_bldc_f_sw_max * fabsf(dutyCycle);
     }
 
-    timer_tmp.top = SYSTEM_CORE_CLOCK / (int)m_switching_frequency_now;
+    timer_tmp.top = SYSTEM_CORE_CLOCK / (int)static_cast<float>(m_switching_frequency_now);
 
     if (m_conf->pwm_mode == PWM_MODE_BIPOLAR && !is_detecting()) {
       timer_tmp.duty = (uint16_t)(
@@ -1250,7 +1250,9 @@ namespace mcpwm {
 #endif
   }
 
-  void run_pid_control_pos(float dt) {
+  void run_pid_control_pos(second_t const _dt) {
+
+    auto const dt = static_cast<float>(_dt);
     static float i_term = 0;
     static float prev_error = 0;
     float p_term;
@@ -1309,13 +1311,12 @@ namespace mcpwm {
         rpm_dep.time_at_comm = 0;
         sys_unlock_cnt();
 
-        m_rpm_now = (comms * RPM_TIMER_FREQ * 60.0) / (time_at_comm * 6.0);
+        m_rpm_now = (comms * static_cast<float>(RPM_TIMER_FREQ) * 60.0) / (time_at_comm * 6.0);      
       }
       else {
         // GG: still on the same commutation as in previous rpm evaluation
         // In case we have slowed down
-        float rpm_tmp = (RPM_TIMER_FREQ * 60.0) / ((float) TIM2->CNT * 6.0);
-
+        float rpm_tmp = (static_cast<float>(RPM_TIMER_FREQ) * 60.0) / ((float) TIM2->CNT * 6.0);
         if (fabsf(rpm_tmp) < fabsf(m_rpm_now)) {
           m_rpm_now = rpm_tmp;
         }
@@ -1352,9 +1353,9 @@ namespace mcpwm {
         rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit_max;
       }
 
-      rpm_dep.comm_time_sum = m_conf->m_bldc_f_sw_max
+      rpm_dep.comm_time_sum = static_cast<float>(m_conf->m_bldc_f_sw_max)
           / ((rpm_abs / 60.0) * 6.0);
-      rpm_dep.comm_time_sum_min_rpm = m_conf->m_bldc_f_sw_max
+      rpm_dep.comm_time_sum_min_rpm = static_cast<float>(m_conf->m_bldc_f_sw_max)
           / ((m_conf->sl_min_erpm / 60.0) * 6.0);
 
       run_pid_control_speed();
@@ -1490,11 +1491,11 @@ namespace mcpwm {
 
       if (m_detect_step > 0) {
         detect_currents_diff[m_detect_step] = detect_currents[m_detect_step - 1]
-            - detect_currents[m_detect_step];
+                                            - detect_currents[m_detect_step];
       }
       else {
         detect_currents_diff[m_detect_step] = detect_currents[5]
-            - detect_currents[m_detect_step];
+                                            - detect_currents[m_detect_step];
       }
 
       const int vzero = ADC_V_ZERO;
@@ -1503,7 +1504,7 @@ namespace mcpwm {
       switch (m_comm_step) {
       case 1:
       case 4:
-        detect_voltages[m_detect_step] = ADC_V_L1- vzero;
+        detect_voltages[m_detect_step] = ADC_V_L1 - vzero;
         break;
 
         case 2:
@@ -1566,16 +1567,16 @@ namespace mcpwm {
     float curr2_currsamp = curr2;
 #endif
 
-    if (m_curr_samp_volt & (1 << 0)) {
+    if (m_use_curr_samp_volt & (1 << 0)) {
       curr0 = ADC_Value[ADC_IND_CURR1];
     }
 
-    if (m_curr_samp_volt & (1 << 1)) {
+    if (m_use_curr_samp_volt & (1 << 1)) {
       curr1 = ADC_Value[ADC_IND_CURR2];
     }
 
 #ifdef HW_HAS_3_SHUNTS
-    if (m_curr_samp_volt & (1 << 2)) {
+    if (m_use_curr_samp_volt & (1 << 2)) {
       curr2 = ADC_Value[ADC_IND_CURR3];
     }
 #endif
@@ -1732,8 +1733,8 @@ namespace mcpwm {
         switch (m_comm_step) {
           case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
           case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
-          case 3: curr_tot_sample = (float)ADC_curr_norm_value[0]; break;
-          case 4: curr_tot_sample = (float)ADC_curr_norm_value[1]; break;
+          case 3: curr_tot_sample =  (float)ADC_curr_norm_value[0]; break;
+          case 4: curr_tot_sample =  (float)ADC_curr_norm_value[1]; break;
           case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
           case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
           default: break;
@@ -1741,8 +1742,8 @@ namespace mcpwm {
       }
       else {
         switch (m_comm_step) {
-          case 1: curr_tot_sample = (float)ADC_curr_norm_value[1]; break;
-          case 2: curr_tot_sample = (float)ADC_curr_norm_value[0]; break;
+          case 1: curr_tot_sample =  (float)ADC_curr_norm_value[1]; break;
+          case 2: curr_tot_sample =  (float)ADC_curr_norm_value[0]; break;
           case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
           case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
           case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
@@ -1768,18 +1769,20 @@ namespace mcpwm {
 
     // Filter out outliers
     if (fabsf(m_last_current_sample) > (m_conf->l_abs_current_max * 1.2)) {
-      m_last_current_sample = SIGN(m_last_current_sample)
-          * m_conf->l_abs_current_max * 1.2;
+      m_last_current_sample = SIGN(m_last_current_sample)* m_conf->l_abs_current_max * 1.2;
     }
 
-    filter::add_sample((float*)m_current_fir_samples, m_last_current_sample,
-                       CURR_FIR_TAPS_BITS, (uint32_t&)m_current_fir_index);
+    filter::add_sample((float*)m_current_fir_samples,
+                       m_last_current_sample,
+                       CURR_FIR_TAPS_BITS,
+                       (uint32_t&)m_current_fir_index);
 
-    m_last_current_sample_filtered = filter::run_fir_iteration(
-        (float*)m_current_fir_samples, (float*)m_current_fir_coeffs,
-        CURR_FIR_TAPS_BITS, m_current_fir_index);
+    m_last_current_sample_filtered = filter::run_fir_iteration((float*)m_current_fir_samples,
+                                                               (float*)m_current_fir_coeffs,
+                                                               CURR_FIR_TAPS_BITS,
+                                                               m_current_fir_index);
 
-    m_last_inj_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
+    m_last_inj_adc_isr_duration = TIM12->CNT / TIM12_FREQ;
   }
 
   /*
@@ -1935,11 +1938,11 @@ namespace mcpwm {
               || (ph_now_raw > min
                   && ph_now_raw
                       < (CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) - min))) {
-            cycle_integrator += (float)v_diff / m_switching_frequency_now;
+            cycle_integrator += (float)v_diff / static_cast<float>(m_switching_frequency_now);
           }
         }
 
-        static float cycle_sum = 0.0;
+        static scalar_t cycle_sum = 0.0;
         if (m_conf->comm_mode == COMM_MODE_INTEGRATE) {
           float limit;
           if (m_has_commutated) {
@@ -2009,14 +2012,14 @@ namespace mcpwm {
       }
     }
 
-    const float current_nofilter = get_tot_current();
-    const float current_in_nofilter = current_nofilter * fabsf(m_dutycycle_now);
+    auto const current_nofilter = get_tot_current();
+    auto const current_in_nofilter = current_nofilter * fabsf(m_dutycycle_now);
 
     if (m_state == MC_STATE_RUNNING && m_has_commutated) {
       // Compensation for supply voltage variations
       const float voltage_scale = 20.0 / input_voltage;
       float ramp_step = m_conf->m_duty_ramp_step
-          / (m_switching_frequency_now / 1000.0);
+          / static_cast<float>(m_switching_frequency_now / 1000.0);
       float ramp_step_no_lim = ramp_step;
       const float rpm = get_rpm();
 
@@ -2045,7 +2048,7 @@ namespace mcpwm {
         truncate_number_abs(step, m_conf->cc_ramp_step_max);
 
         // Switching frequency correction
-        step /= m_switching_frequency_now / 1000.0;
+        step /= static_cast<float>(m_switching_frequency_now / 1000.0);
 
         if (m_slow_ramping_cycles) {
           m_slow_ramping_cycles--;
@@ -2090,7 +2093,7 @@ namespace mcpwm {
         truncate_number_abs(step, m_conf->cc_ramp_step_max);
 
         // Switching frequency correction
-        step /= m_switching_frequency_now / 1000.0;
+        step /= static_cast<float>(m_switching_frequency_now) / 1000.0;
 
         if (m_slow_ramping_cycles) {
           m_slow_ramping_cycles--;
@@ -2193,7 +2196,7 @@ namespace mcpwm {
       run_pid_control_pos(1.0 / m_switching_frequency_now);
     }
 
-    m_last_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
+    m_last_adc_isr_duration = TIM12->CNT / TIM12_FREQ;
   }
 
   void set_detect(void) {
@@ -2215,7 +2218,7 @@ namespace mcpwm {
     m_state = MC_STATE_DETECTING;
   }
 
-  float get_detect_pos(void) {
+  degree_t get_detect_pos(void) {
     float v[6];
     v[0] = m_detect_currents_avg[0] / m_detect_avg_samples[0];
     v[1] = m_detect_currents_avg[1] / m_detect_avg_samples[1];
@@ -2280,11 +2283,11 @@ namespace mcpwm {
     return m_conf->comm_mode;
   }
 
-  float get_last_adc_isr_duration(void) {
+  second_t get_last_adc_isr_duration(void) {
     return m_last_adc_isr_duration;
   }
 
-  float get_last_inj_adc_isr_duration(void) {
+  second_t get_last_inj_adc_isr_duration(void) {
     return m_last_inj_adc_isr_duration;
   }
 
@@ -2413,7 +2416,7 @@ namespace mcpwm {
       duty = (uint32_t)((float)top * m_conf->l_max_duty);
     }
 
-    m_curr_samp_volt = 0;
+    m_use_curr_samp_volt = 0;
 
     // Sample the ADC at an appropriate time during the pwm cycle
     if (is_detecting()) {
@@ -2447,7 +2450,7 @@ namespace mcpwm {
           if (m_direction) {
             curr1_sample = samp_zero;
             curr2_sample = samp_neg;
-            m_curr_samp_volt = (1 << 1);
+            m_use_curr_samp_volt = (1 << 1);
           }
           else {
             curr1_sample = samp_zero;
@@ -2459,7 +2462,7 @@ namespace mcpwm {
           if (m_direction) {
             curr1_sample = samp_pos;
             curr2_sample = samp_neg;
-            m_curr_samp_volt = (1 << 1);
+            m_use_curr_samp_volt = (1 << 1);
           }
           else {
             curr1_sample = samp_pos;
@@ -2475,7 +2478,7 @@ namespace mcpwm {
           else {
             curr1_sample = samp_pos;
             curr2_sample = samp_neg;
-            m_curr_samp_volt = (1 << 1);
+            m_use_curr_samp_volt = (1 << 1);
           }
           break;
 
@@ -2487,7 +2490,7 @@ namespace mcpwm {
           else {
             curr1_sample = samp_zero;
             curr2_sample = samp_neg;
-            m_curr_samp_volt = (1 << 1);
+            m_use_curr_samp_volt = (1 << 1);
           }
           break;
 
@@ -2495,12 +2498,12 @@ namespace mcpwm {
           if (m_direction) {
             curr1_sample = samp_neg;
             curr2_sample = samp_pos;
-            m_curr_samp_volt = (1 << 0);
+            m_use_curr_samp_volt = (1 << 0);
           }
           else {
             curr1_sample = samp_neg;
             curr2_sample = samp_zero;
-            m_curr_samp_volt = (1 << 0);
+            m_use_curr_samp_volt = (1 << 0);
           }
           break;
 
@@ -2508,12 +2511,12 @@ namespace mcpwm {
           if (m_direction) {
             curr1_sample = samp_neg;
             curr2_sample = samp_zero;
-            m_curr_samp_volt = (1 << 0);
+            m_use_curr_samp_volt = (1 << 0);
           }
           else {
             curr1_sample = samp_neg;
             curr2_sample = samp_pos;
-            m_curr_samp_volt = (1 << 0);
+            m_use_curr_samp_volt = (1 << 0);
           }
           break;
         }
@@ -2562,22 +2565,22 @@ namespace mcpwm {
           if (m_direction) {
             switch (m_comm_step) {
             case 1:
-              m_curr_samp_volt = (1 << 0) || (1 << 2);
+              m_use_curr_samp_volt = (1 << 0) || (1 << 2);
               break;
             case 2:
-              m_curr_samp_volt = (1 << 1) || (1 << 2);
+              m_use_curr_samp_volt = (1 << 1) || (1 << 2);
               break;
             case 3:
-              m_curr_samp_volt = (1 << 1) || (1 << 2);
+              m_use_curr_samp_volt = (1 << 1) || (1 << 2);
               break;
             case 4:
-              m_curr_samp_volt = (1 << 0) || (1 << 1);
+              m_use_curr_samp_volt = (1 << 0) || (1 << 1);
               break;
             case 5:
-              m_curr_samp_volt = (1 << 0) || (1 << 1);
+              m_use_curr_samp_volt = (1 << 0) || (1 << 1);
               break;
             case 6:
-              m_curr_samp_volt = (1 << 0) || (1 << 2);
+              m_use_curr_samp_volt = (1 << 0) || (1 << 2);
               break;
             default:
               break;
@@ -2586,22 +2589,22 @@ namespace mcpwm {
           else {
             switch (m_comm_step) {
             case 1:
-              m_curr_samp_volt = (1 << 0) || (1 << 1);
+              m_use_curr_samp_volt = (1 << 0) || (1 << 1);
               break;
             case 2:
-              m_curr_samp_volt = (1 << 1) || (1 << 2);
+              m_use_curr_samp_volt = (1 << 1) || (1 << 2);
               break;
             case 3:
-              m_curr_samp_volt = (1 << 1) || (1 << 2);
+              m_use_curr_samp_volt = (1 << 1) || (1 << 2);
               break;
             case 4:
-              m_curr_samp_volt = (1 << 0) || (1 << 2);
+              m_use_curr_samp_volt = (1 << 0) || (1 << 2);
               break;
             case 5:
-              m_curr_samp_volt = (1 << 0) || (1 << 2);
+              m_use_curr_samp_volt = (1 << 0) || (1 << 2);
               break;
             case 6:
-              m_curr_samp_volt = (1 << 0) || (1 << 1);
+              m_use_curr_samp_volt = (1 << 0) || (1 << 1);
               break;
             default:
               break;
@@ -2610,23 +2613,23 @@ namespace mcpwm {
 #else
           if (m_direction) {
             switch (m_comm_step) {
-              case 1: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
-              case 2: m_curr_samp_volt = (1 << 1); break;
-              case 3: m_curr_samp_volt = (1 << 1); break;
-              case 4: m_curr_samp_volt = (1 << 0); break;
-              case 5: m_curr_samp_volt = (1 << 0); break;
-              case 6: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
+              case 1: m_use_curr_samp_volt = (1 << 0) || (1 << 1); break;
+              case 2: m_use_curr_samp_volt = (1 << 1); break;
+              case 3: m_use_curr_samp_volt = (1 << 1); break;
+              case 4: m_use_curr_samp_volt = (1 << 0); break;
+              case 5: m_use_curr_samp_volt = (1 << 0); break;
+              case 6: m_use_curr_samp_volt = (1 << 0) || (1 << 1); break;
               default: break;
             }
           }
           else {
             switch (m_comm_step) {
-              case 1: m_curr_samp_volt = (1 << 0); break;
-              case 2: m_curr_samp_volt = (1 << 1); break;
-              case 3: m_curr_samp_volt = (1 << 1); break;
-              case 4: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
-              case 5: m_curr_samp_volt = (1 << 0) || (1 << 1); break;
-              case 6: m_curr_samp_volt = (1 << 0); break;
+              case 1: m_use_curr_samp_volt = (1 << 0); break;
+              case 2: m_use_curr_samp_volt = (1 << 1); break;
+              case 3: m_use_curr_samp_volt = (1 << 1); break;
+              case 4: m_use_curr_samp_volt = (1 << 0) || (1 << 1); break;
+              case 5: m_use_curr_samp_volt = (1 << 0) || (1 << 1); break;
+              case 6: m_use_curr_samp_volt = (1 << 0); break;
               default: break;
             }
           }
@@ -2771,7 +2774,7 @@ namespace mcpwm {
     sys_unlock_cnt();
   }
 
-  void set_switching_frequency(float frequency) {
+  void set_switching_frequency(hertz_t frequency) {
     m_switching_frequency_now = frequency;
     MCTimer timer_tmp;
 
@@ -2779,7 +2782,7 @@ namespace mcpwm {
     timer_tmp = m_timer_struct;
     sys_unlock_cnt();
 
-    timer_tmp.top = SYSTEM_CORE_CLOCK / (int)m_switching_frequency_now;
+    timer_tmp.top = (int)static_cast<float>(SYSTEM_CORE_CLOCK / m_switching_frequency_now);
     update_adc_sample_pos(&timer_tmp);
     set_next_timer_settings(&timer_tmp);
   }
