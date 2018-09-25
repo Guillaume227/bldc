@@ -198,8 +198,8 @@ struct mc_configuration {
 	int8_t hall_table[8];
 	float hall_sl_erpm;
 	// FOC
-	float foc_current_kp;
-	float foc_current_ki;
+	scalar_t foc_current_kp;
+	hertz_t foc_current_ki;
 	hertz_t foc_f_sw;
 	microsecond_t foc_dt_us;
 	float foc_encoder_offset;
@@ -210,10 +210,10 @@ struct mc_configuration {
 	float foc_motor_flux_linkage;
 	float foc_observer_gain;
 	float foc_observer_gain_slow;
-	float foc_pll_kp;
-	float foc_pll_ki;
-	float foc_duty_dowmramp_kp;
-	float foc_duty_dowmramp_ki;
+	scalar_t foc_pll_kp;
+	hertz_t foc_pll_ki;
+	scalar_t foc_duty_dowmramp_kp;
+	hertz_t foc_duty_dowmramp_ki;
 	float foc_openloop_rpm;
 	float foc_sl_openloop_hyst;
 	float foc_sl_openloop_time;
@@ -229,17 +229,17 @@ struct mc_configuration {
 	float foc_temp_comp_base_temp;
 	float foc_current_filter_const;
 	// Speed PID
-	float s_pid_kp;
-	float s_pid_ki;
-	float s_pid_kd;
-	float s_pid_kd_filter;
+	scalar_t s_pid_kp;
+	hertz_t s_pid_ki;
+	second_t s_pid_kd;
+	scalar_t s_pid_kd_filter;
 	float s_pid_min_erpm;
 	bool s_pid_allow_braking;
 	// Pos PID
-	float p_pid_kp;
-	float p_pid_ki;
-	float p_pid_kd;
-	float p_pid_kd_filter;
+	scalar_t p_pid_kp;
+	hertz_t p_pid_ki;
+	second_t p_pid_kd;
+	scalar_t p_pid_kd_filter;
 	float p_pid_ang_div;
 	// Current controller
 	float cc_startup_boost_duty;

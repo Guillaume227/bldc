@@ -304,23 +304,23 @@ namespace commands{
           ind += 8;
           mcconf.hall_sl_erpm = get_float32_auto(data, &ind);
 
-          mcconf.foc_current_kp = get_float32_auto(data, &ind);
-          mcconf.foc_current_ki = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.foc_current_kp, data, &ind);
+          get_float32_auto(mcconf.foc_current_ki, data, &ind);
           get_float32_auto(mcconf.foc_f_sw, data, &ind);
           get_float32_auto(mcconf.foc_dt_us, data, &ind);
           mcconf.foc_encoder_inverted = data[ind++];
           mcconf.foc_encoder_offset = get_float32_auto(data, &ind);
           mcconf.foc_encoder_ratio = get_float32_auto(data, &ind);
           mcconf.foc_sensor_mode = data[ind++];
-          mcconf.foc_pll_kp = get_float32_auto(data, &ind);
-          mcconf.foc_pll_ki = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.foc_pll_kp, data, &ind);
+          get_float32_auto(mcconf.foc_pll_ki, data, &ind);
           mcconf.foc_motor_l = get_float32_auto(data, &ind);
           mcconf.foc_motor_r = get_float32_auto(data, &ind);
           mcconf.foc_motor_flux_linkage = get_float32_auto(data, &ind);
           mcconf.foc_observer_gain = get_float32_auto(data, &ind);
           mcconf.foc_observer_gain_slow = get_float32_auto(data, &ind);
-          mcconf.foc_duty_dowmramp_kp = get_float32_auto(data, &ind);
-          mcconf.foc_duty_dowmramp_ki = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.foc_duty_dowmramp_kp, data, &ind);
+          get_float32_auto(mcconf.foc_duty_dowmramp_ki, data, &ind);
           mcconf.foc_openloop_rpm = get_float32_auto(data, &ind);
           mcconf.foc_sl_openloop_hyst = get_float32_auto(data, &ind);
           mcconf.foc_sl_openloop_time = get_float32_auto(data, &ind);
@@ -336,17 +336,17 @@ namespace commands{
           mcconf.foc_temp_comp_base_temp = get_float32_auto(data, &ind);
           mcconf.foc_current_filter_const = get_float32_auto(data, &ind);
 
-          mcconf.s_pid_kp = get_float32_auto(data, &ind);
-          mcconf.s_pid_ki = get_float32_auto(data, &ind);
-          mcconf.s_pid_kd = get_float32_auto(data, &ind);
-          mcconf.s_pid_kd_filter = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.s_pid_kp, data, &ind);
+          get_float32_auto(mcconf.s_pid_ki, data, &ind);
+          get_float32_auto(mcconf.s_pid_kd, data, &ind);
+          get_float32_auto(mcconf.s_pid_kd_filter, data, &ind);
           mcconf.s_pid_min_erpm = get_float32_auto(data, &ind);
           mcconf.s_pid_allow_braking = data[ind++];
 
-          mcconf.p_pid_kp = get_float32_auto(data, &ind);
-          mcconf.p_pid_ki = get_float32_auto(data, &ind);
-          mcconf.p_pid_kd = get_float32_auto(data, &ind);
-          mcconf.p_pid_kd_filter = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.p_pid_kp, data, &ind);
+          get_float32_auto(mcconf.p_pid_ki, data, &ind);
+          get_float32_auto(mcconf.p_pid_kd, data, &ind);
+          get_float32_auto(mcconf.p_pid_kd_filter, data, &ind);
           mcconf.p_pid_ang_div = get_float32_auto(data, &ind);
 
           mcconf.cc_startup_boost_duty = get_float32_auto(data, &ind);
@@ -725,7 +725,7 @@ namespace commands{
               mcconf.motor_type = MOTOR_TYPE_FOC;
               mcconf.foc_f_sw = 10'000_Hz;
               mcconf.foc_current_kp = 0.01;
-              mcconf.foc_current_ki = 10.0;
+              mcconf.foc_current_ki = 10_Hz;
               mc_interface::set_configuration(&mcconf);
 
               float offset = 0.0;
@@ -768,7 +768,7 @@ namespace commands{
               mcconf.motor_type = MOTOR_TYPE_FOC;
               mcconf.foc_f_sw = 10'000_Hz;
               mcconf.foc_current_kp = 0.01;
-              mcconf.foc_current_ki = 10.0;
+              mcconf.foc_current_ki = 10_Hz;
               mc_interface::set_configuration(&mcconf);
 
               uint8_t hall_tab[8];

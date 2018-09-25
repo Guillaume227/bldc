@@ -1,4 +1,3 @@
-
 #pragma once
 
 //#define USE_UNITS
@@ -106,6 +105,10 @@ constexpr millisecond_t operator"" _ms(unsigned long long f){
 }
 
 constexpr second_t operator"" _s(unsigned long long f){
+  return static_cast<float>(f);
+}
+
+constexpr second_t operator"" _s(long double f){
   return static_cast<float>(f);
 }
 

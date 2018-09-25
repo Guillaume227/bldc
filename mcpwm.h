@@ -85,5 +85,5 @@ namespace mcpwm {
   constexpr millisecond_t DETECT_STOP_TIME   = 500_ms;// Ignore commands for this duration in msec after a detect command
 
   // Speed PID parameters
-  constexpr float /*second_t*/ PID_TIME_K       = 0.001;//_s;    // Pid controller sample time in seconds
+  constexpr second_t PID_TIME_K       = 0.001_s;    // Pid controller sample time in seconds
 }

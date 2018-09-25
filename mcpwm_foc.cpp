@@ -133,21 +133,21 @@ namespace mcpwm_foc{
   // Private functions
   void do_dc_cal(void);
   void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-          float dt, volatile float& x1, volatile float& x2, volatile float& phase);
+          second_t dt, volatile float& x1, volatile float& x2, volatile float& phase);
   void pll_run(float phase,
-               float dt,
+               second_t dt,
                volatile float& phase_var,
                volatile float& speed_var);
-  void control_current(volatile motor_state_t& state_m, float dt);
+  void control_current(volatile motor_state_t& state_m, second_t dt);
   void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
           uint32_t& tAout, uint32_t& tBout, uint32_t& tCout, uint32_t& svm_sector);
-  void run_pid_control_pos(degree_t angle_now, degree_t angle_set, float dt);
-  void run_pid_control_speed(float dt);
+  void run_pid_control_pos(degree_t angle_now, degree_t angle_set, second_t dt);
+  void run_pid_control_speed(second_t dt);
   void stop_pwm_hw(void);
   void start_pwm_hw(void);
   int read_hall(void);
   float correct_encoder(float obs_angle, float enc_angle, float speed);
-  float correct_hall(float angle, float speed, float dt);
+  float correct_hall(float angle, float speed, second_t dt);
 
   // Threads
   THD_WORKING_AREA(timer_thread_wa, 2048);
@@ -1268,7 +1268,7 @@ namespace mcpwm_foc{
 
       m_conf->foc_f_sw = 10'000_Hz;
       m_conf->foc_current_kp = 0.01;
-      m_conf->foc_current_ki = 10.0;
+      m_conf->foc_current_ki = 10_Hz;
 
       uint32_t top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
@@ -1580,17 +1580,16 @@ namespace mcpwm_foc{
       }
 
   #ifdef HW_HAS_PHASE_SHUNTS
-      second_t _dt;
+      second_t dt;
       if (m_conf->foc_sample_v0_v7) {
-          _dt = 1.0 / m_conf->foc_f_sw;
+          dt = 1.0 / m_conf->foc_f_sw;
       } else {
-          _dt = 1.0 / (m_conf->foc_f_sw / 2.0);
+          dt = 1.0 / (m_conf->foc_f_sw / 2.0);
       }
   #else
-      second_t const _dt = 2.0 / m_conf->foc_f_sw;
+      second_t const dt = 2.0 / m_conf->foc_f_sw;
   #endif
 
-      auto const dt = static_cast<float>(_dt);
       UTILS_LP_FAST(m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
       float enc_ang = 0;
@@ -1650,7 +1649,7 @@ namespace mcpwm_foc{
 
           if (control_duty) {
               // Duty cycle control
-              static float duty_i_term = 0.0;
+              static scalar_t duty_i_term = 0.0;
               if (fabsf(duty_set) < (duty_abs - 0.05) ||
                       (SIGN(m_motor_state.vq) * m_motor_state.iq) < m_conf->lo_current_min) {
                   // Truncating the duty cycle here would be dangerous, so run a PID controller.
@@ -1749,7 +1748,7 @@ namespace mcpwm_foc{
               m_motor_state.phase = 0.0;
           } else if (m_control_mode == CONTROL_MODE_OPENLOOP) {
               static float openloop_angle = 0.0;
-              openloop_angle += dt * m_openloop_speed;
+              openloop_angle += static_cast<float>(dt) * m_openloop_speed;
               norm_angle_rad(openloop_angle);
               m_motor_state.phase = openloop_angle;
           }
@@ -2000,7 +1999,7 @@ namespace mcpwm_foc{
           m_gamma_now = map(fabsf(m_motor_state.duty_now), 0.0, 1.0,
                   m_conf->foc_observer_gain * m_conf->foc_observer_gain_slow, m_conf->foc_observer_gain);
 
-          run_pid_control_speed(dt);
+          run_pid_control_speed(second_t(dt));
           chThdSleepMilliseconds(1);
       }
 
@@ -2041,7 +2040,7 @@ namespace mcpwm_foc{
                        float const v_beta,
                        float const i_alpha,
                        float const i_beta,
-                       float const dt,
+                       second_t const dt,
                        volatile float& x1,
                        volatile float& x2,
                        volatile float& phase) {
@@ -2076,7 +2075,7 @@ namespace mcpwm_foc{
 
       // Iterative with some trial and error
       const int iterations = 6;
-      const float dt_iteration = dt / (float)iterations;
+      const float dt_iteration = static_cast<float>(dt) / iterations;
       for (int i = 0;i < iterations;i++) {
           float err = lambda_2 - (SQ(x1 - L_ia) + SQ(x2 - L_ib));
           float gamma_tmp = gamma_half;
@@ -2108,16 +2107,16 @@ namespace mcpwm_foc{
   }
 
   void pll_run(float const phase,
-               float const dt,
+               second_t const dt,
                volatile float& phase_var,
                volatile float& speed_var) {
       UTILS_NAN_ZERO(phase_var);
       float delta_theta = phase - phase_var;
       norm_angle_rad(delta_theta);
       UTILS_NAN_ZERO(speed_var);
-      phase_var += (speed_var + m_conf->foc_pll_kp * delta_theta) * dt;
+      phase_var += static_cast<float>((speed_var + m_conf->foc_pll_kp * delta_theta) * dt);
       norm_angle_rad((float&)phase_var);
-      speed_var += m_conf->foc_pll_ki * delta_theta * dt;
+      speed_var += static_cast<float>(m_conf->foc_pll_ki * delta_theta * dt);
   }
 
   /**
@@ -2156,7 +2155,7 @@ namespace mcpwm_foc{
    * @param dt
    * The time step in seconds.
    */
-  void control_current(volatile motor_state_t& state_m, float dt) {
+  void control_current(volatile motor_state_t& state_m, second_t dt) {
       float c,s;
       fast_sincos_better(state_m.phase, &s, &c);
 
@@ -2176,13 +2175,13 @@ namespace mcpwm_foc{
 
       // Temperature compensation
       const float t = mc_interface::temp_motor_filtered();
-      float ki = m_conf->foc_current_ki;
+      auto ki = m_conf->foc_current_ki;
       if (m_conf->foc_temp_comp && t > -5.0) {
           ki += ki * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);
       }
 
-      state_m.vd_int += Ierr_d * (ki * dt);
-      state_m.vq_int += Ierr_q * (ki * dt);
+      state_m.vd_int += Ierr_d * static_cast<float>(ki * dt);
+      state_m.vq_int += Ierr_q * static_cast<float>(ki * dt);
 
       // Saturation
       saturate_vector_2d((float&)state_m.vd, (float&)state_m.vq,
@@ -2367,11 +2366,11 @@ namespace mcpwm_foc{
       svm_sector = sector;
   }
 
-  void run_pid_control_pos(degree_t angle_now, degree_t angle_set, float dt) {
-      static float i_term = 0;
-      static float prev_error = 0;
-      float p_term;
-      float d_term;
+  void run_pid_control_pos(degree_t angle_now, degree_t angle_set, second_t dt) {
+      static scalar_t i_term = 0;
+      static scalar_t prev_error = 0;
+      scalar_t p_term;
+      scalar_t d_term;
 
       // PID is off. Return.
       if (m_control_mode != CONTROL_MODE_POS) {
@@ -2392,21 +2391,23 @@ namespace mcpwm_foc{
       p_term  = error *  m_conf->p_pid_kp;
       i_term += error * (m_conf->p_pid_ki * dt);
 
-      // Average DT for the D term when the error does not change. This likely
-      // happens at low speed when the position resolution is low and several
-      // control iterations run without position updates.
-      // TODO: Are there problems with this approach?
-      static float dt_int = 0.0;
-      dt_int += dt;
-      if (error == prev_error) {
-          d_term = 0.0;
-      } else {
-          d_term = (error - prev_error) * (m_conf->p_pid_kd / dt_int);
-          dt_int = 0.0;
+      {
+        // Average DT for the D term when the error does not change. This likely
+        // happens at low speed when the position resolution is low and several
+        // control iterations run without position updates.
+        // TODO: Are there problems with this approach?
+        static second_t dt_int = 0.0_s;
+        dt_int += dt;
+        if (error == prev_error) {
+            d_term = 0.0;
+        } else {
+            d_term = (error - prev_error) * (m_conf->p_pid_kd / dt_int);
+            dt_int = 0.0_s;
+        }
       }
 
       // Filter D
-      static float d_filter = 0.0;
+      static scalar_t d_filter = 0.0;
       UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
       d_term = d_filter;
 
@@ -2434,11 +2435,11 @@ namespace mcpwm_foc{
       }
   }
 
-  void run_pid_control_speed(float dt) {
-      static float i_term = 0.0;
-      static float prev_error = 0.0;
-      float p_term;
-      float d_term;
+  void run_pid_control_speed(second_t dt) {
+      static scalar_t i_term = 0.0;
+      static scalar_t prev_error = 0.0;
+      scalar_t p_term;
+      scalar_t d_term;
 
       // PID is off. Return.
       if (m_control_mode != CONTROL_MODE_SPEED) {
@@ -2463,7 +2464,7 @@ namespace mcpwm_foc{
       d_term  =(error - prev_error) * (m_conf->s_pid_kd / dt) * (1.0 / 20.0);
 
       // Filter D
-      static float d_filter = 0.0;
+      static scalar_t d_filter = 0.0;
       UTILS_LP_FAST(d_filter, d_term, m_conf->s_pid_kd_filter);
       d_term = d_filter;
 
@@ -2571,7 +2572,7 @@ namespace mcpwm_foc{
       return using_encoder ? enc_angle : obs_angle;
   }
 
-  float correct_hall(float angle, float speed, float dt) {
+  float correct_hall(float angle, float speed, second_t dt) {
       static int ang_hall_int_prev = -1;
       float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
       static bool using_hall = true;
@@ -2629,7 +2630,7 @@ namespace mcpwm_foc{
                   float diff = angle_difference_rad(ang_hall, ang_hall_now);
                   if (fabsf(diff) < ((2.0 * M_PI) / 12.0)) {
                       // Do interpolation
-                      ang_hall += speed * dt;
+                      ang_hall += speed * static_cast<float>(dt);
                   } else {
                       // We are too far away with the interpolation
                       ang_hall -= diff / 100.0;

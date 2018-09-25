@@ -112,10 +112,10 @@
 #define MCCONF_S_PID_KP					0.004	// Proportional gain
 #endif
 #ifndef MCCONF_S_PID_KI
-#define MCCONF_S_PID_KI					0.004	// Integral gain
+#define MCCONF_S_PID_KI					0.004_Hz // Integral gain
 #endif
 #ifndef MCCONF_S_PID_KD
-#define MCCONF_S_PID_KD					0.0001	// Derivative gain
+#define MCCONF_S_PID_KD					0.0001_s // Derivative gain
 #endif
 #ifndef MCCONF_S_PID_KD_FILTER
 #define MCCONF_S_PID_KD_FILTER			0.2	// Derivative filter
@@ -132,10 +132,10 @@
 #define MCCONF_P_PID_KP					0.03	// Proportional gain
 #endif
 #ifndef MCCONF_P_PID_KI
-#define MCCONF_P_PID_KI					0.0		// Integral gain
+#define MCCONF_P_PID_KI					0.0_Hz	// Integral gain
 #endif
 #ifndef MCCONF_P_PID_KD
-#define MCCONF_P_PID_KD					0.0004	// Derivative gain
+#define MCCONF_P_PID_KD					0.0004_s// Derivative gain
 #endif
 #ifndef MCCONF_P_PID_KD_FILTER
 #define MCCONF_P_PID_KD_FILTER			0.2		// Derivative filter
@@ -239,7 +239,7 @@
 #define MCCONF_FOC_PLL_KP				2000.0
 #endif
 #ifndef MCCONF_FOC_PLL_KI
-#define MCCONF_FOC_PLL_KI				40000.0
+#define MCCONF_FOC_PLL_KI				40000_Hz
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
 #define MCCONF_FOC_MOTOR_L				0.000007
@@ -260,7 +260,7 @@
 #define MCCONF_FOC_DUTY_DOWNRAMP_KP		10.0	// PI controller for duty control when decreasing the duty
 #endif
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KI
-#define MCCONF_FOC_DUTY_DOWNRAMP_KI		200.0	// PI controller for duty control when decreasing the duty
+#define MCCONF_FOC_DUTY_DOWNRAMP_KI		200_Hz	// PI controller for duty control when decreasing the duty
 #endif
 #ifndef MCCONF_FOC_OPENLOOP_RPM
 #define MCCONF_FOC_OPENLOOP_RPM			400.0	// Openloop RPM (sensorless low speed or when finding index pulse)

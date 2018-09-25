@@ -1141,10 +1141,10 @@ namespace mcpwm {
   }
 
   void run_pid_control_speed(void) {
-    static float i_term = 0;
-    static float prev_error = 0;
-    float p_term;
-    float d_term;
+    static scalar_t i_term = 0;
+    static scalar_t prev_error = 0;
+    scalar_t p_term;
+    scalar_t d_term;
 
     // PID is off. Return.
     if (m_control_mode != CONTROL_MODE_SPEED) {
@@ -1176,7 +1176,7 @@ namespace mcpwm {
         * (1.0 / 20.0);
 
     // Filter D
-    static float d_filter = 0.0;
+    static scalar_t d_filter = 0.0;
     UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
     d_term = d_filter;
 
@@ -1248,13 +1248,12 @@ namespace mcpwm {
 #endif
   }
 
-  void run_pid_control_pos(second_t const _dt) {
+  void run_pid_control_pos(second_t const dt) {
 
-    auto const dt = static_cast<float>(_dt);
-    static float i_term = 0;
-    static float prev_error = 0;
-    float p_term;
-    float d_term;
+    static scalar_t i_term = 0;
+    static scalar_t prev_error = 0;
+    scalar_t p_term;
+    scalar_t d_term;
 
     // PID is off. Return.
     if (m_control_mode != CONTROL_MODE_POS) {
@@ -1272,7 +1271,7 @@ namespace mcpwm {
     d_term = (error - prev_error) * (m_conf->p_pid_kd / dt);
 
     // Filter D
-    static float d_filter = 0.0;
+    static scalar_t d_filter = 0.0;
     UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
     d_term = d_filter;
 

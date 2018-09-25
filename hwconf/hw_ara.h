@@ -305,7 +305,7 @@
 #define MCCONF_FOC_CURRENT_KP				4.8
 #endif
 #ifndef MCCONF_FOC_CURRENT_KI
-#define MCCONF_FOC_CURRENT_KI				5800.0
+#define MCCONF_FOC_CURRENT_KI				5800_Hz
 #endif
 #ifndef MCCONF_FOC_F_SW
 #define MCCONF_FOC_F_SW						20'000_Hz
