@@ -34,7 +34,7 @@
 // Settings
 #define CANDx			CAND1
 #define RX_FRAMES_SIZE	100
-#define RX_BUFFER_SIZE	PACKET_MAX_PL_LEN
+#define RX_BUFFER_SIZE	packet::MAX_PL_LEN
 
 namespace comm{
   namespace can{

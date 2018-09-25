@@ -171,7 +171,7 @@ static THD_FUNCTION(timer_thread, arg) {
 	chRegSetThreadName("msec_timer");
 
 	for(;;) {
-		packet_timerfunc();
+		packet::timerfunc();
 		chThdSleepMilliseconds(1);
 	}
 }

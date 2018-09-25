@@ -86,7 +86,7 @@ namespace comm{
             chEvtWaitAny((eventmask_t) 1);
 
             while (serial_rx_read_pos != serial_rx_write_pos) {
-                packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], PACKET_HANDLER);
+                packet::process_byte(serial_rx_buffer[serial_rx_read_pos++], PACKET_HANDLER);
 
                 if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
                     serial_rx_read_pos = 0;
@@ -102,7 +102,7 @@ namespace comm{
 
     void send_packet_wrapper(unsigned char *data, unsigned int len) {
         chMtxLock(&send_mutex);
-        packet_send_packet(data, len, PACKET_HANDLER);
+        packet::send_packet(data, len, PACKET_HANDLER);
         chMtxUnlock(&send_mutex);
     }
 
@@ -112,7 +112,7 @@ namespace comm{
 
     void init(void) {
         comm_usb_serial_init();
-        packet_init(send_packet, process_packet, PACKET_HANDLER);
+        packet::init(send_packet, process_packet, PACKET_HANDLER);
 
         chMtxObjectInit(&send_mutex);
 

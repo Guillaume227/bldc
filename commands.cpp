@@ -53,7 +53,7 @@ namespace commands{
   thread_t *detect_tp;
 
   // Private variables
-  uint8_t send_buffer[PACKET_MAX_PL_LEN];
+  uint8_t send_buffer[packet::MAX_PL_LEN];
   float detect_cycle_int_limit;
   float detect_coupling_k;
   float detect_current;

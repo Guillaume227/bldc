@@ -117,7 +117,7 @@ namespace app {
   }
 
   void send_packet_wrapper(unsigned char *data, unsigned int len) {
-      packet_send_packet(data, len, PACKET_HANDLER);
+      packet::send_packet(data, len, PACKET_HANDLER);
   }
 
   void send_packet(unsigned char *data, unsigned int len) {
@@ -128,7 +128,7 @@ namespace app {
 
       // Copy this data to a new buffer in case the provided one is re-used
       // after this function returns.
-      static uint8_t buffer[PACKET_MAX_PL_LEN + 5];
+      static uint8_t buffer[packet::MAX_PL_LEN + 5];
       memcpy(buffer, data, len);
 
       uartStartSend(&HW_UART_DEV, len, buffer);
@@ -136,7 +136,7 @@ namespace app {
 
   namespace uartcomm {
     void start(void) {
-        packet_init(send_packet, process_packet, PACKET_HANDLER);
+        packet::init(send_packet, process_packet, PACKET_HANDLER);
         serial_rx_read_pos = 0;
         serial_rx_write_pos = 0;
 
@@ -183,7 +183,7 @@ namespace app {
           chEvtWaitAny((eventmask_t) 1);
 
           while (serial_rx_read_pos != serial_rx_write_pos) {
-              packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], PACKET_HANDLER);
+              packet::process_byte(serial_rx_buffer[serial_rx_read_pos++], PACKET_HANDLER);
 
               if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
                   serial_rx_read_pos = 0;

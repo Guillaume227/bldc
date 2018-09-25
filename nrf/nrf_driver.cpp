@@ -29,8 +29,8 @@
 #include "packet.h"
 
 // Settings
-#define MAX_PL_LEN				25
-#define RX_BUFFER_SIZE			PACKET_MAX_PL_LEN
+constexpr size_t MAX_PL_LEN		= 25;
+#define RX_BUFFER_SIZE			packet::MAX_PL_LEN
 
 #define ALIVE_INTERVAL			50  // Send alive packets at this rate
 #define NRF_RESTART_TIMEOUT		500  // Restart the NRF if nothing has been received or acked for this time
