@@ -200,8 +200,8 @@ struct mc_configuration {
 	// FOC
 	float foc_current_kp;
 	float foc_current_ki;
-	float foc_f_sw;
-	float foc_dt_us;
+	hertz_t foc_f_sw;
+	microsecond_t foc_dt_us;
 	float foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;

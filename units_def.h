@@ -32,6 +32,7 @@ using namespace units::dimensionless;
 //using namespace units::literals;
 //using units::literals::operator""_degC;
 
+using units::literals::operator""_us;
 using units::literals::operator""_ms;
 using units::literals::operator""_s;
 using units::literals::operator""_Hz;
@@ -91,6 +92,14 @@ using minute_t  = float;
 using hertz_t   = float;
 using radian_t  = float;
 using degree_t  = float;
+
+constexpr microsecond_t operator"" _us(long double f){
+  return static_cast<float>(f);
+}
+
+constexpr microsecond_t operator"" _us(unsigned long long f){
+  return static_cast<float>(f);
+}
 
 constexpr millisecond_t operator"" _ms(unsigned long long f){
   return static_cast<float>(f);

@@ -300,7 +300,7 @@ namespace terminal{
 
               if (duty > 0.0 && duty < 0.9) {
                   mcconf.motor_type = MOTOR_TYPE_FOC;
-                  mcconf.foc_f_sw = 3000.0;
+                  mcconf.foc_f_sw = 3000_Hz;
                   mc_interface::set_configuration(&mcconf);
 
                   float curr;

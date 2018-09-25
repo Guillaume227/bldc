@@ -306,8 +306,8 @@ namespace commands{
 
           mcconf.foc_current_kp = get_float32_auto(data, &ind);
           mcconf.foc_current_ki = get_float32_auto(data, &ind);
-          mcconf.foc_f_sw = get_float32_auto(data, &ind);
-          mcconf.foc_dt_us = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.foc_f_sw, data, &ind);
+          get_float32_auto(mcconf.foc_dt_us, data, &ind);
           mcconf.foc_encoder_inverted = data[ind++];
           mcconf.foc_encoder_offset = get_float32_auto(data, &ind);
           mcconf.foc_encoder_ratio = get_float32_auto(data, &ind);
@@ -723,7 +723,7 @@ namespace commands{
               float current = get_float32(data, 1e3, &ind);
 
               mcconf.motor_type = MOTOR_TYPE_FOC;
-              mcconf.foc_f_sw = 10000.0;
+              mcconf.foc_f_sw = 10'000_Hz;
               mcconf.foc_current_kp = 0.01;
               mcconf.foc_current_ki = 10.0;
               mc_interface::set_configuration(&mcconf);
@@ -766,7 +766,7 @@ namespace commands{
               send_func_last = send_func;
 
               mcconf.motor_type = MOTOR_TYPE_FOC;
-              mcconf.foc_f_sw = 10000.0;
+              mcconf.foc_f_sw = 10'000_Hz;
               mcconf.foc_current_kp = 0.01;
               mcconf.foc_current_ki = 10.0;
               mc_interface::set_configuration(&mcconf);

@@ -69,10 +69,10 @@ namespace mcpwm_foc{
 
   struct mc_sample_t{
       volatile size_t sample_num = 0;
-      volatile float avg_current_tot = 0.0;
-      volatile float avg_voltage_tot = 0.0;
+      volatile ampere_t avg_current_tot = 0.0_A;
+      volatile volt_t avg_voltage_tot = 0.0_V;
       volatile bool measure_inductance_now = false;
-      volatile float measure_inductance_duty = 0.0;
+      volatile dutycycle_t measure_inductance_duty = 0.0;
 
       void reset() {
         sample_num = 0;
@@ -80,16 +80,16 @@ namespace mcpwm_foc{
         avg_voltage_tot = 0.0;
       }
 
-      float get_avg_current() const {
+      ampere_t get_avg_current() const {
         return avg_current_tot / sample_num;
       }
-      float get_avg_voltage() const {
+      volt_t get_avg_voltage() const {
         return avg_voltage_tot / sample_num;
       }
   };
 
   // Private variables
-  volatile mc_configuration *m_conf;
+  volatil_ mc_configuration *m_conf;
   volatile mc_state m_state;
   volatile mc_control_mode m_control_mode;
   volatile motor_state_t m_motor_state;
@@ -141,7 +141,7 @@ namespace mcpwm_foc{
   void control_current(volatile motor_state_t& state_m, float dt);
   void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
           uint32_t& tAout, uint32_t& tBout, uint32_t& tCout, uint32_t& svm_sector);
-  void run_pid_control_pos(float angle_now, float angle_set, float dt);
+  void run_pid_control_pos(degree_t angle_now, degree_t angle_set, float dt);
   void run_pid_control_speed(float dt);
   void stop_pwm_hw(void);
   void start_pwm_hw(void);
@@ -287,7 +287,7 @@ namespace mcpwm_foc{
       // Time Base configuration
       TIM_TimeBaseStructure.TIM_Prescaler = 0;
       TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
-      TIM_TimeBaseStructure.TIM_Period = (int)static_cast<float>(hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
+      TIM_TimeBaseStructure.TIM_Period = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
       TIM_TimeBaseStructure.TIM_ClockDivision = 0;
       TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -524,7 +524,7 @@ namespace mcpwm_foc{
       m_control_mode = CONTROL_MODE_NONE;
       m_state = MC_STATE_OFF;
       stop_pwm_hw();
-      uint32_t top = static_cast<float>(hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
+      uint32_t top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
   }
 
@@ -726,7 +726,7 @@ namespace mcpwm_foc{
    * @return
    * The switching frequency in Hz.
    */
-  float get_switching_frequency_now(void) {
+  hertz_t get_switching_frequency_now(void) {
       return m_conf->foc_f_sw;
   }
 
@@ -736,7 +736,7 @@ namespace mcpwm_foc{
    * @return
    * The sampling frequency in Hz.
    */
-  float get_sampling_frequency_now(void) {
+  hertz_t get_sampling_frequency_now(void) {
   #ifdef HW_HAS_PHASE_SHUNTS
       if (m_conf->foc_sample_v0_v7) {
           return m_conf->foc_f_sw;
@@ -1262,16 +1262,15 @@ namespace mcpwm_foc{
    * True if the measurement succeeded, false otherwise.
    */
   bool measure_res_ind(float &res, float &ind) {
-      const float f_sw_old = m_conf->foc_f_sw;
-      const float kp_old = m_conf->foc_current_kp;
-      const float ki_old = m_conf->foc_current_ki;
+      auto const f_sw_old = m_conf->foc_f_sw;
+      auto const kp_old = m_conf->foc_current_kp;
+      auto const ki_old = m_conf->foc_current_ki;
 
-      m_conf->foc_f_sw = 10'000.0;
+      m_conf->foc_f_sw = 10'000_Hz;
       m_conf->foc_current_kp = 0.01;
       m_conf->foc_current_ki = 10.0;
 
-      uint32_t top = (int)static_cast<float>(
-          hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
+      uint32_t top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
       float res_tmp = 0.0;
@@ -1291,9 +1290,8 @@ namespace mcpwm_foc{
 
       res = measure_resistance(i_last, 200);
 
-      m_conf->foc_f_sw = 3000.0;
-      top = (int)static_cast<float>(
-          hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
+      m_conf->foc_f_sw = 3000_Hz;
+      top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
       float duty_last = 0.0;
@@ -1313,7 +1311,7 @@ namespace mcpwm_foc{
       m_conf->foc_current_kp = kp_old;
       m_conf->foc_current_ki = ki_old;
 
-      top = static_cast<float>(hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
+      top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
       return true;
@@ -1582,16 +1580,17 @@ namespace mcpwm_foc{
       }
 
   #ifdef HW_HAS_PHASE_SHUNTS
-      float dt;
+      second_t _dt;
       if (m_conf->foc_sample_v0_v7) {
-          dt = 1.0 / m_conf->foc_f_sw;
+          _dt = 1.0 / m_conf->foc_f_sw;
       } else {
-          dt = 1.0 / (m_conf->foc_f_sw / 2.0);
+          _dt = 1.0 / (m_conf->foc_f_sw / 2.0);
       }
   #else
-      const float dt = 1.0 / (m_conf->foc_f_sw / 2.0);
+      second_t const _dt = 2.0 / m_conf->foc_f_sw;
   #endif
 
+      auto const dt = static_cast<float>(_dt);
       UTILS_LP_FAST(m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
       float enc_ang = 0;
@@ -2214,7 +2213,7 @@ namespace mcpwm_foc{
       const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
       const float mod_alpha_filter_sgn = (2.0 / 3.0) * SIGN(ia_filter) - (1.0 / 3.0) * SIGN(ib_filter) - (1.0 / 3.0) * SIGN(ic_filter);
       const float mod_beta_filter_sgn = ONE_BY_SQRT3 * SIGN(ib_filter) - ONE_BY_SQRT3 * SIGN(ic_filter);
-      const float mod_comp_fact = m_conf->foc_dt_us * 1e-6 * m_conf->foc_f_sw;
+      const float mod_comp_fact = static_cast<float>(static_cast<float>(m_conf->foc_dt_us) * 1e-6 * m_conf->foc_f_sw);
       const float mod_alpha_comp = mod_alpha_filter_sgn * mod_comp_fact;
       const float mod_beta_comp  = mod_beta_filter_sgn * mod_comp_fact;
 
@@ -2368,7 +2367,7 @@ namespace mcpwm_foc{
       svm_sector = sector;
   }
 
-  void run_pid_control_pos(float angle_now, float angle_set, float dt) {
+  void run_pid_control_pos(degree_t angle_now, degree_t angle_set, float dt) {
       static float i_term = 0;
       static float prev_error = 0;
       float p_term;

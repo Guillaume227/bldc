@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include "units_def.h"
 
 // HW properties
 //assert(defined(BOARD_ST_NUCLEO64_F446RE))
@@ -307,7 +308,7 @@
 #define MCCONF_FOC_CURRENT_KI				5800.0
 #endif
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW						20000.0
+#define MCCONF_FOC_F_SW						20'000_Hz
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
 #define MCCONF_FOC_MOTOR_L					0.0048

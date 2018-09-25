@@ -44,8 +44,8 @@ namespace mcpwm_foc{
   float get_duty_cycle_now(void);
   float get_pid_pos_set(void);
   float get_pid_pos_now(void);
-  float get_switching_frequency_now(void);
-  float get_sampling_frequency_now(void);
+  hertz_t get_switching_frequency_now(void);
+  hertz_t get_sampling_frequency_now(void);
   float get_rpm(void);
   float get_tot_current(void);
   float get_tot_current_filtered(void);
