@@ -245,8 +245,7 @@ namespace mcpwm {
     // Time Base configuration
     TIM_TimeBaseStructure.TIM_Prescaler = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK
-        / (int)static_cast<float>(m_switching_frequency_now); // ARR value
+    TIM_TimeBaseStructure.TIM_Period = hw::SYSTEM_CORE_CLOCK / m_switching_frequency_now; // ARR value
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;
     TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -439,7 +438,7 @@ namespace mcpwm {
 
     // 32-bit timer for RPM measurement
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-    uint16_t PrescalerValue = (uint16_t)static_cast<float>(TIM2_CLOCK / RPM_TIMER_FREQ) - 1;
+    uint16_t PrescalerValue = (hw::TIM2_CLOCK / RPM_TIMER_FREQ) - 1;
 
     // Time base configuration
     TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -468,7 +467,7 @@ namespace mcpwm {
 
     // Various time measurements
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
-    PrescalerValue = (uint16_t)static_cast<float>(TIM12_CLOCK / TIM12_FREQ) - 1;
+    PrescalerValue = (hw::TIM12_CLOCK / TIM12_FREQ) - 1;
 
     // Time base configuration
     TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -1126,7 +1125,7 @@ namespace mcpwm {
           + m_conf->m_bldc_f_sw_max * fabsf(dutyCycle);
     }
 
-    timer_tmp.top = SYSTEM_CORE_CLOCK / (int)static_cast<float>(m_switching_frequency_now);
+    timer_tmp.top = hw::SYSTEM_CORE_CLOCK / m_switching_frequency_now;
 
     if (m_conf->pwm_mode == PWM_MODE_BIPOLAR && !is_detecting()) {
       timer_tmp.duty = (uint16_t)(
@@ -2781,7 +2780,7 @@ namespace mcpwm {
     timer_tmp = m_timer_struct;
     sys_unlock_cnt();
 
-    timer_tmp.top = (int)static_cast<float>(SYSTEM_CORE_CLOCK / m_switching_frequency_now);
+    timer_tmp.top = hw::SYSTEM_CORE_CLOCK / m_switching_frequency_now;
     update_adc_sample_pos(&timer_tmp);
     set_next_timer_settings(&timer_tmp);
   }

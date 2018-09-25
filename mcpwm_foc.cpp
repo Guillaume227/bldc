@@ -287,7 +287,7 @@ namespace mcpwm_foc{
       // Time Base configuration
       TIM_TimeBaseStructure.TIM_Prescaler = 0;
       TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
-      TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
+      TIM_TimeBaseStructure.TIM_Period = (int)static_cast<float>(hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
       TIM_TimeBaseStructure.TIM_ClockDivision = 0;
       TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -474,7 +474,7 @@ namespace mcpwm_foc{
 
       // Time base configuration
       TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
-      TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(static_cast<float>(TIM12_CLOCK / TIM12_FREQ) - 1);
+      TIM_TimeBaseStructure.TIM_Prescaler = (hw::TIM12_CLOCK / TIM12_FREQ) - 1;
       TIM_TimeBaseStructure.TIM_ClockDivision = 0;
       TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
       TIM_TimeBaseInit(TIM12, &TIM_TimeBaseStructure);
@@ -524,7 +524,7 @@ namespace mcpwm_foc{
       m_control_mode = CONTROL_MODE_NONE;
       m_state = MC_STATE_OFF;
       stop_pwm_hw();
-      uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
+      uint32_t top = static_cast<float>(hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
   }
 
@@ -1239,8 +1239,8 @@ namespace mcpwm_foc{
 
       float avg_current = m_samples.get_avg_current();
       float avg_voltage = m_samples.get_avg_voltage();
-      float t = (float)TIM1->ARR * m_samples.measure_inductance_duty / (float)SYSTEM_CORE_CLOCK -
-                (float)(MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET + MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP) / (float)SYSTEM_CORE_CLOCK;
+      float t = (float)TIM1->ARR * m_samples.measure_inductance_duty / (float)hw::SYSTEM_CORE_CLOCK -
+                (float)(MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET + MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP) / (float)hw::SYSTEM_CORE_CLOCK;
 
       if (curr) {
           *curr = avg_current;
@@ -1270,7 +1270,8 @@ namespace mcpwm_foc{
       m_conf->foc_current_kp = 0.01;
       m_conf->foc_current_ki = 10.0;
 
-      uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
+      uint32_t top = (int)static_cast<float>(
+          hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
       float res_tmp = 0.0;
@@ -1291,7 +1292,8 @@ namespace mcpwm_foc{
       res = measure_resistance(i_last, 200);
 
       m_conf->foc_f_sw = 3000.0;
-      top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
+      top = (int)static_cast<float>(
+          hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
       float duty_last = 0.0;
@@ -1311,7 +1313,7 @@ namespace mcpwm_foc{
       m_conf->foc_current_kp = kp_old;
       m_conf->foc_current_ki = ki_old;
 
-      top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
+      top = static_cast<float>(hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw);
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
       return true;

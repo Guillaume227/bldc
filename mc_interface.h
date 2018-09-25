@@ -100,5 +100,3 @@ extern volatile int ADC_curr_norm_value[];
 #ifndef HW_DEAD_TIME_VALUE
 #define HW_DEAD_TIME_VALUE	60 // Dead time
 #endif
-
-constexpr auto TIM12_FREQ = 10'000'000_Hz; // 10 MHz = 100ns

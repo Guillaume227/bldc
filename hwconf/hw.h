@@ -21,9 +21,11 @@
  *  Created on: 12 apr 2014
  *      Author: benjamin
  */
+#pragma once
 
 #include "conf_general.h"
 #include "stm32f4xx_conf.h"
+#include "hal.h"
 
 #ifdef HW_VERSION_40
 #include "hw_40.h"
@@ -64,6 +66,13 @@
 #endif
 
 namespace hw{
+
+  /*
+   * MCU
+   */
+  constexpr hertz_t SYSTEM_CORE_CLOCK{STM32_HCLK}; // TIM1, TIM8 clock //168'000'000 Hz, on F407, 180 MHz on F446
+  constexpr hertz_t TIM2_CLOCK  = SYSTEM_CORE_CLOCK / 2; // assumes TIM2 clocks at half TIM1
+  constexpr hertz_t TIM12_CLOCK = SYSTEM_CORE_CLOCK / 2; // assumes TIM12 clocks at half TIM1
 
   // Functions
   void init_gpio(void);

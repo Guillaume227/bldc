@@ -143,14 +143,10 @@ constexpr scalar_t LED_EXT_BATT_HIGH = 33.0;
 #define AS5047_USE_HW_SPI_PINS		0
 #endif
 
-/*
- * MCU
- */
-#define SYSTEM_CORE_CLOCK           STM32_HCLK // TIM1, TIM8 clock //168'000'000 Hz, on F407, 180 MHz on F446
-#define TIM2_CLOCK                  (SYSTEM_CORE_CLOCK / 2) // assumes TIM2 clocks at half TIM1
-#define TIM12_CLOCK                 (SYSTEM_CORE_CLOCK / 2) // assumes TIM12 clocks at half TIM1
 #define STM32_UUID					((uint32_t*)0x1FFF7A10)
 #define STM32_UUID_8				((uint8_t*)0x1FFF7A10)
+
+constexpr hertz_t TIM12_FREQ = 10'000'000_Hz; // 10 MHz = 100ns
 
 /*
  *	Run the BLDC speed controller in current mode instead of duty cycle mode. This will
