@@ -35,7 +35,7 @@ namespace buffer{
     append_float16(buffer, static_cast<float>(number), scale, index);
   }
   template<typename T>
-  inline void append_float32_auto(uint8_t* buffer, T number, float scale, int32_t *index){
+  inline void append_float32(uint8_t* buffer, T number, float scale, int32_t *index){
     append_float32(buffer, static_cast<T>(number), scale, index);
   }
   template<typename T>
