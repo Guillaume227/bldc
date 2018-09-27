@@ -191,13 +191,13 @@ namespace comm{
 
                         case CAN_PACKET_SET_RPM:
                             ind = 0;
-                            mc_interface::set_pid_speed(buffer::get_float32(rxmsg.data8, 1e0, &ind));
+                            mc_interface::set_pid_speed(rpm_t{buffer::get_float32(rxmsg.data8, 1e0, &ind)});
                             timeout::reset();
                             break;
 
                         case CAN_PACKET_SET_POS:
                             ind = 0;
-                            mc_interface::set_pid_pos(buffer::get_float32(rxmsg.data8, 1e6, &ind));
+                            mc_interface::set_pid_pos(degree_t{buffer::get_float32(rxmsg.data8, 1e6, &ind)});
                             timeout::reset();
                             break;
 

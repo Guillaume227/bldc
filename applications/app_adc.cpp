@@ -86,6 +86,8 @@ namespace app {
         return read_voltage2;
     }
 
+    static rpm_t filter_buffer[RPM_FILTER_SAMPLES];
+    static int filter_ptr = 0;
 
     THD_FUNCTION(adc_thread, arg) {
         (void)arg;
@@ -297,7 +299,7 @@ namespace app {
             bool current_mode = false;
             bool current_mode_brake = false;
             auto const& mcconf = mc_interface::get_configuration();
-            const float rpm_now = mc_interface::get_rpm();
+            auto const rpm_now = mc_interface::get_rpm();
             bool send_duty = false;
 
             // Use the filtered and mapped voltage for control according to the configuration.
@@ -306,7 +308,7 @@ namespace app {
             case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
             case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
                 current_mode = true;
-                if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
+                if ((pwr >= 0.0 && rpm_now > 0_rpm) || (pwr < 0.0 && rpm_now < 0_rpm)) {
                     current_rel = pwr;
                 } else {
                     current_rel = pwr;
@@ -354,14 +356,14 @@ namespace app {
             case ADC_CTRL_TYPE_PID:
             case ADC_CTRL_TYPE_PID_REV_CENTER:
             case ADC_CTRL_TYPE_PID_REV_BUTTON:
-                if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
+                if ((pwr >= 0.0 && rpm_now > 0_rpm) || (pwr < 0.0 && rpm_now < 0_rpm)) {
                     current_rel = pwr;
                 } else {
                     current_rel = pwr;
                 }
 
                 if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-                    float speed = 0.0;
+                    rpm_t speed = 0_rpm;
                     if (pwr >= 0.0) {
                         speed = pwr * mcconf.l_max_erpm;
                     } else {
@@ -410,21 +412,19 @@ namespace app {
             static bool was_pid = false;
 
             // Filter RPM to avoid glitches
-            static float filter_buffer[RPM_FILTER_SAMPLES];
-            static int filter_ptr = 0;
             filter_buffer[filter_ptr++] = mc_interface::get_rpm();
             if (filter_ptr >= RPM_FILTER_SAMPLES) {
                 filter_ptr = 0;
             }
 
-            float rpm_filtered = 0.0;
+            rpm_t rpm_filtered = 0_rpm;
             for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
                 rpm_filtered += filter_buffer[i];
             }
             rpm_filtered /= RPM_FILTER_SAMPLES;
 
             if (current_mode && cc_button && fabsf(pwr) < 0.001) {
-                static float pid_rpm = 0.0;
+                static rpm_t pid_rpm = 0_rpm;
 
                 if (!was_pid) {
                     was_pid = true;
@@ -452,14 +452,14 @@ namespace app {
             was_pid = false;
 
             // Find lowest RPM (for traction control)
-            float rpm_local = mc_interface::get_rpm();
-            float rpm_lowest = rpm_local;
+            auto rpm_local = mc_interface::get_rpm();
+            auto rpm_lowest = rpm_local;
             if (config.multi_esc) {
                 for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
                     can_status_msg *msg = comm::can::get_status_msg_index(i);
 
                     if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-                        float rpm_tmp = msg->rpm;
+                        auto rpm_tmp = rpm_t{msg->rpm};
 
                         if (fabsf(rpm_tmp) < fabsf(rpm_lowest)) {
                             rpm_lowest = rpm_tmp;
@@ -511,13 +511,13 @@ namespace app {
 
                             if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
                                 if (config.tc) {
-                                    float rpm_tmp = msg->rpm;
+                                    auto rpm_tmp = rpm_t{msg->rpm};
                                     if (is_reverse) {
                                         rpm_tmp = -rpm_tmp;
                                     }
 
-                                    float diff = rpm_tmp - rpm_lowest;
-                                    current_out = utils::map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
+                                    auto diff = rpm_tmp - rpm_lowest;
+                                    current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current_rel, 0.0);
                                 }
 
                                 if (is_reverse) {
@@ -529,8 +529,8 @@ namespace app {
                         }
 
                         if (config.tc) {
-                            float diff = rpm_local - rpm_lowest;
-                            current_out = utils::map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
+                            auto diff = rpm_local - rpm_lowest;
+                            current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current_rel, 0.0);
                         }
                     }
 

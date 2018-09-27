@@ -144,11 +144,11 @@ struct mc_configuration {
 	ampere_t l_in_current_max;
 	ampere_t l_in_current_min;
 	ampere_t l_abs_current_max;
-	float l_min_erpm;
-	float l_max_erpm;
-	float l_erpm_start;
-	float l_max_erpm_fbrake;
-	float l_max_erpm_fbrake_cc;
+	rpm_t l_min_erpm;
+	rpm_t l_max_erpm;
+	scalar_t l_erpm_start;
+	rpm_t l_max_erpm_fbrake;
+	rpm_t l_max_erpm_fbrake_cc;
 	volt_t l_min_vin;
 	volt_t l_max_vin;
 	volt_t l_battery_cut_start;
@@ -171,9 +171,9 @@ struct mc_configuration {
 	ampere_t lo_current_motor_max_now;
 	ampere_t lo_current_motor_min_now;
 	// Sensorless (bldc)
-	float sl_min_erpm;
-	float sl_min_erpm_cycle_int_limit;
-	float sl_max_fullbreak_current_dir_change;
+	rpm_t sl_min_erpm;
+	rpm_t sl_min_erpm_cycle_int_limit;
+	ampere_t sl_max_fullbreak_current_dir_change;
 	/*Cycle ingegrator limit. This is how much area will be integrated
 	 * under the back EMF after a zero crossing before doing a commutation.
 	 * A too low value will cause a too early commutation, and a too high value
@@ -182,7 +182,7 @@ struct mc_configuration {
 	 */
 	float sl_cycle_int_limit;
 	float sl_phase_advance_at_br;
-	float sl_cycle_int_rpm_br;
+	rpm_t sl_cycle_int_rpm_br;
 	/*
      BEMF coupling. Roughly describes how much of the input voltage is seen on
      the BEMF at low modulation. Compensating for that at low speed helps the startup a lot.
@@ -196,13 +196,13 @@ struct mc_configuration {
 	float sl_bemf_coupling_k;
 	// Hall sensor
 	int8_t hall_table[8];
-	float hall_sl_erpm;
+	rpm_t hall_sl_erpm;
 	// FOC
 	scalar_t foc_current_kp;
 	hertz_t foc_current_ki;
 	hertz_t foc_f_sw;
 	microsecond_t foc_dt_us;
-	float foc_encoder_offset;
+	degree_t foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
 	float foc_motor_l;
@@ -210,18 +210,18 @@ struct mc_configuration {
 	float foc_motor_flux_linkage;
 	float foc_observer_gain;
 	float foc_observer_gain_slow;
-	scalar_t foc_pll_kp;
-	hertz_t foc_pll_ki;
+	hertz_t foc_pll_kp;
+	inv_sec_2_t  foc_pll_ki;
 	scalar_t foc_duty_dowmramp_kp;
 	hertz_t foc_duty_dowmramp_ki;
-	float foc_openloop_rpm;
-	float foc_sl_openloop_hyst;
-	float foc_sl_openloop_time;
+	rpm_t foc_openloop_rpm;
+	second_t foc_sl_openloop_hyst;
+	second_t foc_sl_openloop_time;
 	float foc_sl_d_current_duty;
 	float foc_sl_d_current_factor;
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
-	float foc_sl_erpm;
+	rpm_t foc_sl_erpm;
 	bool foc_sample_v0_v7;
 	bool foc_sample_high_current;
 	float foc_sat_comp;
@@ -233,7 +233,7 @@ struct mc_configuration {
 	hertz_t s_pid_ki;
 	second_t s_pid_kd;
 	scalar_t s_pid_kd_filter;
-	float s_pid_min_erpm;
+	rpm_t s_pid_min_erpm;
 	bool s_pid_allow_braking;
 	// Pos PID
 	scalar_t p_pid_kp;
@@ -243,7 +243,7 @@ struct mc_configuration {
 	float p_pid_ang_div;
 	// Current controller
 	float cc_startup_boost_duty;
-	float cc_min_current;
+	ampere_t cc_min_current;
 	float cc_gain;
 	float cc_ramp_step_max;
 	// Misc
@@ -309,7 +309,7 @@ struct ppm_config {
 	float ramp_time_neg;
 	bool multi_esc;
 	bool tc;
-	float tc_max_diff;
+	rpm_t tc_max_diff;
 };
 
 // ADC control types
@@ -351,7 +351,7 @@ struct adc_config {
 	float ramp_time_neg;
 	bool multi_esc;
 	bool tc;
-	float tc_max_diff;
+	rpm_t tc_max_diff;
 	uint32_t update_rate_hz;
 };
 
@@ -367,13 +367,13 @@ struct chuk_config {
 	float hyst;
 	float ramp_time_pos;
 	float ramp_time_neg;
-	float stick_erpm_per_s_in_cc;
+	rpm_t stick_erpm_per_s_in_cc;
 	float throttle_exp;
 	float throttle_exp_brake;
 	thr_exp_mode throttle_exp_mode;
 	bool multi_esc;
 	bool tc;
-	float tc_max_diff;
+	rpm_t tc_max_diff;
 };
 
 // NRF Datatypes

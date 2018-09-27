@@ -203,6 +203,9 @@ namespace app{
 		}
 	}
 
+	static rpm_t filter_buffer[RPM_FILTER_SAMPLES];
+    static int filter_ptr = 0;
+
 	THD_FUNCTION(output_thread, arg) {
 		(void)arg;
 
@@ -274,39 +277,37 @@ namespace app{
 			static bool was_pid = false;
 
 			// Filter RPM to avoid glitches
-			static float filter_buffer[RPM_FILTER_SAMPLES];
-			static int filter_ptr = 0;
 			filter_buffer[filter_ptr++] = mc_interface::get_rpm();
 			if (filter_ptr >= RPM_FILTER_SAMPLES) {
 				filter_ptr = 0;
 			}
 
-			float rpm_filtered = 0.0;
+			rpm_t rpm_filtered = 0_rpm;
 			for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
 				rpm_filtered += filter_buffer[i];
 			}
 			rpm_filtered /= RPM_FILTER_SAMPLES;
 
 			if (chuck_d.bt_c) {
-				static float pid_rpm = 0.0;
+				static rpm_t pid_rpm = 0_rpm;
 
 				if (!was_pid) {
 					pid_rpm = rpm_filtered;
 
-					if ((is_reverse && pid_rpm > 0.0) || (!is_reverse && pid_rpm < 0.0)) {
+					if ((is_reverse && pid_rpm > 0_rpm) || (!is_reverse && pid_rpm < 0_rpm)) {
 						if (fabsf(pid_rpm) > mcconf.s_pid_min_erpm) {
 							// Abort if the speed is too high in the opposite direction
 							continue;
 						} else {
-							pid_rpm = 0.0;
+							pid_rpm = 0_rpm;
 						}
 					}
 
 					was_pid = true;
 				} else {
 					if (is_reverse) {
-						if (pid_rpm > 0.0) {
-							pid_rpm = 0.0;
+						if (pid_rpm > 0_rpm) {
+							pid_rpm = 0_rpm;
 						}
 
 						pid_rpm -= (out_val * config.stick_erpm_per_s_in_cc) / ((float)OUTPUT_ITERATION_TIME_MS * 1000.0);
@@ -315,8 +316,8 @@ namespace app{
 							pid_rpm = rpm_filtered - config.stick_erpm_per_s_in_cc;
 						}
 					} else {
-						if (pid_rpm < 0.0) {
-							pid_rpm = 0.0;
+						if (pid_rpm < 0_rpm) {
+							pid_rpm = 0_rpm;
 						}
 
 						pid_rpm += (out_val * config.stick_erpm_per_s_in_cc) / ((float)OUTPUT_ITERATION_TIME_MS * 1000.0);
@@ -360,12 +361,12 @@ namespace app{
 			}
 
 			// Find lowest RPM and highest current
-			float rpm_local = mc_interface::get_rpm();
+			auto rpm_local = mc_interface::get_rpm();
 			if (is_reverse) {
 				rpm_local = -rpm_local;
 			}
 
-			float rpm_lowest = rpm_local;
+			auto rpm_lowest = rpm_local;
 			float current_highest_abs = current_now;
 
 			if (config.multi_esc) {
@@ -373,7 +374,7 @@ namespace app{
 					can_status_msg *msg = comm::can::get_status_msg_index(i);
 
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						float rpm_tmp = msg->rpm;
+						auto rpm_tmp = rpm_t{msg->rpm};
 						if (is_reverse) {
 							rpm_tmp = -rpm_tmp;
 						}
@@ -452,13 +453,13 @@ namespace app{
 
 						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
 							if (config.tc) {
-								float rpm_tmp = msg->rpm;
+								auto rpm_tmp = rpm_t{msg->rpm};
 								if (is_reverse) {
 									rpm_tmp = -rpm_tmp;
 								}
 
-								float diff = rpm_tmp - rpm_lowest;
-								current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
+								auto diff = rpm_tmp - rpm_lowest;
+								current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0.0_A);
 								if (current_out < mcconf.cc_min_current) {
 									current_out = 0.0;
 								}
@@ -473,8 +474,8 @@ namespace app{
 					}
 
 					if (config.tc) {
-						float diff = rpm_local - rpm_lowest;
-						current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
+						auto diff = rpm_local - rpm_lowest;
+						current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0.0_A);
 						if (current_out < mcconf.cc_min_current) {
 							current_out = 0.0;
 						}

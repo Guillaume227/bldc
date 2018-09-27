@@ -93,7 +93,7 @@
 #define APPCONF_PPM_TC						false
 #endif
 #ifndef APPCONF_PPM_TC_MAX_DIFF
-#define APPCONF_PPM_TC_MAX_DIFF				3000.0
+#define APPCONF_PPM_TC_MAX_DIFF				3000_rpm
 #endif
 
 // ADC app configureation
@@ -158,7 +158,7 @@
 #define APPCONF_ADC_TC						false
 #endif
 #ifndef APPCONF_ADC_TC_MAX_DIFF
-#define APPCONF_ADC_TC_MAX_DIFF				3000.0
+#define APPCONF_ADC_TC_MAX_DIFF				3000_rpm
 #endif
 #ifndef APPCONF_ADC_UPDATE_RATE_HZ
 #define APPCONF_ADC_UPDATE_RATE_HZ			500
@@ -183,7 +183,7 @@
 #define APPCONF_CHUK_RAMP_TIME_NEG			0.3
 #endif
 #ifndef APPCONF_STICK_ERPM_PER_S_IN_CC
-#define APPCONF_STICK_ERPM_PER_S_IN_CC		3000.0
+#define APPCONF_STICK_ERPM_PER_S_IN_CC		3000_rpm
 #endif
 #ifndef APPCONF_CHUK_THROTTLE_EXP
 #define APPCONF_CHUK_THROTTLE_EXP			0.0
@@ -201,7 +201,7 @@
 #define APPCONF_CHUK_TC						false
 #endif
 #ifndef APPCONF_CHUK_TC_MAX_DIFF
-#define APPCONF_CHUK_TC_MAX_DIFF			3000.0
+#define APPCONF_CHUK_TC_MAX_DIFF			3000_rpm
 #endif
 
 // NRF app

@@ -62,7 +62,7 @@ namespace mc_interface{
   volatile float m_amp_seconds_charged;
   volatile float m_watt_seconds;
   volatile float m_watt_seconds_charged;
-  volatile degree_t m_position_set;
+  volatil_ degree_t m_position_set;
   volatile celsius_t m_temp_fet;
   volatile celsius_t m_temp_motor;
 
@@ -93,7 +93,7 @@ namespace mc_interface{
   volatil_ second_t m_last_adc_duration_sample;
 
   // Private functions
-  void update_override_limits(volatile mc_configuration *conf);
+  void update_override_limits(volatil_ mc_configuration *conf);
 
   // Function pointers
   void(*pwn_done_func)(void) = 0;
@@ -124,10 +124,10 @@ namespace mc_interface{
       m_amp_seconds_charged = 0.0;
       m_watt_seconds = 0.0;
       m_watt_seconds_charged = 0.0;
-      m_position_set = 0.0;
+      m_position_set = 0_deg;
       m_last_adc_duration_sample = 0_s;
-      m_temp_fet = 0.0;
-      m_temp_motor = 0.0;
+      m_temp_fet = 0_degC;
+      m_temp_motor = 0_degC;
 
       m_sample_len = 1000;
       m_sample_int = 1;
@@ -413,7 +413,7 @@ namespace mc_interface{
       }
   }
 
-  void set_current(float current) {
+  void set_current(ampere_t current) {
       if (try_input()) {
           return;
       }
@@ -433,7 +433,7 @@ namespace mc_interface{
       }
   }
 
-  void set_brake_current(float current) {
+  void set_brake_current(ampere_t current) {
       if (try_input()) {
           return;
       }
@@ -483,7 +483,7 @@ namespace mc_interface{
    * @param current
    * The current value.
    */
-  void set_handbrake(float current) {
+  void set_handbrake(ampere_t current) {
       if (try_input()) {
           return;
       }
@@ -588,8 +588,8 @@ namespace mc_interface{
       return ret;
   }
 
-  float get_rpm(void) {
-      float ret = 0.0;
+  rpm_t get_rpm(void) {
+      rpm_t ret = 0_rpm;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -904,7 +904,7 @@ namespace mc_interface{
   }
 
   degree_t get_pid_pos_now(void) {
-      degree_t ret = 0.0;
+      degree_t ret = 0_deg;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -1329,7 +1329,7 @@ namespace mc_interface{
    * @param conf
    * The configuration to update.
    */
-  void update_override_limits(volatile mc_configuration *conf) {
+  void update_override_limits(volatil_ mc_configuration *conf) {
       auto const v_in = GET_INPUT_VOLTAGE();
       auto const rpm_now = get_rpm();
 
@@ -1351,7 +1351,7 @@ namespace mc_interface{
               maxc = fabsf(conf->l_current_min);
           }
 
-          maxc = utils::map(m_temp_fet, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0.0_degC);
+          maxc = utils::map(m_temp_fet, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0_degC);
           using utils::SIGN;
           if (fabsf(conf->l_current_min) > maxc) {
               lo_min_mos = SIGN(conf->l_current_min) * maxc;
@@ -1377,7 +1377,7 @@ namespace mc_interface{
               maxc = fabsf(conf->l_current_min);
           }
 
-          maxc = utils::map(m_temp_motor, conf->l_temp_motor_start, conf->l_temp_motor_end, maxc, 0.0_degC);
+          maxc = utils::map(m_temp_motor, conf->l_temp_motor_start, conf->l_temp_motor_end, maxc, 0_degC);
 
           using utils::SIGN;
           if (fabsf(conf->l_current_min) > maxc) {
@@ -1394,10 +1394,10 @@ namespace mc_interface{
       //float x, float in_min, float in_max, float out_min, float out_max
       //return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
       //conf->l_temp_accel_dec * (25.0 - conf->l_temp_fet_start) + conf->l_temp_fet_start
-      celsius_t const temp_fet_accel_start   = utils::map(conf->l_temp_accel_dec, 0.0_degC, 1.0_degC, conf->l_temp_fet_start, 25.0_degC);
-      celsius_t const temp_fet_accel_end     = utils::map(conf->l_temp_accel_dec, 0.0_degC, 1.0_degC, conf->l_temp_fet_end, 25.0_degC);
-      celsius_t const temp_motor_accel_start = utils::map(conf->l_temp_accel_dec, 0.0_degC, 1.0_degC, conf->l_temp_motor_start, 25.0_degC);
-      celsius_t const temp_motor_accel_end   = utils::map(conf->l_temp_accel_dec, 0.0_degC, 1.0_degC, conf->l_temp_motor_end, 25.0_degC);
+      celsius_t const temp_fet_accel_start   = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_fet_start, 25_degC);
+      celsius_t const temp_fet_accel_end     = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_fet_end, 25_degC);
+      celsius_t const temp_motor_accel_start = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_motor_start, 25_degC);
+      celsius_t const temp_motor_accel_end   = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_motor_end, 25_degC);
 
       float lo_fet_temp_accel = 0.0;
       if (m_temp_fet < temp_fet_accel_start) {
@@ -1423,31 +1423,31 @@ namespace mc_interface{
       }
 
       // RPM max
-      float lo_max_rpm = 0.0;
-      const float rpm_pos_cut_start = conf->l_max_erpm * conf->l_erpm_start;
-      const float rpm_pos_cut_end = conf->l_max_erpm;
+      ampere_t lo_max_rpm = 0.0_A;
+      auto const rpm_pos_cut_start = conf->l_max_erpm * conf->l_erpm_start;
+      auto const rpm_pos_cut_end = conf->l_max_erpm;
       if (rpm_now < rpm_pos_cut_start) {
           lo_max_rpm = conf->l_current_max;
       } else if (rpm_now > rpm_pos_cut_end) {
-          lo_max_rpm = 0.0;
+          lo_max_rpm = 0.0_A;
       } else {
-          lo_max_rpm = utils::map(rpm_now, rpm_pos_cut_start, rpm_pos_cut_end, conf->l_current_max, 0.0);
+          lo_max_rpm = utils::map(rpm_now, rpm_pos_cut_start, rpm_pos_cut_end, conf->l_current_max, 0.0_A);
       }
 
       // RPM min
-      float lo_min_rpm = 0.0;
-      const float rpm_neg_cut_start = conf->l_min_erpm * conf->l_erpm_start;
-      const float rpm_neg_cut_end = conf->l_min_erpm;
+      ampere_t lo_min_rpm = 0.0_A;
+      auto const rpm_neg_cut_start = conf->l_min_erpm * conf->l_erpm_start;
+      auto const rpm_neg_cut_end = conf->l_min_erpm;
       if (rpm_now > rpm_neg_cut_start) {
           lo_min_rpm = conf->l_current_max;
       } else if (rpm_now < rpm_neg_cut_end) {
-          lo_min_rpm = 0.0;
+          lo_min_rpm = 0.0_A;
       } else {
-          lo_min_rpm = utils::map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, conf->l_current_max, 0.0);
+          lo_min_rpm = utils::map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, conf->l_current_max, 0.0_A);
       }
 
-      float lo_max = utils::min_abs(lo_max_mos, lo_max_mot);
-      float lo_min = utils::min_abs(lo_min_mos, lo_min_mot);
+      auto lo_max = utils::min_abs(lo_max_mos, lo_max_mot);
+      auto lo_min = utils::min_abs(lo_min_mos, lo_min_mot);
 
       lo_max = utils::min_abs(lo_max, lo_max_rpm);
       lo_max = utils::min_abs(lo_max, lo_min_rpm);
@@ -1466,22 +1466,22 @@ namespace mc_interface{
       conf->lo_current_min = lo_min;
 
       // Battery cutoff
-      float lo_in_max_batt = 0.0;
+      ampere_t lo_in_max_batt = 0.0_A;
       if (v_in > conf->l_battery_cut_start) {
           lo_in_max_batt = conf->l_in_current_max;
       } else if (v_in < conf->l_battery_cut_end) {
-          lo_in_max_batt = 0.0;
+          lo_in_max_batt = 0.0_A;
       } else {
           lo_in_max_batt = utils::map(v_in, conf->l_battery_cut_start,
-                  conf->l_battery_cut_end, conf->l_in_current_max, 0.0);
+                  conf->l_battery_cut_end, conf->l_in_current_max, 0.0_A);
       }
 
       // Wattage limits
-      const float lo_in_max_watt = conf->l_watt_max / v_in;
-      const float lo_in_min_watt = conf->l_watt_min / v_in;
+      auto const lo_in_max_watt = conf->l_watt_max / v_in;
+      auto const lo_in_min_watt = conf->l_watt_min / v_in;
 
-      const float lo_in_max = utils::min_abs(lo_in_max_watt, lo_in_max_batt);
-      const float lo_in_min = lo_in_min_watt;
+      auto const lo_in_max = utils::min_abs(lo_in_max_watt, lo_in_max_batt);
+      auto const lo_in_min = lo_in_min_watt;
 
       conf->lo_in_current_max = utils::min_abs(conf->l_in_current_max, lo_in_max);
       conf->lo_in_current_min = utils::min_abs(conf->l_in_current_min, lo_in_min);

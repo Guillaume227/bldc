@@ -70,7 +70,7 @@ namespace encoder{
   bool m_index_found = false;
   uint32_t m_enc_counts = 10000;
   encoder_mode m_mode = ENCODER_MODE_NONE;
-  float m_last_enc_angle = 0.0;
+  degree_t m_last_enc_angle = 0_deg;
 
   // Private functions
   void spi_transfer(uint16_t *in_buf,
@@ -95,7 +95,7 @@ namespace encoder{
 
       m_index_found = false;
       m_mode = ENCODER_MODE_NONE;
-      m_last_enc_angle = 0.0;
+      m_last_enc_angle = 0_deg;
   }
 
   void init_abi(uint32_t counts) {
@@ -184,12 +184,12 @@ namespace encoder{
       return m_mode != ENCODER_MODE_NONE;
   }
 
-  float read_deg(void) {
-      static float angle = 0.0;
+  degree_t read_deg(void) {
+      static degree_t angle = 0_deg;
 
       switch (m_mode) {
       case ENCODER_MODE_ABI:
-          angle = ((float)HW_ENC_TIM->CNT * 360.0) / (float)m_enc_counts;
+          angle = degree_t((float)HW_ENC_TIM->CNT * 360.0) / (float)m_enc_counts;
           break;
 
       case ENCODER_MODE_AS5047P_SPI:
@@ -249,7 +249,7 @@ namespace encoder{
       spi_end();
 
       pos &= 0x3FFF;
-      m_last_enc_angle = ((float)pos * 360.0) / 16384.0;
+      m_last_enc_angle = degree_t{(float)pos * 360.0} / 16384.0;
   }
 
   /**

@@ -27,7 +27,7 @@ namespace encoder{
   void init_abi(uint32_t counts);
   void init_as5047p_spi(void);
   bool is_configured(void);
-  float read_deg(void);
+  degree_t read_deg(void);
   void reset(void);
   void tim_isr(void);
   void set_counts(uint32_t counts);

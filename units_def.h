@@ -14,28 +14,58 @@ using units::traits::unit_t_traits;
 
 using ampere_t  = float;
 using volt_t    = float;
+using ohm_t     = float;
+using microhenry_t = float;
+
 using celsius_t = float;
 using watt_t    = float;
-using radian_t  = float;
-using degree_t  = float;
-
-
-using kv_t        = float;
-using rpm_t       = float;
 using dutycycle_t = float;
 
 using namespace units::frequency;
 using namespace units::time;
 using namespace units::dimensionless;
+using namespace units::angle;
+using namespace units::angular_velocity;
+using rpm_t = revolutions_per_minute_t;
+/*
+namespace angular_velocity{
+  UNIT_ADD(torque, electrical_rotations_per_minute, electrical_rotations_per_minute, erpm, units<<((2.0 * M_PI) / 60.0)> revolutions_per_minute>);
+}
+
+using erpm_t = electrical_rotations_per_minute;
+*/
+using erpm_t = rpm_t;//electrical_rotations_per_minute;
+
+namespace units{
+  UNIT_ADD(torque, kv, kv, kv, compound_unit<angular_velocity::revolutions_per_minute, inverse<voltage::volts>>);
+  UNIT_ADD(angular_velocity, inv_sec_2, inv_sec_2, inv_s2, inverse<squared<seconds>>);
+}
+
+//using units::torque::kv_t;
+using kv_t = rpm_t;
+
+using units::angular_velocity::inv_sec_2_t;
 
 //using namespace units::literals;
 //using units::literals::operator""_degC;
+
 
 using units::literals::operator""_us;
 using units::literals::operator""_ms;
 using units::literals::operator""_s;
 using units::literals::operator""_Hz;
 using units::literals::operator""_MHz;
+using units::literals::operator""_rad;
+using units::literals::operator""_deg;
+using units::literals::operator""_rpm;
+using units::literals::operator""_deg_per_s;
+using units::literals::operator""_rad_per_s;
+using units::literals::operator""_kv;
+using units::literals::operator""_inv_s2;
+
+constexpr celsius_t operator"" _degC(unsigned long long f){
+  return static_cast<float>(f);
+}
 
 constexpr celsius_t operator"" _degC(long double f){
   return static_cast<float>(f);
@@ -60,11 +90,7 @@ using namespace units::capacitance;
 using namespace units::inductance;
 using namespace units::magnetic_flux;
 using namespace units::torque;
-using namespace units::angle;
-using namespace units::angular_velocity;
 
-using rpm_t     = unit_t<inverse<seconds>>;
-using kv_t      = compound_unit<rpm_t, inverse<volts>>;
 using dutycycle_t = float;
 */
 
@@ -75,13 +101,19 @@ using units::unit_cast;
 //auto u = 2s;
 //auto t = 4.0_N;
 
+constexpr radian_t PI_rad {units::constants::detail::PI_VAL};
 
 #else
+#include <math.h> // for M_PI
+#include <type_traits>
 
 #define volatil_ volatile
 
 using ampere_t  = float;
 using volt_t    = float;
+using ohm_t     = float;
+using microhenry_t = float;
+
 using celsius_t = float;
 using watt_t    = float;
 using microsecond_t = float;
@@ -91,6 +123,31 @@ using minute_t  = float;
 using hertz_t   = float;
 using radian_t  = float;
 using degree_t  = float;
+using radians_per_second_t = float;
+using degrees_per_second_t = float;
+using revolutions_per_minute_t = float;
+using inv_sec_2_t = float;
+
+
+constexpr revolutions_per_minute_t operator"" _rpm(unsigned long long f){
+  return static_cast<float>(f);
+}
+
+constexpr radian_t operator"" _rad(long double f){
+  return static_cast<float>(f);
+}
+
+constexpr degree_t operator"" _deg(unsigned long long f){
+  return static_cast<float>(f);
+}
+
+constexpr radians_per_second_t operator"" _rad_per_s(long double f){
+  return static_cast<float>(f);
+}
+
+constexpr degrees_per_second_t operator"" _deg_per_s(unsigned long long f){
+  return static_cast<float>(f);
+}
 
 constexpr microsecond_t operator"" _us(long double f){
   return static_cast<float>(f);
@@ -108,11 +165,19 @@ constexpr second_t operator"" _s(unsigned long long f){
   return static_cast<float>(f);
 }
 
+constexpr inv_sec_2_t operator"" _inv_s2(unsigned long long f){
+  return static_cast<float>(f);
+}
+
 constexpr second_t operator"" _s(long double f){
   return static_cast<float>(f);
 }
 
 constexpr celsius_t operator"" _degC(long double f){
+  return static_cast<float>(f);
+}
+
+constexpr celsius_t operator"" _degC(unsigned long long f){
   return static_cast<float>(f);
 }
 
@@ -163,7 +228,19 @@ constexpr T unit_cast(U const& u) {
   return static_cast<T>(u);
 }
 
+constexpr radian_t PI_rad {M_PI};
+
 #endif
+
+
+template<typename T, typename = std::enable_if_t<!std::is_integral<T>::value>>
+T fabsf(T t){
+  return T{fabsf(static_cast<float>(t))};
+}
+template<typename T>
+T fmodf(T t, float f){
+  return T{fmodf(static_cast<float>(t), f)};
+}
 
 namespace units{
 /*

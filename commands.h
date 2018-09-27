@@ -28,7 +28,7 @@ namespace commands{
   void send_packet(unsigned char *data, unsigned int len);
   void process_packet(unsigned char *data, unsigned int len);
   void printf(const char* format, ...);
-  void send_rotor_pos(float rotor_pos);
+  void send_rotor_pos(degree_t rotor_pos);
   void send_experiment_samples(float *samples, int len);
   disp_pos_mode get_disp_pos_mode(void);
   void set_app_data_handler(void(*func)(unsigned char *data, unsigned int len));

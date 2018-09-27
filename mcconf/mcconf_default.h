@@ -62,10 +62,10 @@
 #define MCCONF_L_BATTERY_CUT_END		8.0_V		// Limit the positive current completely at this voltage
 #endif
 #ifndef MCCONF_L_RPM_MAX
-#define MCCONF_L_RPM_MAX				100000.0	// The motor speed limit (Upper)
+#define MCCONF_L_RPM_MAX				100'000_rpm	// The motor speed limit (Upper)
 #endif
 #ifndef MCCONF_L_RPM_MIN
-#define MCCONF_L_RPM_MIN				-100000.0	// The motor speed limit (Lower)
+#define MCCONF_L_RPM_MIN				-1 * 100'000_rpm	// The motor speed limit (Lower)
 #endif
 #ifndef MCCONF_L_RPM_START
 #define MCCONF_L_RPM_START				0.8		// Fraction of full speed where RPM current limiting starts
@@ -80,22 +80,22 @@
 #define MCCONF_L_MAX_DUTY				0.95	// Maximum duty cycle
 #endif
 #ifndef MCCONF_L_CURR_MAX_RPM_FBRAKE
-#define MCCONF_L_CURR_MAX_RPM_FBRAKE	300		// Maximum electrical RPM to use full brake at
+#define MCCONF_L_CURR_MAX_RPM_FBRAKE	300_rpm		// Maximum electrical RPM to use full brake at
 #endif
 #ifndef MCCONF_L_CURR_MAX_RPM_FBRAKE_CC
-#define MCCONF_L_CURR_MAX_RPM_FBRAKE_CC	1500	// Maximum electrical RPM to use full brake at with current control
+#define MCCONF_L_CURR_MAX_RPM_FBRAKE_CC	1500_rpm	// Maximum electrical RPM to use full brake at with current control
 #endif
 #ifndef MCCONF_L_LIM_TEMP_FET_START
-#define MCCONF_L_LIM_TEMP_FET_START		85.0_degC	// MOSFET temperature where current limiting should begin
+#define MCCONF_L_LIM_TEMP_FET_START		85_degC	// MOSFET temperature where current limiting should begin
 #endif
 #ifndef MCCONF_L_LIM_TEMP_FET_END
-#define MCCONF_L_LIM_TEMP_FET_END		100.0_degC	// MOSFET temperature where everything should be shut off
+#define MCCONF_L_LIM_TEMP_FET_END		100_degC	// MOSFET temperature where everything should be shut off
 #endif
 #ifndef MCCONF_L_LIM_TEMP_MOTOR_START
-#define MCCONF_L_LIM_TEMP_MOTOR_START	85.0_degC	// MOTOR temperature where current limiting should begin
+#define MCCONF_L_LIM_TEMP_MOTOR_START	85_degC	// MOTOR temperature where current limiting should begin
 #endif
 #ifndef MCCONF_L_LIM_TEMP_MOTOR_END
-#define MCCONF_L_LIM_TEMP_MOTOR_END		100.0_degC	// MOTOR temperature where everything should be shut off
+#define MCCONF_L_LIM_TEMP_MOTOR_END		100_degC	// MOTOR temperature where everything should be shut off
 #endif
 #ifndef MCCONF_L_LIM_TEMP_ACCEL_DEC
 #define MCCONF_L_LIM_TEMP_ACCEL_DEC		0.15	// Decrease temperature limits this much during acceleration
@@ -121,7 +121,7 @@
 #define MCCONF_S_PID_KD_FILTER			0.2	// Derivative filter
 #endif
 #ifndef MCCONF_S_PID_MIN_RPM
-#define MCCONF_S_PID_MIN_RPM			900.0	// Minimum allowed RPM
+#define MCCONF_S_PID_MIN_RPM			900_rpm	// Minimum allowed RPM
 #endif
 #ifndef MCCONF_S_PID_ALLOW_BRAKING
 #define MCCONF_S_PID_ALLOW_BRAKING		true	// Allow braking in speed control mode
@@ -160,10 +160,10 @@
 
 // BLDC
 #ifndef MCCONF_SL_MIN_RPM
-#define MCCONF_SL_MIN_RPM				150		// Auto-commutate below this RPM
+#define MCCONF_SL_MIN_RPM				150_rpm		// Auto-commutate below this RPM
 #endif
 #ifndef MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT
-#define MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT	1100.0	// Minimum RPM to calculate the BEMF coupling from
+#define MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT	1100_rpm	// Minimum RPM to calculate the BEMF coupling from
 #endif
 #ifndef MCCONF_SL_CYCLE_INT_LIMIT
 #define MCCONF_SL_CYCLE_INT_LIMIT		62.0	// Flux integrator limit 0 ERPM
@@ -175,10 +175,10 @@
 #define MCCONF_SL_PHASE_ADVANCE_AT_BR	0.8		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM
 #endif
 #ifndef MCCONF_SL_CYCLE_INT_BR
-#define MCCONF_SL_CYCLE_INT_BR			80000.0	// RPM border between the START and LOW interval
+#define MCCONF_SL_CYCLE_INT_BR			80000_rpm	// RPM border between the START and LOW interval
 #endif
 #ifndef MCCONF_SL_MAX_FB_CURR_DIR_CHANGE
-#define MCCONF_SL_MAX_FB_CURR_DIR_CHANGE	10.0	// Maximum current during full brake during which a direction change is allowed
+#define MCCONF_SL_MAX_FB_CURR_DIR_CHANGE	10.0_A	// Maximum current during full brake during which a direction change is allowed
 #endif
 
 // BLDC hall sensor table
@@ -207,7 +207,7 @@
 #define MCCONF_HALL_TAB_7				-1
 #endif
 #ifndef MCCONF_HALL_ERPM
-#define MCCONF_HALL_ERPM				2000.0	// ERPM above which sensorless commutation is used in hybrid mode
+#define MCCONF_HALL_ERPM				2000_rpm	// ERPM above which sensorless commutation is used in hybrid mode
 #endif
 
 // FOC
@@ -218,7 +218,7 @@
 #define MCCONF_FOC_CURRENT_KI			50.0
 #endif
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					20000.0
+#define MCCONF_FOC_F_SW					20000.0_Hz
 #endif
 #ifndef MCCONF_FOC_DT_US
 #define MCCONF_FOC_DT_US				0.08_us // Microseconds for dead time compensation
@@ -227,7 +227,7 @@
 #define MCCONF_FOC_ENCODER_INVERTED		false
 #endif
 #ifndef MCCONF_FOC_ENCODER_OFFSET
-#define MCCONF_FOC_ENCODER_OFFSET		180.0
+#define MCCONF_FOC_ENCODER_OFFSET		180_deg
 #endif
 #ifndef MCCONF_FOC_ENCODER_RATIO
 #define MCCONF_FOC_ENCODER_RATIO		7.0
@@ -236,10 +236,10 @@
 #define MCCONF_FOC_SENSOR_MODE			FOC_SENSOR_MODE_SENSORLESS
 #endif
 #ifndef MCCONF_FOC_PLL_KP
-#define MCCONF_FOC_PLL_KP				2000.0
+#define MCCONF_FOC_PLL_KP				2000.0_Hz
 #endif
 #ifndef MCCONF_FOC_PLL_KI
-#define MCCONF_FOC_PLL_KI				40000_Hz
+#define MCCONF_FOC_PLL_KI				40000_inv_s2
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
 #define MCCONF_FOC_MOTOR_L				0.000007
@@ -302,7 +302,7 @@
 #define MCCONF_FOC_HALL_TAB_7			255
 #endif
 #ifndef MCCONF_FOC_SL_ERPM
-#define MCCONF_FOC_SL_ERPM				2500.0	// ERPM above which only the observer is used
+#define MCCONF_FOC_SL_ERPM				2500_rpm	// ERPM above which only the observer is used
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
@@ -317,7 +317,7 @@
 #define MCCONF_FOC_TEMP_COMP			false	// Motor temperature compensation
 #endif
 #ifndef MCCONF_FOC_TEMP_COMP_BASE_TEMP
-#define MCCONF_FOC_TEMP_COMP_BASE_TEMP	25.0_degC	// Motor temperature compensation base temperature
+#define MCCONF_FOC_TEMP_COMP_BASE_TEMP	25_degC	// Motor temperature compensation base temperature
 #endif
 #ifndef MCCONF_FOC_CURRENT_FILTER_CONST
 #define MCCONF_FOC_CURRENT_FILTER_CONST	0.1		// Filter constant for the filtered currents

@@ -142,7 +142,7 @@ namespace app {
             }
 
             auto const& mcconf = mc_interface::get_configuration();
-            const float rpm_now = mc_interface::get_rpm();
+            const auto rpm_now = mc_interface::get_rpm();
             float servo_val = servodec_get_servo(0);
             float servo_ms = utils::map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
 
@@ -201,7 +201,7 @@ namespace app {
             case PPM_CTRL_TYPE_CURRENT:
             case PPM_CTRL_TYPE_CURRENT_NOREV:
                 current_mode = true;
-                if ((servo_val >= 0.0 && rpm_now > 0.0) || (servo_val < 0.0 && rpm_now < 0.0)) {
+                if ((servo_val >= 0.0 && rpm_now > 0_rpm) || (servo_val < 0.0 && rpm_now < 0_rpm)) {
                     current = servo_val * mcconf.lo_current_motor_max_now;
                 } else {
                     current = servo_val * fabsf(mcconf.lo_current_motor_min_now);
@@ -245,7 +245,7 @@ namespace app {
                 }
 
                 if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-                    mc_interface::set_pid_speed(servo_val * config.pid_max_erpm);
+                    mc_interface::set_pid_speed(servo_val * rpm_t{config.pid_max_erpm});
                     send_current = true;
                 }
                 break;
@@ -265,14 +265,14 @@ namespace app {
             }
 
             // Find lowest RPM
-            float rpm_local = mc_interface::get_rpm();
-            float rpm_lowest = rpm_local;
+            auto rpm_local = mc_interface::get_rpm();
+            auto rpm_lowest = rpm_local;
             if (config.multi_esc) {
                 for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
                     can_status_msg *msg = comm::can::get_status_msg_index(i);
 
                     if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-                        float rpm_tmp = msg->rpm;
+                        auto rpm_tmp = rpm_t{msg->rpm};
 
                         if (fabsf(rpm_tmp) < fabsf(rpm_lowest)) {
                             rpm_lowest = rpm_tmp;
@@ -323,13 +323,13 @@ namespace app {
 
                             if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
                                 if (config.tc) {
-                                    float rpm_tmp = msg->rpm;
+                                    auto rpm_tmp = rpm_t{msg->rpm};
                                     if (is_reverse) {
                                         rpm_tmp = -rpm_tmp;
                                     }
 
-                                    float diff = rpm_tmp - rpm_lowest;
-                                    current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
+                                    auto diff = rpm_tmp - rpm_lowest;
+                                    current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0.0);
                                     if (current_out < mcconf.cc_min_current) {
                                         current_out = 0.0;
                                     }
@@ -344,8 +344,8 @@ namespace app {
                         }
 
                         if (config.tc) {
-                            float diff = rpm_local - rpm_lowest;
-                            current_out = utils::map(diff, 0.0, config.tc_max_diff, current, 0.0);
+                            auto diff = rpm_local - rpm_lowest;
+                            current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0.0);
                             if (current_out < mcconf.cc_min_current) {
                                 current_out = 0.0;
                             }

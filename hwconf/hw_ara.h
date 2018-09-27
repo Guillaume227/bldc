@@ -150,7 +150,7 @@
 
 // Input voltage
 #define VOLTAGE_DIVIDER        ((VIN_R1 + VIN_R2) / VIN_R2)
-#define GET_INPUT_VOLTAGE()	   (ADC_VOLTS(ADC_IND_VIN_SENS) * VOLTAGE_DIVIDER)
+#define GET_INPUT_VOLTAGE()	   volt_t{ADC_VOLTS(ADC_IND_VIN_SENS) * VOLTAGE_DIVIDER}
 
 // BEMF Voltage
 #define R39_IHM0X 10.0 // 10k ohms
@@ -323,22 +323,22 @@
 #define MCCONF_FOC_OBSERVER_GAIN			31e4
 #endif
 #ifndef MCCONF_FOC_OPENLOOP_RPM
-#define MCCONF_FOC_OPENLOOP_RPM				500.0
+#define MCCONF_FOC_OPENLOOP_RPM				500_rpm
 #endif
 #ifndef MCCONF_FOC_SL_OPENLOOP_HYST
-#define MCCONF_FOC_SL_OPENLOOP_HYST			0.5
+#define MCCONF_FOC_SL_OPENLOOP_HYST			0.5_s
 #endif
 #ifndef MCCONF_FOC_SL_OPENLOOP_TIME
-#define MCCONF_FOC_SL_OPENLOOP_TIME			0.3
+#define MCCONF_FOC_SL_OPENLOOP_TIME			0.3_s
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT          -120.0, 120.0
-#define HW_LIM_CURRENT_IN       -120.0, 120.0
-#define HW_LIM_CURRENT_ABS      0.0, 160.0
-#define HW_LIM_VIN              6.0, 57.0
-#define HW_LIM_ERPM             -200e3, 200e3
+#define HW_LIM_CURRENT          -1 * 120.0_A, 120.0_A
+#define HW_LIM_CURRENT_IN       -1 * 120.0_A, 120.0_A
+#define HW_LIM_CURRENT_ABS      0.0_A, 160.0_A
+#define HW_LIM_VIN              6.0_V, 57.0_V
+#define HW_LIM_ERPM             -1 * 200'000_rpm, 200'000_rpm
 #define HW_LIM_DUTY_MIN         0.0, 0.1
 #define HW_LIM_DUTY_MAX         0.0, 0.99
-#define HW_LIM_TEMP_FET         celsius_t{-40.0}, celsius_t{110.0}
+#define HW_LIM_TEMP_FET         -1 * 40_degC, 110_degC
 

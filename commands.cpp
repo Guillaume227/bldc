@@ -56,8 +56,8 @@ namespace commands{
   uint8_t send_buffer[packet::MAX_PL_LEN];
   float detect_cycle_int_limit;
   float detect_coupling_k;
-  float detect_current;
-  float detect_min_rpm;
+  ampere_t detect_current;
+  rpm_t detect_min_rpm;
   float detect_low_duty;
   int8_t detect_hall_table[8];
   int detect_hall_res;
@@ -211,13 +211,13 @@ namespace commands{
 
       case COMM_SET_RPM:
           ind = 0;
-          mc_interface::set_pid_speed((float)get_int32(data, &ind));
+          mc_interface::set_pid_speed(rpm_t{get_int32(data, &ind)});
           timeout::reset();
           break;
 
       case COMM_SET_POS:
           ind = 0;
-          mc_interface::set_pid_pos((float)get_int32(data, &ind) / 1000000.0);
+          mc_interface::set_pid_pos(degree_t{get_int32(data, &ind) / 1000000.0});
           timeout::reset();
           break;
 
@@ -265,11 +265,11 @@ namespace commands{
           mcconf.l_in_current_max = get_float32_auto(data, &ind);
           mcconf.l_in_current_min = get_float32_auto(data, &ind);
           mcconf.l_abs_current_max = get_float32_auto(data, &ind);
-          mcconf.l_min_erpm = get_float32_auto(data, &ind);
-          mcconf.l_max_erpm = get_float32_auto(data, &ind);
-          mcconf.l_erpm_start = get_float32_auto(data, &ind);
-          mcconf.l_max_erpm_fbrake = get_float32_auto(data, &ind);
-          mcconf.l_max_erpm_fbrake_cc = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.l_min_erpm, data, &ind);
+          get_float32_auto(mcconf.l_max_erpm, data, &ind);
+          get_float32_auto(mcconf.l_erpm_start, data, &ind);
+          get_float32_auto(mcconf.l_max_erpm_fbrake, data, &ind);
+          get_float32_auto(mcconf.l_max_erpm_fbrake_cc, data, &ind);
           mcconf.l_min_vin = get_float32_auto(data, &ind);
           mcconf.l_max_vin = get_float32_auto(data, &ind);
           mcconf.l_battery_cut_start = get_float32_auto(data, &ind);
@@ -292,24 +292,24 @@ namespace commands{
           mcconf.lo_current_motor_max_now = mcconf.l_current_max;
           mcconf.lo_current_motor_min_now = mcconf.l_current_min;
 
-          mcconf.sl_min_erpm = get_float32_auto(data, &ind);
-          mcconf.sl_min_erpm_cycle_int_limit = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.sl_min_erpm, data, &ind);
+          get_float32_auto(mcconf.sl_min_erpm_cycle_int_limit, data, &ind);
           mcconf.sl_max_fullbreak_current_dir_change = get_float32_auto(data, &ind);
           mcconf.sl_cycle_int_limit = get_float32_auto(data, &ind);
           mcconf.sl_phase_advance_at_br = get_float32_auto(data, &ind);
-          mcconf.sl_cycle_int_rpm_br = get_float32_auto(data, &ind);
-          mcconf.sl_bemf_coupling_k = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.sl_cycle_int_rpm_br, data, &ind);
+          get_float32_auto(mcconf.sl_bemf_coupling_k, data, &ind);
 
           memcpy(mcconf.hall_table, data + ind, 8);
           ind += 8;
-          mcconf.hall_sl_erpm = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.hall_sl_erpm, data, &ind);
 
           get_float32_auto(mcconf.foc_current_kp, data, &ind);
           get_float32_auto(mcconf.foc_current_ki, data, &ind);
           get_float32_auto(mcconf.foc_f_sw, data, &ind);
           get_float32_auto(mcconf.foc_dt_us, data, &ind);
           mcconf.foc_encoder_inverted = data[ind++];
-          mcconf.foc_encoder_offset = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.foc_encoder_offset, data, &ind);
           mcconf.foc_encoder_ratio = get_float32_auto(data, &ind);
           mcconf.foc_sensor_mode = data[ind++];
           get_float32_auto(mcconf.foc_pll_kp, data, &ind);
@@ -321,14 +321,14 @@ namespace commands{
           mcconf.foc_observer_gain_slow = get_float32_auto(data, &ind);
           get_float32_auto(mcconf.foc_duty_dowmramp_kp, data, &ind);
           get_float32_auto(mcconf.foc_duty_dowmramp_ki, data, &ind);
-          mcconf.foc_openloop_rpm = get_float32_auto(data, &ind);
-          mcconf.foc_sl_openloop_hyst = get_float32_auto(data, &ind);
-          mcconf.foc_sl_openloop_time = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.foc_openloop_rpm, data, &ind);
+          get_float32_auto(mcconf.foc_sl_openloop_hyst, data, &ind);
+          get_float32_auto(mcconf.foc_sl_openloop_time, data, &ind);
           mcconf.foc_sl_d_current_duty = get_float32_auto(data, &ind);
           mcconf.foc_sl_d_current_factor = get_float32_auto(data, &ind);
           memcpy(mcconf.foc_hall_table, data + ind, 8);
           ind += 8;
-          mcconf.foc_sl_erpm = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.foc_sl_erpm, data, &ind);
           mcconf.foc_sample_v0_v7 = data[ind++];
           mcconf.foc_sample_high_current = data[ind++];
           mcconf.foc_sat_comp = get_float32_auto(data, &ind);
@@ -340,7 +340,7 @@ namespace commands{
           get_float32_auto(mcconf.s_pid_ki, data, &ind);
           get_float32_auto(mcconf.s_pid_kd, data, &ind);
           get_float32_auto(mcconf.s_pid_kd_filter, data, &ind);
-          mcconf.s_pid_min_erpm = get_float32_auto(data, &ind);
+          get_float32_auto(mcconf.s_pid_min_erpm, data, &ind);
           mcconf.s_pid_allow_braking = data[ind++];
 
           get_float32_auto(mcconf.p_pid_kp, data, &ind);
@@ -559,7 +559,7 @@ namespace commands{
           appconf.app_ppm_conf.ramp_time_neg = get_float32_auto(data, &ind);
           appconf.app_ppm_conf.multi_esc = data[ind++];
           appconf.app_ppm_conf.tc = data[ind++];
-          appconf.app_ppm_conf.tc_max_diff = get_float32_auto(data, &ind);
+          get_float32_auto(appconf.app_ppm_conf.tc_max_diff, data, &ind);
 
           appconf.app_adc_conf.ctrl_type = data[ind++];
           appconf.app_adc_conf.hyst = get_float32_auto(data, &ind);
@@ -581,7 +581,7 @@ namespace commands{
           appconf.app_adc_conf.ramp_time_neg = get_float32_auto(data, &ind);
           appconf.app_adc_conf.multi_esc = data[ind++];
           appconf.app_adc_conf.tc = data[ind++];
-          appconf.app_adc_conf.tc_max_diff = get_float32_auto(data, &ind);
+          get_float32_auto(appconf.app_adc_conf.tc_max_diff, data, &ind);
           appconf.app_adc_conf.update_rate_hz = get_uint16(data, &ind);
 
           appconf.app_uart_baudrate = get_uint32(data, &ind);
@@ -590,13 +590,13 @@ namespace commands{
           appconf.app_chuk_conf.hyst = get_float32_auto(data, &ind);
           appconf.app_chuk_conf.ramp_time_pos = get_float32_auto(data, &ind);
           appconf.app_chuk_conf.ramp_time_neg = get_float32_auto(data, &ind);
-          appconf.app_chuk_conf.stick_erpm_per_s_in_cc = get_float32_auto(data, &ind);
+          get_float32_auto(appconf.app_chuk_conf.stick_erpm_per_s_in_cc, data, &ind);
           appconf.app_chuk_conf.throttle_exp = get_float32_auto(data, &ind);
           appconf.app_chuk_conf.throttle_exp_brake = get_float32_auto(data, &ind);
           appconf.app_chuk_conf.throttle_exp_mode = data[ind++];
           appconf.app_chuk_conf.multi_esc = data[ind++];
           appconf.app_chuk_conf.tc = data[ind++];
-          appconf.app_chuk_conf.tc_max_diff = get_float32_auto(data, &ind);
+          get_float32_auto(appconf.app_chuk_conf.tc_max_diff, data, &ind);
 
           appconf.app_nrf_conf.speed = data[ind++];
           appconf.app_nrf_conf.power = data[ind++];
@@ -645,9 +645,9 @@ namespace commands{
 
       case COMM_DETECT_MOTOR_PARAM:
           ind = 0;
-          detect_current = get_float32(data, 1e3, &ind);
-          detect_min_rpm = get_float32(data, 1e3, &ind);
-          detect_low_duty = get_float32(data, 1e3, &ind);
+          get_float32(detect_current,  data, 1e3, &ind);
+          get_float32(detect_min_rpm,  data, 1e3, &ind);
+          get_float32(detect_low_duty, data, 1e3, &ind);
 
           send_func_last = send_func;
 
@@ -687,8 +687,10 @@ namespace commands{
 
       case COMM_DETECT_MOTOR_FLUX_LINKAGE: {
           ind = 0;
-          float current = get_float32(data, 1e3, &ind);
-          float min_rpm = get_float32(data, 1e3, &ind);
+          ampere_t current;
+          get_float32(current, data, 1e3, &ind);
+          rpm_t min_rpm;
+          get_float32(min_rpm, data, 1e3, &ind);
           float duty = get_float32(data, 1e3, &ind);
           float resistance = get_float32(data, 1e6, &ind);
 
@@ -720,7 +722,8 @@ namespace commands{
               send_func_last = send_func;
 
               ind = 0;
-              float current = get_float32(data, 1e3, &ind);
+              ampere_t current;
+              get_float32(current, data, 1e3, &ind);
 
               mcconf.motor_type = MOTOR_TYPE_FOC;
               mcconf.foc_f_sw = 10'000_Hz;
@@ -728,7 +731,7 @@ namespace commands{
               mcconf.foc_current_ki = 10_Hz;
               mc_interface::set_configuration(&mcconf);
 
-              float offset = 0.0;
+              degree_t offset = 0_deg;
               float ratio = 0.0;
               bool inverted = false;
               mcpwm_foc::encoder_detect(current, false, offset, ratio, inverted);
@@ -883,12 +886,12 @@ namespace commands{
       }
   }
 
-  void send_rotor_pos(float rotor_pos) {
+  void send_rotor_pos(degree_t rotor_pos) {
       uint8_t buffer[5];
       int32_t index = 0;
 
       buffer[index++] = COMM_ROTOR_POSITION;
-      append_int32(buffer, (int32_t)(rotor_pos * 100000.0), &index);
+      append_int32(buffer, (int32_t)(static_cast<float>(rotor_pos) * 100000.0), &index);
 
       send_packet(buffer, index);
   }

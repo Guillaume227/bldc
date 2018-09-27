@@ -60,10 +60,10 @@ namespace mcpwm {
   volatile int m_direction;
   volatile float m_dutycycle_set;
   volatile float m_dutycycle_now;
-  volatile float m_rpm_now;
-  volatile float m_speed_pid_set_rpm;
-  volatile float m_pos_pid_set_pos;
-  volatile float m_current_set;
+  volatil_ rpm_t m_rpm_now;
+  volatil_ rpm_t m_speed_pid_set_rpm;
+  volatil_ degree_t m_pos_pid_set_pos;
+  volatil_ ampere_t m_current_set;
   volatile int m_tachometer;
   volatile int m_tachometer_abs;
   volatile int m_tachometer_for_direction;
@@ -189,11 +189,11 @@ namespace mcpwm {
     m_comm_step = 1;
     m_detect_step = 0;
     m_direction = 1;
-    m_rpm_now = 0.0;
+    m_rpm_now = 0_rpm;
     m_dutycycle_set = 0.0;
     m_dutycycle_now = 0.0;
-    m_speed_pid_set_rpm = 0.0;
-    m_pos_pid_set_pos = 0.0;
+    m_speed_pid_set_rpm = 0_rpm;
+    m_pos_pid_set_pos = 0_deg;
     m_current_set = 0.0;
     m_tachometer = 0;
     m_tachometer_abs = 0;
@@ -637,7 +637,7 @@ namespace mcpwm {
    * @param rpm
    * The electrical RPM goal value to use.
    */
-  void set_pid_speed(float rpm) {
+  void set_pid_speed(rpm_t rpm) {
     m_control_mode = CONTROL_MODE_SPEED;
     m_speed_pid_set_rpm = rpm;
   }
@@ -649,7 +649,7 @@ namespace mcpwm {
    * @param pos
    * The desired position of the motor in degrees.
    */
-  void set_pid_pos(float pos) {
+  void set_pid_pos(degree_t pos) {
     m_control_mode = CONTROL_MODE_POS;
     m_pos_pid_set_pos = pos;
 
@@ -751,7 +751,7 @@ namespace mcpwm {
    * @return
    * The RPM value.
    */
-  float get_rpm(void) {
+  rpm_t get_rpm(void) {
     return m_direction ? m_rpm_now : -m_rpm_now;
   }
 
@@ -767,7 +767,7 @@ namespace mcpwm {
    * @return
    * The KV value.
    */
-  float get_kv(void) {
+  kv_t get_kv(void) {
     return m_rpm_now / (GET_INPUT_VOLTAGE() * fabsf(m_dutycycle_now));
   }
 
@@ -779,13 +779,11 @@ namespace mcpwm {
    * @return
    * The filtered KV value.
    */
-  float get_kv_filtered(void) {
-    float value = filter::run_fir_iteration((float*)m_kv_fir_samples,
-                                            (float*)m_kv_fir_coeffs,
+  kv_t get_kv_filtered(void) {
+    return kv_t{filter::run_fir_iteration(const_cast<float*>(m_kv_fir_samples),
+                                          const_cast<float*>(m_kv_fir_coeffs),
                                             KV_FIR_TAPS_BITS,
-                                            m_kv_fir_index);
-
-    return value;
+                                            m_kv_fir_index)};
   }
 
   /**
@@ -1028,7 +1026,7 @@ namespace mcpwm {
     }
 
     if (dutyCycle < m_conf->l_min_duty) {
-      float max_erpm_fbrake;
+      rpm_t max_erpm_fbrake;
 #if BLDC_SPEED_CONTROL_CURRENT
       if (m_control_mode == CONTROL_MODE_CURRENT
           || m_control_mode == CONTROL_MODE_CURRENT_BRAKE
@@ -1141,28 +1139,28 @@ namespace mcpwm {
   }
 
   void run_pid_control_speed(void) {
-    static scalar_t i_term = 0;
-    static scalar_t prev_error = 0;
-    scalar_t p_term;
-    scalar_t d_term;
+    static rpm_t i_term = 0_rpm;
+    static rpm_t prev_error = 0_rpm;
+    rpm_t p_term;
+    rpm_t d_term;
 
     // PID is off. Return.
     if (m_control_mode != CONTROL_MODE_SPEED) {
 #if BLDC_SPEED_CONTROL_CURRENT
-      i_term = 0.0;
+      i_term = 0_rpm;
 #else
       i_term = m_dutycycle_now;
 #endif
-      prev_error = 0.0;
+      prev_error = 0_rpm;
       return;
     }
 
-    const float rpm = get_rpm();
-    float error = m_speed_pid_set_rpm - rpm;
+    auto const rpm = get_rpm();
+    auto const error = m_speed_pid_set_rpm - rpm;
 
     // Too low RPM set. Stop and return.
     if (fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
-      i_term = m_dutycycle_now;
+      i_term = rpm_t{m_dutycycle_now};
       prev_error = error;
       set_duty(0.0);
       return;
@@ -1176,27 +1174,27 @@ namespace mcpwm {
         * (1.0 / 20.0);
 
     // Filter D
-    static scalar_t d_filter = 0.0;
+    static rpm_t d_filter = 0_rpm;
     UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
     d_term = d_filter;
 
     // I-term wind-up protection
-    truncate_number_abs(i_term, 1.0);
+    truncate_number_abs(i_term, 1_rpm);
 
     // Store previous error
     prev_error = error;
 
     // Calculate output
-    float output = p_term + i_term + d_term;
+    float output = static_cast<float>(p_term + i_term + d_term);
     truncate_number_abs(output, 1.0);
 
     // Optionally disable braking
     if (!m_conf->s_pid_allow_braking) {
-      if (rpm > 0.0 && output < 0.0) {
+      if (rpm > 0_rpm && output < 0.0) {
         output = 0.0;
       }
 
-      if (rpm < 0.0 && output > 0.0) {
+      if (rpm < 0_rpm && output > 0.0) {
         output = 0.0;
       }
     }
@@ -1216,18 +1214,18 @@ namespace mcpwm {
     d_term = (error - prev_error) * (m_conf->s_pid_kd / PID_TIME_K) * scale;
 
     // Filter D
-    static float d_filter = 0.0;
+    static rpm_t d_filter = 0_rpm;
     UTILS_LP_FAST(d_filter, d_term, m_conf->s_pid_kd_filter);
     d_term = d_filter;
 
     // I-term wind-up protection
-    truncate_number_abs(i_term, 1.0);
+    truncate_number_abs(i_term, 1_rpm);
 
     // Store previous error
     prev_error = error;
 
     // Calculate output
-    float output = p_term + i_term + d_term;
+    float output = static_cast<float>(p_term + i_term + d_term);
 
     // Make sure that at least minimum output is used
     if (fabsf(output) < m_conf->l_min_duty) {
@@ -1235,13 +1233,13 @@ namespace mcpwm {
     }
 
     // Do not output in reverse direction to oppose too high rpm
-    if (m_speed_pid_set_rpm > 0.0 && output < 0.0) {
+    if (m_speed_pid_set_rpm > 0_rpm && output < 0.0) {
       output = m_conf->l_min_duty;
-      i_term = 0.0;
+      i_term = 0_rpm;
     }
-    else if (m_speed_pid_set_rpm < 0.0 && output > 0.0) {
+    else if (m_speed_pid_set_rpm < 0_rpm && output > 0.0) {
       output = -m_conf->l_min_duty;
-      i_term = 0.0;
+      i_term = 0_rpm;
     }
 
     set_duty_cycle_hl(output);
@@ -1250,20 +1248,20 @@ namespace mcpwm {
 
   void run_pid_control_pos(second_t const dt) {
 
-    static scalar_t i_term = 0;
-    static scalar_t prev_error = 0;
-    scalar_t p_term;
-    scalar_t d_term;
+    static degree_t i_term = 0_deg;
+    static degree_t prev_error = 0_deg;
+    degree_t p_term;
+    degree_t d_term;
 
     // PID is off. Return.
     if (m_control_mode != CONTROL_MODE_POS) {
-      i_term = 0;
-      prev_error = 0;
+      i_term = 0_deg;
+      prev_error = 0_deg;
       return;
     }
 
     // Compute error
-    float error = angle_difference(encoder::read_deg(), m_pos_pid_set_pos);
+    auto error = angle_difference(encoder::read_deg(), m_pos_pid_set_pos);
 
     // Compute parameters
     p_term = error * m_conf->p_pid_kp;
@@ -1271,18 +1269,18 @@ namespace mcpwm {
     d_term = (error - prev_error) * (m_conf->p_pid_kd / dt);
 
     // Filter D
-    static scalar_t d_filter = 0.0;
+    static degree_t d_filter = 0_deg;
     UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
     d_term = d_filter;
 
     // I-term wind-up protection
-    truncate_number_abs(i_term, 1.0);
+    truncate_number_abs(i_term, 1_deg);
 
     // Store previous error
     prev_error = error;
 
     // Calculate output
-    float output = p_term + i_term + d_term;
+    float output = static_cast<float>(p_term + i_term + d_term);
     truncate_number_abs(output, 1.0);
 
     m_current_set = output * m_conf->lo_current_max;
@@ -1308,39 +1306,39 @@ namespace mcpwm {
         rpm_dep.time_at_comm = 0;
         sys_unlock_cnt();
 
-        m_rpm_now = (comms * static_cast<float>(RPM_TIMER_FREQ) * 60.0) / (time_at_comm * 6.0);      
+        m_rpm_now = rpm_t(comms * static_cast<float>(RPM_TIMER_FREQ) * 60.0) / (time_at_comm * 6.0);
       }
       else {
         // GG: still on the same commutation as in previous rpm evaluation
         // In case we have slowed down
-        float rpm_tmp = (static_cast<float>(RPM_TIMER_FREQ) * 60.0) / ((float) TIM2->CNT * 6.0);
+        rpm_t rpm_tmp = rpm_t(static_cast<float>(RPM_TIMER_FREQ) * 60.0) / ((float) TIM2->CNT * 6.0);
         if (fabsf(rpm_tmp) < fabsf(m_rpm_now)) {
           m_rpm_now = rpm_tmp;
         }
       }
 
       // Some low-pass filtering
-      static float rpm_filtered = 0.0;
+      static rpm_t rpm_filtered = 0_rpm;
       UTILS_LP_FAST(rpm_filtered, m_rpm_now, 0.1);
       m_rpm_now = rpm_filtered;
-      const float rpm_abs = fabsf(m_rpm_now);
+      auto const rpm_abs = fabsf(m_rpm_now);
 
       // Update the cycle integrator limit
       rpm_dep.cycle_int_limit = m_conf->sl_cycle_int_limit;
       rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit
-          + (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS])
+          + static_cast<float>(CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS])
               * m_conf->sl_bemf_coupling_k
-              / (rpm_abs > m_conf->sl_min_erpm ? rpm_abs : m_conf->sl_min_erpm);
+              / (rpm_abs > m_conf->sl_min_erpm ? rpm_abs : m_conf->sl_min_erpm));
 
       rpm_dep.cycle_int_limit_running = map(
-          rpm_abs, 0, m_conf->sl_cycle_int_rpm_br,
+          rpm_abs, 0_rpm, m_conf->sl_cycle_int_rpm_br,
           rpm_dep.cycle_int_limit_running,
           rpm_dep.cycle_int_limit_running * m_conf->sl_phase_advance_at_br);
 
       rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit
-          + (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS])
+          + static_cast<float>(CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS])
               * m_conf->sl_bemf_coupling_k
-              / m_conf->sl_min_erpm_cycle_int_limit;
+              / m_conf->sl_min_erpm_cycle_int_limit);
 
       if (rpm_dep.cycle_int_limit_running < 1.0) {
         rpm_dep.cycle_int_limit_running = 1.0;
@@ -1350,10 +1348,8 @@ namespace mcpwm {
         rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit_max;
       }
 
-      rpm_dep.comm_time_sum = static_cast<float>(m_conf->m_bldc_f_sw_max)
-          / ((rpm_abs / 60.0) * 6.0);
-      rpm_dep.comm_time_sum_min_rpm = static_cast<float>(m_conf->m_bldc_f_sw_max)
-          / ((m_conf->sl_min_erpm / 60.0) * 6.0);
+      rpm_dep.comm_time_sum = static_cast<float>(m_conf->m_bldc_f_sw_max / ((rpm_abs / 60.0) * 6.0));
+      rpm_dep.comm_time_sum_min_rpm = static_cast<float>(m_conf->m_bldc_f_sw_max / ((m_conf->sl_min_erpm / 60.0) * 6.0));
 
       run_pid_control_speed();
 
@@ -1460,7 +1456,7 @@ namespace mcpwm {
         cnt_tmp = 0;
         if (m_state == MC_STATE_RUNNING ||
            (m_state == MC_STATE_OFF && m_dutycycle_now >= m_conf->l_min_duty)) {
-          filter::add_sample((float*)m_kv_fir_samples,
+          filter::add_sample(const_cast<float*>(m_kv_fir_samples),
                              get_kv(),
                              KV_FIR_TAPS_BITS,
                              (uint32_t&)m_kv_fir_index);
@@ -1476,8 +1472,8 @@ namespace mcpwm {
     static int detect_now = 0;
 
     if (detect_now == 4) {
-      const float a = fabsf(ADC_curr_norm_value[0]);
-      const float b = fabsf(ADC_curr_norm_value[1]);
+      const float a = fabsf((float)ADC_curr_norm_value[0]);
+      const float b = fabsf((float)ADC_curr_norm_value[1]);
 
       if (a > b) {
         detect_currents[m_detect_step] = a;
@@ -1964,7 +1960,7 @@ namespace mcpwm {
             if (cycle_sum
                 >= map(
                     fabsf(m_rpm_now),
-                    0,
+                    0_rpm,
                     m_conf->sl_cycle_int_rpm_br,
                     rpm_dep.comm_time_sum / 2.0,
                     (rpm_dep.comm_time_sum / 2.0)
@@ -2018,7 +2014,7 @@ namespace mcpwm {
       float ramp_step = m_conf->m_duty_ramp_step
           / static_cast<float>(m_switching_frequency_now / 1000.0);
       float ramp_step_no_lim = ramp_step;
-      const float rpm = get_rpm();
+      auto const rpm = get_rpm();
 
       if (m_slow_ramping_cycles) {
         m_slow_ramping_cycles--;
@@ -2243,12 +2239,16 @@ namespace mcpwm {
     v1 /= amp;
     v2 /= amp;
 
-    float ph[1];
+    degree_t ph[1];
+#ifdef USE_UNITS
+    ph[0] = radian_t{asinf(v0)};
+#else
     ph[0] = asinf(v0) * 180.0 / M_PI;
+#endif
 
-    float res = ph[0];
+    degree_t res = ph[0];
     if (v1 < v2) {
-      res = 180 - ph[0];
+      res = 180_deg - ph[0];
     }
 
     norm_angle(res);

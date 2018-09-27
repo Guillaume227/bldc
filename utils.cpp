@@ -23,6 +23,7 @@
 #include <math.h>
 #include <string.h>
 
+
 namespace{
   // Private variables
   volatile int _sys_lock_cnt = 0;
@@ -59,8 +60,8 @@ namespace utils{
   void norm_angle(degree_t& angle) {
       angle = fmodf(angle, 360.0);
 
-      if (angle < 0.0) {
-          angle += 360.0;
+      if (angle < 0_deg) {
+          angle += 360_deg;
       }
   }
 
@@ -74,12 +75,12 @@ namespace utils{
    * WARNING: Don't use too large angles.
    */
   void norm_angle_rad(radian_t &angle) {
-      while (angle < -M_PI) {
-          angle += 2.0 * M_PI;
+      while (angle < -PI_rad) {
+          angle += 2.0 * PI_rad;
       }
 
-      while (angle >  M_PI) {
-          angle -= 2.0 * M_PI;
+      while (angle >  PI_rad) {
+          angle -= 2.0 * PI_rad;
       }
   }
 
@@ -167,8 +168,8 @@ namespace utils{
 
       // Faster in most cases
       auto difference = angle1 - angle2;
-      while (difference < -180.0) difference += 2.0 * 180.0;
-      while (difference > 180.0) difference -= 2.0 * 180.0;
+      while (difference < degree_t{-180.0}) difference += 2.0 * 180_deg;
+      while (difference > 180_deg) difference -= 2.0 * 180_deg;
       return difference;
   }
 
@@ -183,8 +184,8 @@ namespace utils{
    */
   radian_t angle_difference_rad(radian_t angle1, radian_t angle2) {
       auto difference = angle1 - angle2;
-      while (difference < -M_PI) difference += 2.0 * M_PI;
-      while (difference > M_PI) difference -= 2.0 * M_PI;
+      while (difference < -PI_rad) difference += 2.0 * PI_rad;
+      while (difference >  PI_rad) difference -= 2.0 * PI_rad;
       return difference;
   }
 
@@ -203,7 +204,7 @@ namespace utils{
    * @return
    * The average angle.
    */
-  float avg_angles_rad_fast(float *angles, float *weights, int angles_num) {
+  radian_t avg_angles_rad_fast(radian_t const*angles, float const*weights, int angles_num) {
       float s_sum = 0.0;
       float c_sum = 0.0;
 
@@ -302,7 +303,7 @@ namespace utils{
    * @return
    * The angle in radians
    */
-  float fast_atan2(float y, float x) {
+  radian_t fast_atan2(float y, float x) {
       float abs_y = fabsf(y) + 1e-20; // kludge to prevent 0/0 condition
       float angle;
 
@@ -317,9 +318,9 @@ namespace utils{
       }
 
       if (y < 0) {
-          return(-angle);
+          return radian_t{-angle};
       } else {
-          return(angle);
+          return radian_t{angle};
       }
   }
 
@@ -372,34 +373,39 @@ namespace utils{
    * @param cos
    * A pointer to store the cosine value.
    */
-  void fast_sincos(float angle, float *sin, float *cos) {
+  void fast_sincos(radian_t angle, float *sin, float *cos) {
       //always wrap input angle to -PI..PI
-      while (angle < -M_PI) {
-          angle += 2.0 * M_PI;
+      while (angle < -PI_rad) {
+        angle += 2.0 * PI_rad;
       }
 
-      while (angle >  M_PI) {
-          angle -= 2.0 * M_PI;
+      while (angle >  PI_rad) {
+        angle -= 2.0 * PI_rad;
       }
-
-      // compute sine
-      if (angle < 0.0) {
-          *sin = 1.27323954 * angle + 0.405284735 * angle * angle;
-      } else {
-          *sin = 1.27323954 * angle - 0.405284735 * angle * angle;
+      {
+        auto const anglef = static_cast<float>(angle);
+        // compute sine
+        if (anglef < 0.0) {
+            *sin = 1.27323954 * anglef + 0.405284735 * anglef * anglef;
+        } else {
+            *sin = 1.27323954 * anglef - 0.405284735 * anglef * anglef;
+        }
       }
-
       // compute cosine: sin(x + PI/2) = cos(x)
-      angle += 0.5 * M_PI;
+      angle += 0.5 * PI_rad;
 
-      if (angle >  M_PI) {
-          angle -= 2.0 * M_PI;
+      if (angle >  PI_rad) {
+          angle -= 2.0 * PI_rad;
       }
 
-      if (angle < 0.0) {
-          *cos = 1.27323954 * angle + 0.405284735 * angle * angle;
-      } else {
-          *cos = 1.27323954 * angle - 0.405284735 * angle * angle;
+      {
+        auto const anglef = static_cast<float>(angle);
+
+        if (anglef < 0.0) {
+            *cos = 1.27323954 * anglef + 0.405284735 * anglef * anglef;
+        } else {
+            *cos = 1.27323954 * anglef - 0.405284735 * anglef * anglef;
+        }
       }
   }
 
@@ -418,57 +424,64 @@ namespace utils{
    * @param cos
    * A pointer to store the cosine value.
    */
-  void fast_sincos_better(float angle, float *sin, float *cos) {
+  void fast_sincos_better(radian_t angle, float *sin, float *cos) {
       //always wrap input angle to -PI..PI
-      while (angle < -M_PI) {
-          angle += 2.0 * M_PI;
+      while (angle < -PI_rad) {
+          angle += 2.0 * PI_rad;
       }
 
-      while (angle >  M_PI) {
-          angle -= 2.0 * M_PI;
+      while (angle >  PI_rad) {
+          angle -= 2.0 * PI_rad;
       }
 
-      //compute sine
-      if (angle < 0.0) {
-          *sin = 1.27323954 * angle + 0.405284735 * angle * angle;
+      {
+        auto const anglef = static_cast<float>(angle);
 
-          if (*sin < 0.0) {
-              *sin = 0.225 * (*sin * -*sin - *sin) + *sin;
-          } else {
-              *sin = 0.225 * (*sin * *sin - *sin) + *sin;
-          }
-      } else {
-          *sin = 1.27323954 * angle - 0.405284735 * angle * angle;
+        //compute sine
+        if (angle < 0.0_rad) {
+            *sin = 1.27323954 * anglef + 0.405284735 * anglef * anglef;
 
-          if (*sin < 0.0) {
-              *sin = 0.225 * (*sin * -*sin - *sin) + *sin;
-          } else {
-              *sin = 0.225 * (*sin * *sin - *sin) + *sin;
-          }
+            if (*sin < 0.0) {
+                *sin = 0.225 * (*sin * -*sin - *sin) + *sin;
+            } else {
+                *sin = 0.225 * (*sin * *sin - *sin) + *sin;
+            }
+        } else {
+            *sin = 1.27323954 * anglef - 0.405284735 * anglef * anglef;
+
+            if (*sin < 0.0) {
+                *sin = 0.225 * (*sin * -*sin - *sin) + *sin;
+            } else {
+                *sin = 0.225 * (*sin * *sin - *sin) + *sin;
+            }
+        }
       }
-
       // compute cosine: sin(x + PI/2) = cos(x)
-      angle += 0.5 * M_PI;
-      if (angle >  M_PI) {
-          angle -= 2.0 * M_PI;
+      angle += 0.5 * PI_rad;
+      if (angle >  PI_rad) {
+          angle -= 2.0 * PI_rad;
       }
 
-      if (angle < 0.0) {
-          *cos = 1.27323954 * angle + 0.405284735 * angle * angle;
+      {
+        auto const anglef = static_cast<float>(angle);
 
-          if (*cos < 0.0) {
-              *cos = 0.225 * (*cos * -*cos - *cos) + *cos;
-          } else {
-              *cos = 0.225 * (*cos * *cos - *cos) + *cos;
-          }
-      } else {
-          *cos = 1.27323954 * angle - 0.405284735 * angle * angle;
+        if (angle < 0.0_rad) {
+            *cos = 1.27323954 * anglef + 0.405284735 * anglef * anglef;
 
-          if (*cos < 0.0) {
-              *cos = 0.225 * (*cos * -*cos - *cos) + *cos;
-          } else {
-              *cos = 0.225 * (*cos * *cos - *cos) + *cos;
-          }
+            if (*cos < 0.0) {
+                *cos = 0.225 * (*cos * -*cos - *cos) + *cos;
+            } else {
+                *cos = 0.225 * (*cos * *cos - *cos) + *cos;
+            }
+        } else {
+            *cos = 1.27323954 * anglef - 0.405284735 * anglef * anglef;
+
+            if (*cos < 0.0) {
+                *cos = 0.225 * (*cos * -*cos - *cos) + *cos;
+            } else {
+                *cos = 0.225 * (*cos * *cos - *cos) + *cos;
+            }
+        }
       }
   }
 

@@ -37,6 +37,11 @@
 #include <stdlib.h>
 
 using namespace utils;
+namespace{
+  inline void sincos_rad(radian_t angle, float* sin, float* cos){
+    sincosf(static_cast<float>(angle), sin, cos);
+  }
+}
 
 namespace mcpwm_foc{
   // Private types
@@ -45,7 +50,7 @@ namespace mcpwm_foc{
       float iq_target;
       float max_duty;
       float duty_now;
-      float phase;
+      radian_t phase;
       float i_alpha;
       float i_beta;
       float i_abs;
@@ -56,14 +61,14 @@ namespace mcpwm_foc{
       float v_beta;
       float mod_d;
       float mod_q;
-      float id;
-      float iq;
-      float id_filter;
-      float iq_filter;
-      float vd;
-      float vq;
-      float vd_int;
-      float vq_int;
+      ampere_t id;
+      ampere_t iq;
+      ampere_t id_filter;
+      ampere_t iq_filter;
+      volt_t vd;
+      volt_t vq;
+      volt_t vd_int;
+      volt_t vq_int;
       uint32_t svm_sector;
   };
 
@@ -76,8 +81,8 @@ namespace mcpwm_foc{
 
       void reset() {
         sample_num = 0;
-        avg_current_tot = 0.0;
-        avg_voltage_tot = 0.0;
+        avg_current_tot = 0.0_A;
+        avg_voltage_tot = 0.0_V;
       }
 
       ampere_t get_avg_current() const {
@@ -92,36 +97,36 @@ namespace mcpwm_foc{
   volatil_ mc_configuration *m_conf;
   volatile mc_state m_state;
   volatile mc_control_mode m_control_mode;
-  volatile motor_state_t m_motor_state;
+  volatil_ motor_state_t m_motor_state;
   volatile int m_curr0_sum;
   volatile int m_curr1_sum;
   volatile int m_curr_samples;
   volatile int m_curr0_offset;
   volatile int m_curr1_offset;
   volatile bool m_phase_override;
-  volatile float m_phase_now_override;
+  volatil_ radian_t m_phase_now_override;
   volatile float m_duty_cycle_set;
-  volatile float m_id_set;
-  volatile float m_iq_set;
-  volatile float m_openloop_speed;
+  volatil_ ampere_t m_id_set;
+  volatil_ ampere_t m_iq_set;
+  volatil_ radians_per_second_t m_openloop_speed;
   volatile bool m_dccal_done;
   volatile bool m_output_on;
-  volatile float m_pos_pid_set;
-  volatile float m_speed_pid_set_rpm;
-  volatile float m_phase_now_observer;
-  volatile float m_phase_now_observer_override;
+  volatil_ degree_t m_pos_pid_set;
+  volatil_ rpm_t m_speed_pid_set_rpm;
+  volatil_ radian_t m_phase_now_observer;
+  volatil_ radian_t m_phase_now_observer_override;
   volatile bool m_phase_observer_override;
-  volatile float m_phase_now_encoder;
-  volatile float m_phase_now_encoder_no_index;
+  volatil_ radian_t m_phase_now_encoder;
+  volatil_ radian_t m_phase_now_encoder_no_index;
   volatile float m_observer_x1;
   volatile float m_observer_x2;
-  volatile float m_pll_phase;
-  volatile float m_pll_speed;
+  volatil_ radian_t m_pll_phase;
+  volatil_ radians_per_second_t m_pll_speed;
   mc_sample_t m_samples;
   volatile int m_tachometer;
   volatile int m_tachometer_abs;
-  volatile float last_inj_adc_isr_duration;
-  volatile float m_pos_pid_now;
+  volatil_ second_t last_inj_adc_isr_duration;
+  volatil_ degree_t m_pos_pid_now;
   volatile bool m_init_done;
   volatile float m_gamma_now;
 
@@ -133,11 +138,11 @@ namespace mcpwm_foc{
   // Private functions
   void do_dc_cal(void);
   void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-          second_t dt, volatile float& x1, volatile float& x2, volatile float& phase);
-  void pll_run(float phase,
+          second_t dt, volatile float& x1, volatile float& x2, volatil_ radian_t& phase);
+  void pll_run(radian_t phase,
                second_t dt,
-               volatile float& phase_var,
-               volatile float& speed_var);
+               volatil_ radian_t& phase_var,
+               volatil_ radians_per_second_t& speed_var);
   void control_current(volatile motor_state_t& state_m, second_t dt);
   void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
           uint32_t& tAout, uint32_t& tBout, uint32_t& tCout, uint32_t& svm_sector);
@@ -146,8 +151,8 @@ namespace mcpwm_foc{
   void stop_pwm_hw(void);
   void start_pwm_hw(void);
   int read_hall(void);
-  float correct_encoder(float obs_angle, float enc_angle, float speed);
-  float correct_hall(float angle, float speed, second_t dt);
+  radian_t correct_encoder(radian_t obs_angle, radian_t enc_angle, radians_per_second_t speed);
+  radian_t correct_hall(radian_t angle, radians_per_second_t speed, second_t dt);
 
   // Threads
   THD_WORKING_AREA(timer_thread_wa, 2048);
@@ -160,9 +165,9 @@ namespace mcpwm_foc{
     timeout::Disabler _timeout_disabler;
 
   public:
-    PhaseOverride(float id, float iq){
+    PhaseOverride(ampere_t id, ampere_t iq){
       m_phase_override = true;
-      m_phase_now_override = 0.0;
+      m_phase_now_override = 0.0_rad;
       m_id_set = id;
       m_iq_set = iq;
       m_control_mode = CONTROL_MODE_CURRENT;
@@ -170,8 +175,8 @@ namespace mcpwm_foc{
     }
     ~PhaseOverride(){
       // undo locked settings and stop motor
-      m_id_set = 0.0;
-      m_iq_set = 0.0;
+      m_id_set = 0.0_A;
+      m_iq_set = 0.0_A;
       m_phase_override = false;
       m_control_mode = CONTROL_MODE_NONE;
       m_state = MC_STATE_OFF;
@@ -247,27 +252,27 @@ namespace mcpwm_foc{
       m_curr_samples = 0;
       m_dccal_done = false;
       m_phase_override = false;
-      m_phase_now_override = 0.0;
+      m_phase_now_override = 0.0_rad;
       m_duty_cycle_set = 0.0;
       m_id_set = 0.0;
       m_iq_set = 0.0;
-      m_openloop_speed = 0.0;
+      m_openloop_speed = 0.0_rad_per_s;
       m_output_on = false;
-      m_pos_pid_set = 0.0;
-      m_speed_pid_set_rpm = 0.0;
-      m_phase_now_observer = 0.0;
-      m_phase_now_observer_override = 0.0;
+      m_pos_pid_set = 0_deg;
+      m_speed_pid_set_rpm = 0_rpm;
+      m_phase_now_observer = 0.0_rad;
+      m_phase_now_observer_override = 0.0_rad;
       m_phase_observer_override = false;
-      m_phase_now_encoder = 0.0;
-      m_phase_now_encoder_no_index = 0.0;
+      m_phase_now_encoder = 0.0_rad;
+      m_phase_now_encoder_no_index = 0.0_rad;
       m_observer_x1 = 0.0;
       m_observer_x2 = 0.0;
-      m_pll_phase = 0.0;
-      m_pll_speed = 0.0;
+      m_pll_phase = 0.0_rad;
+      m_pll_speed = 0.0_rad_per_s;
       m_tachometer = 0;
       m_tachometer_abs = 0;
-      last_inj_adc_isr_duration = 0;
-      m_pos_pid_now = 0.0;
+      last_inj_adc_isr_duration = 0_s;
+      m_pos_pid_now = 0_deg;
       m_gamma_now = 0.0;
       memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
       memset((void*)&m_samples, 0, sizeof(mc_sample_t));
@@ -581,7 +586,7 @@ namespace mcpwm_foc{
    * @param rpm
    * The electrical RPM goal value to use.
    */
-  void set_pid_speed(float rpm) {
+  void set_pid_speed(rpm_t rpm) {
       m_control_mode = CONTROL_MODE_SPEED;
       m_speed_pid_set_rpm = rpm;
 
@@ -597,7 +602,7 @@ namespace mcpwm_foc{
    * @param pos
    * The desired position of the motor in degrees.
    */
-  void set_pid_pos(float pos) {
+  void set_pid_pos(degree_t pos) {
       m_control_mode = CONTROL_MODE_POS;
       m_pos_pid_set = pos;
 
@@ -685,7 +690,7 @@ namespace mcpwm_foc{
    * @param rpm
    * The RPM to use.
    */
-  void set_openloop(float current, float rpm) {
+  void set_openloop(ampere_t current, rpm_t rpm) {
       if (fabsf(current) < m_conf->cc_min_current) {
           m_control_mode = CONTROL_MODE_NONE;
           m_state = MC_STATE_OFF;
@@ -697,7 +702,11 @@ namespace mcpwm_foc{
 
       m_control_mode = CONTROL_MODE_OPENLOOP;
       m_iq_set = current;
+#ifdef USE_UNITS
+      m_openloop_speed = rpm;
+#else
       m_openloop_speed = rpm * ((2.0 * M_PI) / 60.0);
+#endif
 
       if (m_state != MC_STATE_RUNNING) {
           m_state = MC_STATE_RUNNING;
@@ -712,11 +721,11 @@ namespace mcpwm_foc{
       return m_motor_state.duty_now;
   }
 
-  float get_pid_pos_set(void) {
+  degree_t get_pid_pos_set(void) {
       return m_pos_pid_set;
   }
 
-  float get_pid_pos_now(void) {
+  degree_t get_pid_pos_now(void) {
       return m_pos_pid_now;
   }
 
@@ -756,8 +765,12 @@ namespace mcpwm_foc{
    * @return
    * The RPM value.
    */
-  float get_rpm(void) {
+  rpm_t get_rpm(void) {
+#ifdef USE_UNITS
+      return m_pll_speed;
+#else
       return m_pll_speed / ((2.0 * M_PI) / 60.0);
+#endif
   }
 
   /**
@@ -927,8 +940,12 @@ namespace mcpwm_foc{
    * @return
    * The phase angle in degrees.
    */
-  float get_phase(void) {
-      float angle = m_motor_state.phase * (180.0 / M_PI);
+  degree_t get_phase(void) {
+#ifdef USE_UNITS
+      degree_t angle = m_motor_state.phase;
+#else
+      degree_t angle = m_motor_state.phase * (180.0 / M_PI);
+#endif
       norm_angle(angle);
       return angle;
   }
@@ -939,8 +956,12 @@ namespace mcpwm_foc{
    * @return
    * The phase angle in degrees.
    */
-  float get_phase_observer(void) {
-      float angle = m_phase_now_observer * (180.0 / M_PI);
+  degree_t get_phase_observer(void) {
+#ifdef USE_UNITS
+      degree_t angle = m_phase_now_observer;
+#else
+      degree_t angle = m_phase_now_observer * (180.0 / M_PI);
+#endif
       norm_angle(angle);
       return angle;
   }
@@ -951,17 +972,21 @@ namespace mcpwm_foc{
    * @return
    * The phase angle in degrees.
    */
-  float get_phase_encoder(void) {
-      float angle = m_phase_now_encoder * (180.0 / M_PI);
+  degree_t get_phase_encoder(void) {
+#ifdef USE_UNITS
+      degree_t angle = m_phase_now_encoder;
+#else
+      degree_t angle = m_phase_now_encoder * (180.0 / M_PI);
+#endif
       norm_angle(angle);
       return angle;
   }
 
-  float get_vd(void) {
+  volt_t get_vd(void) {
       return m_motor_state.vd;
   }
 
-  float get_vq(void) {
+  volt_t get_vq(void) {
       return m_motor_state.vq;
   }
 
@@ -980,23 +1005,23 @@ namespace mcpwm_foc{
    * @param direction
    * The detected direction.
    */
-  void encoder_detect(float current, bool print, float &offset, float &ratio, bool &inverted) {
+  void encoder_detect(ampere_t current, bool print, degree_t &offset, float &ratio, bool &inverted) {
 
       PhaseOverride lockedCurrentContext(current, 0.0);
 
       // Save configuration
-      float offset_old = m_conf->foc_encoder_offset;
-      float inverted_old = m_conf->foc_encoder_inverted;
-      float ratio_old = m_conf->foc_encoder_ratio;
+      auto offset_old = m_conf->foc_encoder_offset;
+      auto inverted_old = m_conf->foc_encoder_inverted;
+      auto ratio_old = m_conf->foc_encoder_ratio;
 
-      m_conf->foc_encoder_offset = 0.0;
+      m_conf->foc_encoder_offset = 0_deg;
       m_conf->foc_encoder_inverted = false;
       m_conf->foc_encoder_ratio = 1.0;
 
       // Find index
       int cnt = 0;
       while(!encoder::index_found()) {
-          for (float i = 0.0;i < 2.0 * M_PI;i += (2.0 * M_PI) / 500.0) {
+          for (radian_t i = 0.0_rad; i < 2.0 * PI_rad; i += (2.0 * PI_rad) / 500.0) {
               m_phase_now_override = i;
               chThdSleepMilliseconds(1);
           }
@@ -1013,7 +1038,7 @@ namespace mcpwm_foc{
       }
 
       // Rotate
-      for (float i = 0.0;i < 2.0 * M_PI;i += (2.0 * M_PI) / 500.0) {
+          for (radian_t i = 0.0_rad; i < 2.0 * PI_rad; i += (2.0 * PI_rad) / 500.0) {
           m_phase_now_override = i;
           chThdSleepMilliseconds(1);
       }
@@ -1028,22 +1053,22 @@ namespace mcpwm_foc{
       const int it_rat = 20;
       float s_sum = 0.0;
       float c_sum = 0.0;
-      float first = m_phase_now_encoder;
+      auto first = m_phase_now_encoder;
 
       for (int i = 0; i < it_rat; i++) {
-          float phase_old = m_phase_now_encoder;
-          float phase_ovr_tmp = m_phase_now_override;
-          for (float i = phase_ovr_tmp; i < phase_ovr_tmp + (2.0 / 3.0) * M_PI;
-                  i += (2.0 * M_PI) / 500.0) {
+          radian_t phase_old = m_phase_now_encoder;
+          auto phase_ovr_tmp = m_phase_now_override;
+          for (radian_t i = phase_ovr_tmp; i < phase_ovr_tmp + (2.0 / 3.0) * PI_rad;
+                  i += (2.0 * PI_rad) / 500.0) {
               m_phase_now_override = i;
               chThdSleepMilliseconds(1);
           }
-          norm_angle_rad((float&)m_phase_now_override);
+          norm_angle_rad(const_cast<radian_t&>(m_phase_now_override));
           chThdSleepMilliseconds(300);
-          float diff = angle_difference_rad(m_phase_now_encoder, phase_old);
+          auto diff = angle_difference_rad(m_phase_now_encoder, phase_old);
 
           float s, c;
-          sincosf(diff, &s, &c);
+          sincos_rad(diff, &s, &c);
           s_sum += s;
           c_sum += c;
 
@@ -1059,19 +1084,19 @@ namespace mcpwm_foc{
       first = m_phase_now_encoder;
 
       for (int i = 0; i < it_rat; i++) {
-          float phase_old = m_phase_now_encoder;
-          float phase_ovr_tmp = m_phase_now_override;
-          for (float i = phase_ovr_tmp; i > phase_ovr_tmp - (2.0 / 3.0) * M_PI;
-                  i -= (2.0 * M_PI) / 500.0) {
+          auto phase_old = m_phase_now_encoder;
+          auto phase_ovr_tmp = m_phase_now_override;
+          for (radian_t i = phase_ovr_tmp; i > phase_ovr_tmp - (2.0 / 3.0) * PI_rad;
+                  i -= (2.0 * PI_rad) / 500.0) {
               m_phase_now_override = i;
               chThdSleepMilliseconds(1);
           }
-          norm_angle_rad((float&)m_phase_now_override);
+          norm_angle_rad(const_cast<radian_t&>(m_phase_now_override));
           chThdSleepMilliseconds(300);
-          float diff = angle_difference_rad(phase_old, m_phase_now_encoder);
+          auto diff = angle_difference_rad(phase_old, m_phase_now_encoder);
 
           float s, c;
-          sincosf(diff, &s, &c);
+          sincos_rad(diff, &s, &c);
           s_sum += s;
           c_sum += c;
 
@@ -1086,8 +1111,7 @@ namespace mcpwm_foc{
 
       float diff = atan2f(s_sum, c_sum) * 180.0 / M_PI;
       inverted = diff < 0.0;
-      ratio = roundf(((2.0 / 3.0) * 180.0) /
-              fabsf(diff));
+      ratio = roundf(((2.0 / 3.0) * 180.0) / fabsf(diff));
 
       m_conf->foc_encoder_inverted = inverted;
       m_conf->foc_encoder_ratio = ratio;
@@ -1097,7 +1121,7 @@ namespace mcpwm_foc{
       }
 
       // Rotate
-      for (float i = m_phase_now_override;i < 2.0 * M_PI;i += (2.0 * M_PI) / 500.0) {
+      for (radian_t i = m_phase_now_override; i < 2.0 * PI_rad; i += (2.0 * PI_rad) / 500.0) {
           m_phase_now_override = i;
           chThdSleepMilliseconds(2);
       }
@@ -1111,13 +1135,13 @@ namespace mcpwm_foc{
       s_sum = 0.0;
       c_sum = 0.0;
 
-      for (int i = 0;i < it_ofs;i++) {
-          m_phase_now_override = ((float)i * 2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
+      for (int i = 0; i < it_ofs; i++) {
+          m_phase_now_override = (i * 2.0 * PI_rad * m_conf->foc_encoder_ratio) / it_ofs;
           chThdSleepMilliseconds(500);
 
-          float diff = angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
+          auto diff = angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
           float s, c;
-          sincosf(diff, &s, &c);
+          sincos_rad(diff, &s, &c);
           s_sum += s;
           c_sum += c;
 
@@ -1126,13 +1150,13 @@ namespace mcpwm_foc{
           }
       }
 
-      for (int i = it_ofs;i > 0;i--) {
-          m_phase_now_override = ((float)i * 2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
+      for (int i = it_ofs; i > 0; i--) {
+          m_phase_now_override = (i * 2.0 * PI_rad * m_conf->foc_encoder_ratio) / it_ofs;
           chThdSleepMilliseconds(500);
 
-          float diff = angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
+          auto diff = angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
           float s, c;
-          sincosf(diff, &s, &c);
+          sincos_rad(diff, &s, &c);
           s_sum += s;
           c_sum += c;
 
@@ -1140,8 +1164,11 @@ namespace mcpwm_foc{
               commands::printf("%.2f", (double)(diff * 180.0 / M_PI));
           }
       }
-
+#ifdef USE_UNITS
+      offset = radian_t{atan2f(s_sum, c_sum)};
+#else
       offset = atan2f(s_sum, c_sum) * 180.0 / M_PI;
+#endif
 
       if (print) {
           commands::printf("Avg: %.2f", (double)offset);
@@ -1172,7 +1199,7 @@ namespace mcpwm_foc{
    * @return
    * The calculated motor resistance.
    */
-  float measure_resistance(float current, size_t samples) {
+  ohm_t measure_resistance(ampere_t current, size_t samples) {
 
       PhaseOverride lockedCurrentContext(0.0, current);
 
@@ -1189,8 +1216,8 @@ namespace mcpwm_foc{
           chThdSleepMilliseconds(1);
       }
 
-      const float current_avg = m_samples.get_avg_current();
-      const float voltage_avg = m_samples.get_avg_voltage();
+      auto const current_avg = m_samples.get_avg_current();
+      auto const voltage_avg = m_samples.get_avg_voltage();
 
       return (voltage_avg / current_avg) * (2.0 / 3.0);
   }
@@ -1210,7 +1237,7 @@ namespace mcpwm_foc{
    * @return
    * The average d and q axis inductance in microhenry.
    */
-  float measure_inductance(float const duty, size_t const samples, float * const curr) {
+  microhenry_t measure_inductance(float const duty, size_t const samples, ampere_t * const curr) {
       m_samples.reset();
       m_samples.measure_inductance_duty = duty;
 
@@ -1237,8 +1264,8 @@ namespace mcpwm_foc{
 
       }
 
-      float avg_current = m_samples.get_avg_current();
-      float avg_voltage = m_samples.get_avg_voltage();
+      auto avg_current = m_samples.get_avg_current();
+      auto avg_voltage = m_samples.get_avg_voltage();
       float t = (float)TIM1->ARR * m_samples.measure_inductance_duty / (float)hw::SYSTEM_CORE_CLOCK -
                 (float)(MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET + MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP) / (float)hw::SYSTEM_CORE_CLOCK;
 
@@ -1261,7 +1288,7 @@ namespace mcpwm_foc{
    * @return
    * True if the measurement succeeded, false otherwise.
    */
-  bool measure_res_ind(float &res, float &ind) {
+  bool measure_res_ind(ohm_t &res, microhenry_t &ind) {
       auto const f_sw_old = m_conf->foc_f_sw;
       auto const kp_old = m_conf->foc_current_kp;
       auto const ki_old = m_conf->foc_current_ki;
@@ -1346,14 +1373,18 @@ namespace mcpwm_foc{
         chThdSleepMilliseconds(1000);
 
         // Forwards
-        for (int i = 0;i < 3;i++) {
-            for (int i = 0;i < 360;i++) {
+        for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 360; i++) {
+#ifdef USE_UNITS
+                m_phase_now_override = degree_t{(float)i};
+#else
                 m_phase_now_override = (float)i * M_PI / 180.0;
+#endif
                 chThdSleepMilliseconds(5);
 
                 int hall = read_hall();
                 float s, c;
-                sincosf(m_phase_now_override, &s, &c);
+                sincos_rad(m_phase_now_override, &s, &c);
                 sin_hall[hall] += s;
                 cos_hall[hall] += c;
                 hall_iterations[hall]++;
@@ -1361,14 +1392,18 @@ namespace mcpwm_foc{
         }
 
         // Reverse
-        for (int i = 0;i < 3;i++) {
-            for (int i = 360;i >= 0;i--) {
+        for (int i = 0; i < 3; i++) {
+            for (int i = 360; i >= 0; i--) {
+#ifdef USE_UNITS
+                m_phase_now_override = degree_t{(float)i};
+#else
                 m_phase_now_override = (float)i * M_PI / 180.0;
+#endif
                 chThdSleepMilliseconds(5);
 
                 int hall = read_hall();
                 float s, c;
-                sincosf(m_phase_now_override, &s, &c);
+                sincos_rad(m_phase_now_override, &s, &c);
                 sin_hall[hall] += s;
                 cos_hall[hall] += c;
                 hall_iterations[hall]++;
@@ -1380,9 +1415,13 @@ namespace mcpwm_foc{
       int fails = 0;
       for(int i = 0;i < 8;i++) {
           if (hall_iterations[i] > 30) {
-              float ang = atan2f(sin_hall[i], cos_hall[i]) * 180.0 / M_PI;
+#ifdef USE_UNITS
+              degree_t ang = radian_t{atan2f(sin_hall[i], cos_hall[i])};
+#else
+              degree_t ang = atan2f(sin_hall[i], cos_hall[i]) * 180.0 / M_PI;
+#endif
               norm_angle(ang);
-              hall_table[i] = (uint8_t)(ang * 200.0 / 360.0);
+              hall_table[i] = (uint8_t)(static_cast<float>(ang) * 200.0 / 360.0);
           } else {
               hall_table[i] = 255;
               fails++;
@@ -1413,7 +1452,7 @@ namespace mcpwm_foc{
       commands::printf("Obs_x2:       %.2f", (double)m_observer_x2);
   }
 
-  float get_last_inj_adc_isr_duration(void) {
+  second_t get_last_inj_adc_isr_duration(void) {
       return last_inj_adc_isr_duration;
   }
 
@@ -1592,21 +1631,25 @@ namespace mcpwm_foc{
 
       UTILS_LP_FAST(m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
-      float enc_ang = 0;
+      degree_t enc_ang = 0_deg;
       if (encoder::is_configured()) {
           enc_ang = encoder::read_deg();
-          float phase_tmp = enc_ang;
+          degree_t phase_tmp = enc_ang;
           if (m_conf->foc_encoder_inverted) {
-              phase_tmp = 360.0 - phase_tmp;
+              phase_tmp = 360_deg - phase_tmp;
           }
           phase_tmp *= m_conf->foc_encoder_ratio;
           phase_tmp -= m_conf->foc_encoder_offset;
-          norm_angle((float&)phase_tmp);
+          norm_angle(const_cast<degree_t&>(phase_tmp));
+#ifdef USE_UNITS
+          m_phase_now_encoder = phase_tmp;
+#else
           m_phase_now_encoder = phase_tmp * (M_PI / 180.0);
+#endif
       }
 
-      static float phase_before = 0.0;
-      const float phase_diff = angle_difference_rad(m_motor_state.phase, phase_before);
+      static radian_t phase_before = 0.0_rad;
+      auto const phase_diff = angle_difference_rad(m_motor_state.phase, phase_before);
       phase_before = m_motor_state.phase;
 
       if (m_state == MC_STATE_RUNNING) {
@@ -1619,8 +1662,8 @@ namespace mcpwm_foc{
   //		m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
 
           const float duty_abs = fabsf(m_motor_state.duty_now);
-          float id_set_tmp = m_id_set;
-          float iq_set_tmp = m_iq_set;
+          auto id_set_tmp = m_id_set;
+          auto iq_set_tmp = m_iq_set;
           m_motor_state.max_duty = m_conf->l_max_duty;
 
           static float duty_filtered = 0.0;
@@ -1686,9 +1729,9 @@ namespace mcpwm_foc{
               // Braking
               iq_set_tmp = fabsf(iq_set_tmp);
 
-              if (phase_diff > 0.0) {
+              if (phase_diff > 0.0_rad) {
                   iq_set_tmp = -iq_set_tmp;
-              } else if (phase_diff == 0.0) {
+              } else if (phase_diff == 0.0_rad) {
                   iq_set_tmp = 0.0;
               }
           }
@@ -1710,7 +1753,7 @@ namespace mcpwm_foc{
               }
 
               if (!m_phase_override) {
-                  id_set_tmp = 0.0;
+                  id_set_tmp = 0.0_A;
               }
               break;
           case FOC_SENSOR_MODE_HALL:
@@ -1718,7 +1761,7 @@ namespace mcpwm_foc{
               m_motor_state.phase = m_phase_now_observer;
 
               if (!m_phase_override) {
-                  id_set_tmp = 0.0;
+                  id_set_tmp = 0.0_A;
               }
               break;
           case FOC_SENSOR_MODE_SENSORLESS:
@@ -1737,7 +1780,7 @@ namespace mcpwm_foc{
                       id_set_tmp = map(duty_abs, 0.0, m_conf->foc_sl_d_current_duty,
                               fabsf(m_motor_state.iq_target) * m_conf->foc_sl_d_current_factor, 0.0);
                   } else {
-                      id_set_tmp = 0.0;
+                      id_set_tmp = 0.0_A;
                   }
               }
               break;
@@ -1745,10 +1788,10 @@ namespace mcpwm_foc{
 
           // Force the phase to 0 in handbrake mode so that the current simply locks the rotor.
           if (m_control_mode == CONTROL_MODE_HANDBRAKE) {
-              m_motor_state.phase = 0.0;
+              m_motor_state.phase = 0.0_rad;
           } else if (m_control_mode == CONTROL_MODE_OPENLOOP) {
-              static float openloop_angle = 0.0;
-              openloop_angle += static_cast<float>(dt) * m_openloop_speed;
+              static radian_t openloop_angle = 0.0_rad;
+              openloop_angle += dt * m_openloop_speed;
               norm_angle_rad(openloop_angle);
               m_motor_state.phase = openloop_angle;
           }
@@ -1759,7 +1802,7 @@ namespace mcpwm_foc{
 
           // Apply current limits
           // TODO: Consider D axis current for the input current as well.
-          const float mod_q = m_motor_state.mod_q;
+          auto const mod_q = m_motor_state.mod_q;
           if (mod_q > 0.001) {
               truncate_number(iq_set_tmp, m_conf->lo_in_current_min / mod_q,
                                           m_conf->lo_in_current_max / mod_q);
@@ -1860,9 +1903,9 @@ namespace mcpwm_foc{
       pll_run(m_motor_state.phase, dt, m_pll_phase, m_pll_speed);
 
       // Update tachometer (resolution = 60 deg as for BLDC)
-      float ph_tmp = m_motor_state.phase;
+      auto ph_tmp = m_motor_state.phase;
       norm_angle_rad(ph_tmp);
-      int step = (int)floorf((ph_tmp + M_PI) / (2.0 * M_PI) * 6.0);
+      int step = (int)floorf((ph_tmp + PI_rad) / (2.0 * PI_rad) * 6.0);
       truncate_number(step, 0, 5);
       static int step_last = 0;
       int diff = step - step_last;
@@ -1879,21 +1922,25 @@ namespace mcpwm_foc{
 
       // Track position control angle
       // TODO: Have another look at this.
-      float angle_now = 0.0;
+      degree_t angle_now = 0_deg;
       if (encoder::is_configured()) {
           angle_now = enc_ang;
       } else {
+#ifdef USE_UNITS
+          angle_now = m_motor_state.phase;
+#else
           angle_now = m_motor_state.phase * (180.0 / M_PI);
+#endif
       }
 
       if (m_conf->p_pid_ang_div > 0.98 && m_conf->p_pid_ang_div < 1.02) {
           m_pos_pid_now = angle_now;
       } else {
-          static float angle_last = 0.0;
-          float diff_f = angle_difference(angle_now, angle_last);
+          static degree_t angle_last = 0_deg;
+          auto diff_f = angle_difference(angle_now, angle_last);
           angle_last = angle_now;
           m_pos_pid_now += diff_f / m_conf->p_pid_ang_div;
-          norm_angle((float&)m_pos_pid_now);
+          norm_angle(const_cast<degree_t&>(m_pos_pid_now));
       }
 
       // Run position control
@@ -1904,7 +1951,7 @@ namespace mcpwm_foc{
       // MCIF handler
       mc_interface::mc_timer_isr();
 
-      last_inj_adc_isr_duration = TIM12->CNT / (float) TIM12_FREQ;
+      last_inj_adc_isr_duration = TIM12->CNT / TIM12_FREQ;
   }
 
   // Private functions
@@ -1920,18 +1967,22 @@ namespace mcpwm_foc{
               return;
           }
 
-          float openloop_rpm = map(fabsf(m_motor_state.iq_target),
-                  0.0, m_conf->l_current_max,
-                  0.0, m_conf->foc_openloop_rpm);
+          auto openloop_rpm = map(fabsf(m_motor_state.iq_target),
+                  0.0_A, m_conf->l_current_max,
+                  0_rpm, m_conf->foc_openloop_rpm);
 
           truncate_number_abs(openloop_rpm, m_conf->foc_openloop_rpm);
 
-          const float dt = 0.001;
-          const float min_rads = (openloop_rpm * 2.0 * M_PI) / 60.0;
-          static float min_rpm_hyst_timer = 0.0;
-          static float min_rpm_timer = 0.0;
+          const second_t dt = 0.001_s;
+#ifdef USE_UNITS
+          radians_per_second_t const min_rads = openloop_rpm;
+#else
+          radians_per_second_t const min_rads = (openloop_rpm * 2.0 * M_PI) / 60.0;
+#endif
+          static second_t min_rpm_hyst_timer = 0.0_s;
+          static second_t min_rpm_timer = 0.0_s;
 
-          float add_min_speed = 0.0;
+          radian_t add_min_speed = 0.0_rad;
           if (m_motor_state.duty_now > 0.0) {
               add_min_speed = min_rads * dt;
           } else {
@@ -1940,44 +1991,44 @@ namespace mcpwm_foc{
 
           // Open loop encoder angle for when the index is not found
           m_phase_now_encoder_no_index += add_min_speed;
-          norm_angle_rad((float&)m_phase_now_encoder_no_index);
+          norm_angle_rad(const_cast<radian_t&>(m_phase_now_encoder_no_index));
 
           // Output a minimum speed from the observer
           if (fabsf(m_pll_speed) < min_rads) {
               min_rpm_hyst_timer += dt;
-          } else if (min_rpm_hyst_timer > 0.0) {
+          } else if (min_rpm_hyst_timer > 0.0_s) {
               min_rpm_hyst_timer -= dt;
           }
 
           // Don't use this in brake mode.
           if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE || fabsf(m_motor_state.duty_now) < 0.001) {
-              min_rpm_hyst_timer = 0.0;
+              min_rpm_hyst_timer = 0.0_s;
               m_phase_observer_override = false;
           }
 
           bool started_now = false;
-          if (min_rpm_hyst_timer > m_conf->foc_sl_openloop_hyst && min_rpm_timer <= 0.0001) {
+          if (min_rpm_hyst_timer > m_conf->foc_sl_openloop_hyst && min_rpm_timer <= 0.0001_s) {
               min_rpm_timer = m_conf->foc_sl_openloop_time;
               started_now = true;
           }
 
-          if (min_rpm_timer > 0.0) {
+          if (min_rpm_timer > 0.0_s) {
               m_phase_now_observer_override += add_min_speed;
 
               // When the motor gets stuck it tends to be 90 degrees off, so start the open loop
               // sequence by correcting with 90 degrees.
               if (started_now) {
                   if (m_motor_state.duty_now > 0.0) {
-                      m_phase_now_observer_override += M_PI / 2.0;
+                      m_phase_now_observer_override += PI_rad / 2.0;
                   } else {
-                      m_phase_now_observer_override -= M_PI / 2.0;
+                      m_phase_now_observer_override -= PI_rad / 2.0;
                   }
               }
 
-              norm_angle_rad((float&)m_phase_now_observer_override);
+              norm_angle_rad(const_cast<radian_t&>(m_phase_now_observer_override));
               m_phase_observer_override = true;
               min_rpm_timer -= dt;
-              min_rpm_hyst_timer = 0.0;
+              min_rpm_hyst_timer = 0.0_s;
           } else {
               m_phase_now_observer_override = m_phase_now_observer;
               m_phase_observer_override = false;
@@ -1999,7 +2050,7 @@ namespace mcpwm_foc{
           m_gamma_now = map(fabsf(m_motor_state.duty_now), 0.0, 1.0,
                   m_conf->foc_observer_gain * m_conf->foc_observer_gain_slow, m_conf->foc_observer_gain);
 
-          run_pid_control_speed(second_t(dt));
+          run_pid_control_speed(dt);
           chThdSleepMilliseconds(1);
       }
 
@@ -2043,7 +2094,7 @@ namespace mcpwm_foc{
                        second_t const dt,
                        volatile float& x1,
                        volatile float& x2,
-                       volatile float& phase) {
+                       volatil_ radian_t& phase) {
 
       const float L = (3.0 / 2.0) * m_conf->foc_motor_l;
       const float lambda = m_conf->foc_motor_flux_linkage;
@@ -2106,17 +2157,17 @@ namespace mcpwm_foc{
       phase = fast_atan2(x2 - L_ib, x1 - L_ia);
   }
 
-  void pll_run(float const phase,
+  void pll_run(radian_t const phase,
                second_t const dt,
-               volatile float& phase_var,
-               volatile float& speed_var) {
+               volatil_ radian_t& phase_var,
+               volatil_ radians_per_second_t& speed_var) {
       UTILS_NAN_ZERO(phase_var);
-      float delta_theta = phase - phase_var;
+      auto delta_theta = phase - phase_var;
       norm_angle_rad(delta_theta);
       UTILS_NAN_ZERO(speed_var);
-      phase_var += static_cast<float>((speed_var + m_conf->foc_pll_kp * delta_theta) * dt);
-      norm_angle_rad((float&)phase_var);
-      speed_var += static_cast<float>(m_conf->foc_pll_ki * delta_theta * dt);
+      phase_var += (speed_var + m_conf->foc_pll_kp * delta_theta) * dt;
+      norm_angle_rad(const_cast<radian_t&>(phase_var));
+      speed_var += m_conf->foc_pll_ki * delta_theta * dt;
   }
 
   /**
@@ -2157,7 +2208,7 @@ namespace mcpwm_foc{
    */
   void control_current(volatile motor_state_t& state_m, second_t dt) {
       float c,s;
-      fast_sincos_better(state_m.phase, &s, &c);
+      fast_sincos_better(const_cast<motor_state_t&>(state_m).phase, &s, &c);
 
       float max_duty = fabsf(state_m.max_duty);
       truncate_number(max_duty, 0.0, m_conf->l_max_duty);
@@ -2367,20 +2418,20 @@ namespace mcpwm_foc{
   }
 
   void run_pid_control_pos(degree_t angle_now, degree_t angle_set, second_t dt) {
-      static scalar_t i_term = 0;
-      static scalar_t prev_error = 0;
-      scalar_t p_term;
-      scalar_t d_term;
+      static degree_t i_term = 0_deg;
+      static degree_t prev_error = 0_deg;
+      degree_t p_term;
+      degree_t d_term;
 
       // PID is off. Return.
       if (m_control_mode != CONTROL_MODE_POS) {
-          i_term = 0;
-          prev_error = 0;
+          i_term = 0_deg;
+          prev_error = 0_deg;
           return;
       }
 
       // Compute parameters
-      float error = angle_difference(angle_set, angle_now);
+      auto error = angle_difference(angle_set, angle_now);
 
       if (encoder::is_configured()) {
           if (m_conf->foc_encoder_inverted) {
@@ -2399,7 +2450,7 @@ namespace mcpwm_foc{
         static second_t dt_int = 0.0_s;
         dt_int += dt;
         if (error == prev_error) {
-            d_term = 0.0;
+            d_term = 0_deg;
         } else {
             d_term = (error - prev_error) * (m_conf->p_pid_kd / dt_int);
             dt_int = 0.0_s;
@@ -2407,20 +2458,20 @@ namespace mcpwm_foc{
       }
 
       // Filter D
-      static scalar_t d_filter = 0.0;
+      static degree_t d_filter = 0_deg;
       UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
       d_term = d_filter;
 
 
       // I-term wind-up protection
-      truncate_number_abs(p_term, 1.0);
-      truncate_number_abs(i_term, 1.0 - fabsf(p_term));
+      truncate_number_abs(p_term, 1_deg);
+      truncate_number_abs(i_term, 1_deg - fabsf(p_term));
 
       // Store previous error
       prev_error = error;
 
       // Calculate output
-      float output = p_term + i_term + d_term;
+      auto output = static_cast<float>(p_term + i_term + d_term);
       truncate_number_abs(output, 1.0);
 
       if (encoder::is_configured()) {
@@ -2436,24 +2487,24 @@ namespace mcpwm_foc{
   }
 
   void run_pid_control_speed(second_t dt) {
-      static scalar_t i_term = 0.0;
-      static scalar_t prev_error = 0.0;
-      scalar_t p_term;
-      scalar_t d_term;
+      static rpm_t i_term = 0_rpm;
+      static rpm_t prev_error = 0_rpm;
+      rpm_t p_term;
+      rpm_t d_term;
 
       // PID is off. Return.
       if (m_control_mode != CONTROL_MODE_SPEED) {
-          i_term = 0.0;
-          prev_error = 0.0;
+          i_term = 0_rpm;
+          prev_error = 0_rpm;
           return;
       }
 
-      const float rpm = get_rpm();
-      float error = m_speed_pid_set_rpm - rpm;
+      auto const rpm = get_rpm();
+      auto error = m_speed_pid_set_rpm - rpm;
 
       // Too low RPM set. Reset state and return.
       if (fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
-          i_term = 0.0;
+          i_term = 0_rpm;
           prev_error = error;
           return;
       }
@@ -2464,27 +2515,27 @@ namespace mcpwm_foc{
       d_term  =(error - prev_error) * (m_conf->s_pid_kd / dt) * (1.0 / 20.0);
 
       // Filter D
-      static scalar_t d_filter = 0.0;
+      static rpm_t d_filter = 0_rpm;
       UTILS_LP_FAST(d_filter, d_term, m_conf->s_pid_kd_filter);
       d_term = d_filter;
 
       // I-term wind-up protection
-      truncate_number_abs(i_term, 1.0);
+      truncate_number_abs(i_term, 1_rpm);
 
       // Store previous error
       prev_error = error;
 
       // Calculate output
-      float output = p_term + i_term + d_term;
-      truncate_number_abs(output, 1.0);
+      auto output = static_cast<float>(p_term + i_term + d_term);
+      truncate_number_abs(output, 1);
 
       // Optionally disable braking
       if (!m_conf->s_pid_allow_braking) {
-          if (rpm > 0.0 && output < 0.0) {
+          if (rpm > 0_rpm && output < 0.0) {
               output = 0.0;
           }
 
-          if (rpm < 0.0 && output > 0.0) {
+          if (rpm < 0_rpm && output > 0.0) {
               output = 0.0;
           }
       }
@@ -2553,12 +2604,16 @@ namespace mcpwm_foc{
             (middle_of_3_int(h3_1, h3_2, h3_3) << 2);
   }
 
-  float correct_encoder(float obs_angle, float enc_angle, float speed) {
+  radian_t correct_encoder(radian_t obs_angle, radian_t enc_angle, radians_per_second_t speed) {
+#ifdef USE_UNITS
+      rpm_t rpm_abs = fabsf(speed);
+#else
       float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
+#endif
       static bool using_encoder = true;
 
       // Hysteresis 5 % of total speed
-      float hyst = m_conf->foc_sl_erpm * 0.05;
+      rpm_t hyst = m_conf->foc_sl_erpm * 0.05;
       if (using_encoder) {
           if (rpm_abs > (m_conf->foc_sl_erpm + hyst)) {
               using_encoder = false;
@@ -2572,13 +2627,17 @@ namespace mcpwm_foc{
       return using_encoder ? enc_angle : obs_angle;
   }
 
-  float correct_hall(float angle, float speed, second_t dt) {
+  radian_t correct_hall(radian_t angle, radians_per_second_t speed, second_t dt) {
       static int ang_hall_int_prev = -1;
-      float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
+#ifdef USE_UNITS
+      rpm_t rpm_abs = fabsf(speed);
+#else
+      rpm_t rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
+#endif
       static bool using_hall = true;
 
       // Hysteresis 5 % of total speed
-      float hyst = m_conf->foc_sl_erpm * 0.1;
+      rpm_t hyst = m_conf->foc_sl_erpm * 0.1;
       if (using_hall) {
           if (rpm_abs > (m_conf->foc_sl_erpm + hyst)) {
               using_hall = false;
@@ -2594,8 +2653,8 @@ namespace mcpwm_foc{
 
           // Only override the observer if the hall sensor value is valid.
           if (ang_hall_int < 201) {
-              static float ang_hall = 0.0;
-              float ang_hall_now = (((float)ang_hall_int / 200.0) * 360.0) * M_PI / 180.0;
+              static radian_t ang_hall = 0.0_rad;
+              radian_t ang_hall_now = (((float)ang_hall_int / 200.0) * 360.0) * PI_rad / 180.0;
 
               if (ang_hall_int_prev < 0) {
                   // Previous angle not valid
@@ -2606,7 +2665,7 @@ namespace mcpwm_foc{
                       ang_hall = angle;
                   } else {
                       // A boot or error has occurred. Use center of hall sensor angle.
-                      ang_hall = ((ang_hall_int / 200.0) * 360.0) * M_PI / 180.0;
+                      ang_hall = ((ang_hall_int / 200.0) * 360.0) * PI_rad / 180.0;
                   }
               } else if (ang_hall_int != ang_hall_int_prev) {
                   // A transition was just made. The angle is in the middle of the new and old angle.
@@ -2617,20 +2676,20 @@ namespace mcpwm_foc{
                       ang_avg = (ang_hall_int + ang_hall_int_prev) / 2 + 100;
                   }
                   ang_avg %= 200;
-                  ang_hall = (((float)ang_avg / 200.0) * 360.0) * M_PI / 180.0;
+                  ang_hall = (((float)ang_avg / 200.0) * 360.0) * PI_rad / 180.0;
               }
 
               ang_hall_int_prev = ang_hall_int;
 
-              if (rpm_abs < 100) {
+              if (rpm_abs < 100_rpm) {
                   // Don't interpolate on very low speed, just use the closest hall sensor
                   ang_hall = ang_hall_now;
               } else {
                   // Interpolate
-                  float diff = angle_difference_rad(ang_hall, ang_hall_now);
-                  if (fabsf(diff) < ((2.0 * M_PI) / 12.0)) {
+                  auto diff = angle_difference_rad(ang_hall, ang_hall_now);
+                  if (fabsf(diff) < ((2.0 * PI_rad) / 12.0)) {
                       // Do interpolation
-                      ang_hall += speed * static_cast<float>(dt);
+                      ang_hall += speed * dt;
                   } else {
                       // We are too far away with the interpolation
                       ang_hall -= diff / 100.0;

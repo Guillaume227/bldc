@@ -428,7 +428,7 @@ namespace conf_general {
       return is_ok;
   }
 
-  bool detect_motor_param(float current, float min_rpm, float low_duty,
+  bool detect_motor_param(ampere_t current, rpm_t min_rpm, float low_duty,
           float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res) {
 
       int ok_steps = 0;
@@ -444,7 +444,7 @@ namespace conf_general {
       mcconf.sl_min_erpm = min_rpm;
       mcconf.sl_bemf_coupling_k = 300;
       mcconf.sl_cycle_int_limit = 50;
-      mcconf.sl_min_erpm_cycle_int_limit = 1100;
+      mcconf.sl_min_erpm_cycle_int_limit = 1100_rpm;
       mcconf.m_invert_direction = false;
       mc_interface::set_configuration(&mcconf);
 
@@ -462,7 +462,7 @@ namespace conf_general {
 
       // Disable timeout
       systime_t tout = timeout::get_timeout_msec();
-      float tout_c = timeout::get_brake_current();
+      auto tout_c = timeout::get_brake_current();
       timeout::reset();
       timeout::configure(60000, 0.0);
 
@@ -589,7 +589,7 @@ namespace conf_general {
       // Average the cycle integrator for 100 commutations
       mcpwm::read_reset_avg_cycle_integrator();
       tacho = mc_interface::get_tachometer_value(0);
-      float rpm_sum = 0.0;
+      rpm_t rpm_sum = 0_rpm;
       float rpm_iterations = 0.0;
       for (int i = 0;i < 3000;i++) {
           if ((mc_interface::get_tachometer_value(0) - tacho) < 100) {
@@ -602,8 +602,8 @@ namespace conf_general {
           }
       }
 
-      float avg_cycle_integrator_running = mcpwm::read_reset_avg_cycle_integrator();
-      float rpm = rpm_sum / rpm_iterations;
+      auto avg_cycle_integrator_running = mcpwm::read_reset_avg_cycle_integrator();
+      auto rpm = rpm_sum / rpm_iterations;
 
       mc_interface::lock_override_once();
       mc_interface::release_motor();
@@ -611,7 +611,7 @@ namespace conf_general {
       // Try to figure out the coupling factor
       avg_cycle_integrator_running -= *int_limit;
       avg_cycle_integrator_running /= (float)ADC_Value[ADC_IND_VIN_SENS];
-      avg_cycle_integrator_running *= rpm;
+      avg_cycle_integrator_running *= static_cast<float>(rpm);
       *bemf_coupling_k = avg_cycle_integrator_running;
 
       // Restore settings
@@ -620,7 +620,7 @@ namespace conf_general {
 
       mc_interface::unlock();
 
-      return ok_steps == 5 ? true : false;
+      return ok_steps == 5;
   }
 
   /**
@@ -644,8 +644,8 @@ namespace conf_general {
    * @return
    * True for success, false otherwise.
    */
-  bool measure_flux_linkage(float current, float duty,
-          float min_erpm, float res, float *linkage) {
+  bool measure_flux_linkage(ampere_t current, float duty,
+          rpm_t min_erpm, float res, float *linkage) {
       mcconf = mc_interface::get_configuration();
       mcconf_old = mcconf;
 
@@ -657,7 +657,7 @@ namespace conf_general {
       mcconf.m_bldc_f_sw_min = 10'000_Hz;
       mcconf.sl_bemf_coupling_k = 300;
       mcconf.sl_cycle_int_limit = 50;
-      mcconf.sl_min_erpm_cycle_int_limit = 1100;
+      mcconf.sl_min_erpm_cycle_int_limit = 1100_rpm;
       mc_interface::set_configuration(&mcconf);
 
       // Wait maximum 5s for fault code to disappear
@@ -758,9 +758,9 @@ namespace conf_general {
       mc_interface::lock_override_once();
       mc_interface::set_duty(duty);
 
-      float avg_voltage = 0.0;
-      float avg_rpm = 0.0;
-      float avg_current = 0.0;
+      auto avg_voltage = 0.0_V;
+      auto avg_rpm = 0_rpm;
+      auto avg_current = 0.0_A;
       float samples = 0.0;
       for (int i = 0;i < 2000;i++) {
           avg_voltage += GET_INPUT_VOLTAGE() * mc_interface::get_duty_cycle_now();
@@ -780,7 +780,7 @@ namespace conf_general {
       avg_current /= samples;
       avg_voltage -= avg_current * res * 2.0;
 
-      *linkage = avg_voltage * 60.0 / (sqrtf(3.0) * 2.0 * M_PI * avg_rpm);
+      *linkage = avg_voltage * 60.0 / (sqrtf(3.0) * 2.0 * M_PI * static_cast<float>(avg_rpm));
 
       return true;
   }

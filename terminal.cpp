@@ -89,9 +89,9 @@ namespace terminal{
           mc_interface::set_duty(0);
           printf("Motor stopped\n");
       } else if (strcmp(argv[0], "last_adc_duration") == 0) {
-          printf("Latest ADC duration: %.4f ms", static_cast<float>(mcpwm::get_last_adc_isr_duration() * 1000.0));
-          printf("Latest injected ADC duration: %.4f ms", static_cast<float>(mc_interface::get_last_inj_adc_isr_duration() * 1000.0));
-          printf("Latest sample ADC duration: %.4f ms\n", static_cast<float>(mc_interface::get_last_sample_adc_isr_duration() * 1000.0));
+          printf("Latest ADC duration: %.4f ms", (double)static_cast<float>(mcpwm::get_last_adc_isr_duration() * 1000.0));
+          printf("Latest injected ADC duration: %.4f ms", (double)static_cast<float>(mc_interface::get_last_inj_adc_isr_duration() * 1000.0));
+          printf("Latest sample ADC duration: %.4f ms\n", (double)static_cast<float>(mc_interface::get_last_sample_adc_isr_duration() * 1000.0));
       } else if (strcmp(argv[0], "kv") == 0) {
           printf("Calculated KV: %.2f rpm/volt\n", (double)mcpwm::get_kv_filtered());
       } else if (strcmp(argv[0], "mem") == 0) {
@@ -197,7 +197,7 @@ namespace terminal{
                   float coupling_k;
                   int8_t hall_table[8];
                   int hall_res;
-                  if (conf_general::detect_motor_param(current, min_rpm, low_duty, &cycle_integrator, &coupling_k, hall_table, &hall_res)) {
+                  if (conf_general::detect_motor_param(ampere_t{current}, rpm_t{min_rpm}, low_duty, &cycle_integrator, &coupling_k, hall_table, &hall_res)) {
                       printf("Cycle integrator limit: %.2f", (double)cycle_integrator);
                       printf("Coupling factor: %.2f", (double)coupling_k);
 
@@ -255,7 +255,7 @@ namespace terminal{
                       mcconf.motor_type = MOTOR_TYPE_FOC;
                       mc_interface::set_configuration(&mcconf);
 
-                      float offset = 0.0;
+                      degree_t offset = 0_deg;
                       float ratio = 0.0;
                       bool inverted = false;
                       mcpwm_foc::encoder_detect(current, true, offset, ratio, inverted);
@@ -327,7 +327,7 @@ namespace terminal{
 
               if (current > 0.0 && current <= mcconf.l_current_max && min_erpm > 0.0 && duty > 0.02 && res >= 0.0) {
                   float linkage;
-                  conf_general::measure_flux_linkage(current, duty, min_erpm, res, &linkage);
+                  conf_general::measure_flux_linkage(ampere_t{current}, duty, rpm_t{min_erpm}, res, &linkage);
                   printf("Flux linkage: %.7f\n", (double)linkage);
               } else {
                   printf("Invalid argument(s).\n");
@@ -368,7 +368,7 @@ namespace terminal{
                   }
 
                   float vq_avg = 0.0;
-                  float rpm_avg = 0.0;
+                  rpm_t rpm_avg = 0_rpm;
                   float samples = 0.0;
                   float iq_avg = 0.0;
                   for (int i = 0;i < 1000;i++) {
@@ -389,7 +389,7 @@ namespace terminal{
                   rpm_avg /= samples;
                   iq_avg /= samples;
 
-                  float linkage = (vq_avg - res * iq_avg) / (rpm_avg * ((2.0 * M_PI) / 60.0));
+                  float linkage = (vq_avg - res * iq_avg) / static_cast<float>(rpm_avg * ((2.0 * M_PI) / 60.0));
 
                   printf("Flux linkage: %.7f\n", (double)linkage);
               } else {
@@ -420,7 +420,7 @@ namespace terminal{
               sscanf(argv[2], "%f", &erpm);
 
               if (current >= 0.0 && erpm >= 0.0) {
-                  mcpwm_foc::set_openloop(current, erpm);
+                  mcpwm_foc::set_openloop(ampere_t{current}, rpm_t{erpm});
               } else {
                   printf("Invalid argument(s).\n");
               }
