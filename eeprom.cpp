@@ -356,7 +356,7 @@ static FLASH_Status EE_Format(void)
 	FLASH_Status FlashStatus = FLASH_COMPLETE;
 
 	/* Erase Page0 */
-	FlashStatus = EE_EraseSectorIfNotEmpty(PAGE0_ID, VOLTAGE_RANGE);
+	FlashStatus = (FLASH_Status) EE_EraseSectorIfNotEmpty(PAGE0_ID, VOLTAGE_RANGE);
 
 	/* If erase operation was failed, a Flash error code is returned */
 	if (FlashStatus != FLASH_COMPLETE)
@@ -374,7 +374,7 @@ static FLASH_Status EE_Format(void)
 	}
 
 	/* Erase Page1 */
-	FlashStatus = EE_EraseSectorIfNotEmpty(PAGE1_ID, VOLTAGE_RANGE);
+	FlashStatus = (FLASH_Status) EE_EraseSectorIfNotEmpty(PAGE1_ID, VOLTAGE_RANGE);
 
 	/* Return Page1 erase operation status */
 	return FlashStatus;
@@ -592,7 +592,7 @@ static uint16_t EE_PageTransfer(uint16_t VirtAddress, uint16_t Data)
 	}
 
 	/* Erase the old Page: Set old Page status to ERASED status */
-	FlashStatus = EE_EraseSectorIfNotEmpty(OldPageId, VOLTAGE_RANGE);
+	FlashStatus = (FLASH_Status) EE_EraseSectorIfNotEmpty(OldPageId, VOLTAGE_RANGE);
 	/* If erase operation was failed, a Flash error code is returned */
 	if (FlashStatus != FLASH_COMPLETE)
 	{

@@ -8,7 +8,7 @@ ifeq ($(USE_OPT),)
   #USE_OPT = -O1 -ggdb -fomit-frame-pointer -falign-functions=16 -D_GNU_SOURCE
   USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -D_GNU_SOURCE
   USE_OPT += -DBOARD_OTG_NOVBUSSENS $(build_args)
-  USE_OPT += -fsingle-precision-constant -Wdouble-promotion #-D__cplusplus
+  USE_OPT += -fsingle-precision-constant -Wdouble-promotion -Wall -Werror #-D__cplusplus
 endif
 
 # C specific options here (added to USE_OPT).
@@ -18,7 +18,7 @@ endif
 
 # C++ specific options here (added to USE_OPT).
 ifeq ($(USE_CPPOPT),)
-  USE_CPPOPT = -fno-rtti -std=c++17 -fpermissive -fno-exceptions
+  USE_CPPOPT = -fno-rtti -std=c++17 -fpermissive -fno-exceptions #-Wpedantic
 endif	
 
 # Enable this if you want the linker to remove unused code and data
