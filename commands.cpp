@@ -121,7 +121,7 @@ namespace commands{
       uint32_t new_app_offset;
       chuck_data chuck_d_tmp;
 
-      packet_id = data[0];
+      get_enum(packet_id, data[0]);
       data++;
       len--;
 
@@ -211,7 +211,7 @@ namespace commands{
 
       case COMM_SET_RPM:
           ind = 0;
-          mc_interface::set_pid_speed(rpm_t{get_int32(data, &ind)});
+          mc_interface::set_pid_speed(rpm_t(get_int32(data, &ind)));
           timeout::reset();
           break;
 
@@ -231,7 +231,7 @@ namespace commands{
           mcconf = mc_interface::get_configuration();
 
           ind = 0;
-          display_position_mode = static_cast<disp_pos_mode>(data[ind++]);
+          get_enum(display_position_mode, data, &ind);
 
           if (mcconf.motor_type == MOTOR_TYPE_BLDC) {
               if (display_position_mode == DISP_POS_MODE_NONE) {
@@ -255,10 +255,10 @@ namespace commands{
           mcconf = mc_interface::get_configuration();
 
           ind = 0;
-          mcconf.pwm_mode = data[ind++];
-          mcconf.comm_mode = data[ind++];
-          mcconf.motor_type = data[ind++];
-          mcconf.sensor_mode = data[ind++];
+          get_enum(mcconf.pwm_mode, data, &ind);
+          get_enum(mcconf.comm_mode, data, &ind);
+          get_enum(mcconf.motor_type, data, &ind);
+          get_enum(mcconf.sensor_mode, data, &ind);
 
           mcconf.l_current_max = get_float32_auto(data, &ind);
           mcconf.l_current_min = get_float32_auto(data, &ind);
@@ -311,7 +311,7 @@ namespace commands{
           mcconf.foc_encoder_inverted = data[ind++];
           get_float32_auto(mcconf.foc_encoder_offset, data, &ind);
           mcconf.foc_encoder_ratio = get_float32_auto(data, &ind);
-          mcconf.foc_sensor_mode = data[ind++];
+          get_enum(mcconf.foc_sensor_mode, data, &ind);
           get_float32_auto(mcconf.foc_pll_kp, data, &ind);
           get_float32_auto(mcconf.foc_pll_ki, data, &ind);
           mcconf.foc_motor_l = get_float32_auto(data, &ind);
@@ -359,9 +359,9 @@ namespace commands{
           mcconf.m_duty_ramp_step = get_float32_auto(data, &ind);
           mcconf.m_current_backoff_gain = get_float32_auto(data, &ind);
           mcconf.m_encoder_counts = get_uint32(data, &ind);
-          mcconf.m_sensor_port_mode = data[ind++];
+          get_enum(mcconf.m_sensor_port_mode, data, &ind);
           mcconf.m_invert_direction = data[ind++];
-          mcconf.m_drv8301_oc_mode = data[ind++];
+          get_enum(mcconf.m_drv8301_oc_mode, data, &ind);
           mcconf.m_drv8301_oc_adj = data[ind++];
           get_float32_auto(mcconf.m_bldc_f_sw_min, data, &ind);
           get_float32_auto(mcconf.m_bldc_f_sw_max, data, &ind);
@@ -519,9 +519,9 @@ namespace commands{
           append_float32_auto(send_buffer, mcconf.m_duty_ramp_step, &ind);
           append_float32_auto(send_buffer, mcconf.m_current_backoff_gain, &ind);
           append_uint32(send_buffer, mcconf.m_encoder_counts, &ind);
-          send_buffer[ind++] = static_cast<uint8_t>(mcconf.m_sensor_port_mode);
+          append_enum(send_buffer, mcconf.m_sensor_port_mode, &ind);
           send_buffer[ind++] = mcconf.m_invert_direction;
-          send_buffer[ind++] = static_cast<uint8_t>(mcconf.m_drv8301_oc_mode);
+          append_enum(send_buffer, mcconf.m_drv8301_oc_mode, &ind);
           send_buffer[ind++] = mcconf.m_drv8301_oc_adj;
           append_float32_auto(send_buffer, mcconf.m_bldc_f_sw_min, &ind);
           append_float32_auto(send_buffer, mcconf.m_bldc_f_sw_max, &ind);
@@ -540,11 +540,11 @@ namespace commands{
           appconf.timeout_brake_current = get_float32_auto(data, &ind);
           appconf.send_can_status = data[ind++];
           appconf.send_can_status_rate_hz = get_uint16(data, &ind);
-          appconf.can_baud_rate = static_cast<CAN_BAUD>(data[ind++]);
+          get_enum(appconf.can_baud_rate, data, &ind);
 
-          appconf.app_to_use = data[ind++];
+          get_enum(appconf.app_to_use, data, &ind);
 
-          appconf.app_ppm_conf.ctrl_type = data[ind++];
+          get_enum(appconf.app_ppm_conf.ctrl_type, data, &ind);
           appconf.app_ppm_conf.pid_max_erpm = get_float32_auto(data, &ind);
           appconf.app_ppm_conf.hyst = get_float32_auto(data, &ind);
           appconf.app_ppm_conf.pulse_start = get_float32_auto(data, &ind);
@@ -554,14 +554,14 @@ namespace commands{
           appconf.app_ppm_conf.safe_start = data[ind++];
           appconf.app_ppm_conf.throttle_exp = get_float32_auto(data, &ind);
           appconf.app_ppm_conf.throttle_exp_brake = get_float32_auto(data, &ind);
-          appconf.app_ppm_conf.throttle_exp_mode = data[ind++];
+          get_enum(appconf.app_ppm_conf.throttle_exp_mode, data, &ind);
           appconf.app_ppm_conf.ramp_time_pos = get_float32_auto(data, &ind);
           appconf.app_ppm_conf.ramp_time_neg = get_float32_auto(data, &ind);
           appconf.app_ppm_conf.multi_esc = data[ind++];
           appconf.app_ppm_conf.tc = data[ind++];
           get_float32_auto(appconf.app_ppm_conf.tc_max_diff, data, &ind);
 
-          appconf.app_adc_conf.ctrl_type = data[ind++];
+          get_enum(appconf.app_adc_conf.ctrl_type, data, &ind);
           appconf.app_adc_conf.hyst = get_float32_auto(data, &ind);
           appconf.app_adc_conf.voltage_start = get_float32_auto(data, &ind);
           appconf.app_adc_conf.voltage_end = get_float32_auto(data, &ind);
@@ -576,7 +576,7 @@ namespace commands{
           appconf.app_adc_conf.voltage2_inverted = data[ind++];
           appconf.app_adc_conf.throttle_exp = get_float32_auto(data, &ind);
           appconf.app_adc_conf.throttle_exp_brake = get_float32_auto(data, &ind);
-          appconf.app_adc_conf.throttle_exp_mode = data[ind++];
+          get_enum(appconf.app_adc_conf.throttle_exp_mode, data, &ind);
           appconf.app_adc_conf.ramp_time_pos = get_float32_auto(data, &ind);
           appconf.app_adc_conf.ramp_time_neg = get_float32_auto(data, &ind);
           appconf.app_adc_conf.multi_esc = data[ind++];
@@ -586,22 +586,22 @@ namespace commands{
 
           appconf.app_uart_baudrate = get_uint32(data, &ind);
 
-          appconf.app_chuk_conf.ctrl_type = data[ind++];
+          get_enum(appconf.app_chuk_conf.ctrl_type, data, &ind);
           appconf.app_chuk_conf.hyst = get_float32_auto(data, &ind);
           appconf.app_chuk_conf.ramp_time_pos = get_float32_auto(data, &ind);
           appconf.app_chuk_conf.ramp_time_neg = get_float32_auto(data, &ind);
           get_float32_auto(appconf.app_chuk_conf.stick_erpm_per_s_in_cc, data, &ind);
           appconf.app_chuk_conf.throttle_exp = get_float32_auto(data, &ind);
           appconf.app_chuk_conf.throttle_exp_brake = get_float32_auto(data, &ind);
-          appconf.app_chuk_conf.throttle_exp_mode = data[ind++];
+          get_enum(appconf.app_chuk_conf.throttle_exp_mode, data, &ind);
           appconf.app_chuk_conf.multi_esc = data[ind++];
           appconf.app_chuk_conf.tc = data[ind++];
           get_float32_auto(appconf.app_chuk_conf.tc_max_diff, data, &ind);
 
-          appconf.app_nrf_conf.speed = data[ind++];
-          appconf.app_nrf_conf.power = data[ind++];
-          appconf.app_nrf_conf.crc_type = data[ind++];
-          appconf.app_nrf_conf.retry_delay = data[ind++];
+          get_enum(appconf.app_nrf_conf.speed, data, &ind);
+          get_enum(appconf.app_nrf_conf.power, data, &ind);
+          get_enum(appconf.app_nrf_conf.crc_type, data, &ind);
+          get_enum(appconf.app_nrf_conf.retry_delay, data, &ind);
           appconf.app_nrf_conf.retries = data[ind++];
           appconf.app_nrf_conf.channel = data[ind++];
           memcpy(appconf.app_nrf_conf.address, data + ind, 3);
@@ -632,7 +632,8 @@ namespace commands{
       case COMM_SAMPLE_PRINT: {
 
           ind = 0;
-          debug_sampling_mode mode = data[ind++];
+          debug_sampling_mode mode;
+          get_enum(mode, data, &ind);
           uint16_t sample_len = get_uint16(data, &ind);
           uint8_t decimation = data[ind++];
           mc_interface::sample_print_data(mode, sample_len, decimation);
@@ -939,7 +940,7 @@ namespace commands{
       append_float32_auto(send_buffer, appconf->timeout_brake_current, &ind);
       send_buffer[ind++] = appconf->send_can_status;
       append_uint16(send_buffer, appconf->send_can_status_rate_hz, &ind);
-      send_buffer[ind++] = static_cast<uint8_t>(appconf->can_baud_rate);
+      append_enum(send_buffer, appconf->can_baud_rate, &ind);
 
       send_buffer[ind++] = appconf->app_to_use;
 

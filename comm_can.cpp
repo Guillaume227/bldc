@@ -166,7 +166,8 @@ namespace comm{
 
                 if (rxmsg.IDE == CAN_IDE_EXT) {
                     uint8_t id = rxmsg.EID & 0xFF;
-                    CAN_PACKET_ID cmd = rxmsg.EID >> 8;
+                    CAN_PACKET_ID cmd;
+                    buffer::get_enum(cmd, rxmsg.EID >> 8);
                     can_status_msg *stat_tmp;
 
                     if (id == 255 || id == app::get_configuration().controller_id) {

@@ -42,6 +42,19 @@ namespace buffer{
   inline void append_float32_auto(uint8_t* buffer, T number, int32_t *index){
     append_float32_auto(buffer, static_cast<float>(number), index);
   }
+  template<typename E>
+  void append_enum(uint8_t* buffer, E val, int32_t *index) {
+      buffer[(*index)++] = static_cast<uint8_t>(val);
+  }
+
+  template<typename E>
+  void get_enum(E& val, const uint8_t int_val){
+    val = static_cast<E>(int_val);
+  }
+  template<typename E>
+  void get_enum(E& val, const uint8_t *buffer, int32_t *index){
+    get_enum(val, buffer[(*index)++]);
+  }
 
   int16_t get_int16(const uint8_t *buffer, int32_t *index);
   uint16_t get_uint16(const uint8_t *buffer, int32_t *index);
