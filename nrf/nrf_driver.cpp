@@ -193,7 +193,8 @@ static THD_FUNCTION(rx_thread, arg) {
 
 			// If something was read
 			if (res >= 0) {
-				MOTE_PACKET packet = buf[0];
+				MOTE_PACKET packet;
+				buffer::get_enum(packet, buf[0]);
 
 				nrf_restart_rx_time = NRF_RESTART_TIMEOUT;
 
@@ -225,7 +226,7 @@ static THD_FUNCTION(rx_thread, arg) {
 					break;
 
 				case MOTE_PACKET_FILL_RX_BUFFER_LONG: {
-					int rxbuf_ind = (unsigned int)buf[1] << 8;
+					auto rxbuf_ind = (unsigned int)buf[1] << 8;
 					rxbuf_ind |= buf[2];
 					if (rxbuf_ind < RX_BUFFER_SIZE) {
 						memcpy(rx_buffer + rxbuf_ind, buf + 3, len - 3);
@@ -235,7 +236,7 @@ static THD_FUNCTION(rx_thread, arg) {
 
 				case MOTE_PACKET_PROCESS_RX_BUFFER: {
 					ind = 1;
-					int rxbuf_len = (unsigned int)buf[ind++] << 8;
+					auto rxbuf_len = (unsigned int)buf[ind++] << 8;
 					rxbuf_len |= (unsigned int)buf[ind++];
 
 					if (rxbuf_len > RX_BUFFER_SIZE) {

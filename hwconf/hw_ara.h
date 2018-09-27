@@ -177,10 +177,10 @@
 #define NTC_BETA_TEMP           3380.0
 #define NTC_REF_RES             10000.0 // resistor value at NTC_REF_TEMP deg
 #define NTC_REF_TEMP            298.15 // 25 deg
-#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / NTC_REF_RES) / NTC_BETA_TEMP) + (1.0 / NTC_REF_TEMP)) - 273.15)
+#define NTC_TEMP(adc_ind)		celsius_t(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / NTC_REF_RES) / NTC_BETA_TEMP) + (1.0 / NTC_REF_TEMP)) - 273.15)
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((ADC_RES / (float)adc_val) - 1.0)) // Motor temp sensor on low side
-#define NTC_TEMP_MOTOR(beta)    (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOTOR(beta)    celsius_t(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.

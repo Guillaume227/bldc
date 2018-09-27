@@ -98,13 +98,13 @@
 #define MCCONF_L_LIM_TEMP_MOTOR_END		100_degC	// MOTOR temperature where everything should be shut off
 #endif
 #ifndef MCCONF_L_LIM_TEMP_ACCEL_DEC
-#define MCCONF_L_LIM_TEMP_ACCEL_DEC		0.15	// Decrease temperature limits this much during acceleration
+#define MCCONF_L_LIM_TEMP_ACCEL_DEC		0.15_degC	// Decrease temperature limits this much during acceleration
 #endif
 #ifndef MCCONF_L_WATT_MAX
-#define MCCONF_L_WATT_MAX				15000.0	// Maximum wattage output
+#define MCCONF_L_WATT_MAX		15000_W	// Maximum wattage output
 #endif
 #ifndef MCCONF_L_WATT_MIN
-#define MCCONF_L_WATT_MIN				-15000.0	// Minimum wattage output (braking)
+#define MCCONF_L_WATT_MIN		-1 * 15000_W // Minimum wattage output (braking)
 #endif
 
 // Speed PID parameters

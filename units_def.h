@@ -79,6 +79,10 @@ constexpr volt_t operator"" _V(long double f){
   return static_cast<float>(f);
 }
 
+constexpr watt_t operator"" _W(unsigned long long f){
+  return static_cast<float>(f);
+}
+
 /*
 using namespace units::temperature;
 using namespace units::frequency
@@ -186,6 +190,10 @@ constexpr ampere_t operator"" _A(long double f){
 }
 
 constexpr volt_t operator"" _V(long double f){
+  return static_cast<float>(f);
+}
+
+constexpr watt_t operator"" _W(unsigned long long f){
   return static_cast<float>(f);
 }
 

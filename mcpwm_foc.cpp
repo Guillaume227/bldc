@@ -2096,18 +2096,18 @@ namespace mcpwm_foc{
                        volatile float& x2,
                        volatil_ radian_t& phase) {
 
-      const float L = (3.0 / 2.0) * m_conf->foc_motor_l;
-      const float lambda = m_conf->foc_motor_flux_linkage;
-      float R = (3.0 / 2.0) * m_conf->foc_motor_r;
+      auto const L = (3.0 / 2.0) * m_conf->foc_motor_l;
+      auto const lambda = m_conf->foc_motor_flux_linkage;
+      auto R = (3.0 / 2.0) * m_conf->foc_motor_r;
 
       // Saturation compensation
       const float sign = (m_motor_state.iq * m_motor_state.vq) >= 0.0 ? 1.0 : -1.0;
       R -= R * sign * m_conf->foc_sat_comp * (m_motor_state.i_abs_filter / m_conf->l_current_max);
 
       // Temperature compensation
-      const float t = mc_interface::temp_motor_filtered();
-      if (m_conf->foc_temp_comp && t > -5.0) {
-          R += R * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);
+      auto const t = mc_interface::temp_motor_filtered();
+      if (m_conf->foc_temp_comp && t > -1 * 5_degC) {
+          R += R * 0.00386 * static_cast<float>(t - m_conf->foc_temp_comp_base_temp);
       }
 
       const float L_ia = L * i_alpha;
@@ -2225,14 +2225,16 @@ namespace mcpwm_foc{
       state_m.vq = state_m.vq_int + Ierr_q * m_conf->foc_current_kp;
 
       // Temperature compensation
-      const float t = mc_interface::temp_motor_filtered();
-      auto ki = m_conf->foc_current_ki;
-      if (m_conf->foc_temp_comp && t > -5.0) {
-          ki += ki * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);
-      }
+      {
+        auto const t = mc_interface::temp_motor_filtered();
+        auto ki = m_conf->foc_current_ki;
+        if (m_conf->foc_temp_comp && t > -1 * 5_degC) {
+            ki += ki * 0.00386 * static_cast<float>(t - m_conf->foc_temp_comp_base_temp);
+        }
 
-      state_m.vd_int += Ierr_d * static_cast<float>(ki * dt);
-      state_m.vq_int += Ierr_q * static_cast<float>(ki * dt);
+        state_m.vd_int += Ierr_d * static_cast<float>(ki * dt);
+        state_m.vq_int += Ierr_q * static_cast<float>(ki * dt);
+      }
 
       // Saturation
       saturate_vector_2d((float&)state_m.vd, (float&)state_m.vq,

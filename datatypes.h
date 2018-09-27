@@ -205,8 +205,8 @@ struct mc_configuration {
 	degree_t foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
-	float foc_motor_l;
-	float foc_motor_r;
+	microhenry_t foc_motor_l;
+	ohm_t foc_motor_r;
 	float foc_motor_flux_linkage;
 	float foc_observer_gain;
 	float foc_observer_gain_slow;
@@ -226,7 +226,7 @@ struct mc_configuration {
 	bool foc_sample_high_current;
 	float foc_sat_comp;
 	bool foc_temp_comp;
-	float foc_temp_comp_base_temp;
+	celsius_t foc_temp_comp_base_temp;
 	float foc_current_filter_const;
 	// Speed PID
 	scalar_t s_pid_kp;

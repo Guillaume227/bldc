@@ -63,8 +63,8 @@ namespace mc_interface{
   volatile float m_watt_seconds;
   volatile float m_watt_seconds_charged;
   volatil_ degree_t m_position_set;
-  volatile celsius_t m_temp_fet;
-  volatile celsius_t m_temp_motor;
+  volatil_ celsius_t m_temp_fet;
+  volatil_ celsius_t m_temp_motor;
 
   // Sampling variables
 #ifdef HW_NO_CCM_RAM
@@ -1333,8 +1333,8 @@ namespace mc_interface{
       auto const v_in = GET_INPUT_VOLTAGE();
       auto const rpm_now = get_rpm();
 
-      UTILS_LP_FAST(m_temp_fet,   celsius_t{NTC_TEMP(ADC_IND_TEMP_MOS)}, 0.1_degC);
-      UTILS_LP_FAST(m_temp_motor, celsius_t{NTC_TEMP_MOTOR(conf->m_ntc_motor_beta)}, 0.1_degC);
+      UTILS_LP_FAST(m_temp_fet,   NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
+      UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
 
       // Temperature MOSFET
       auto lo_min_mos = conf->l_current_min;
@@ -1346,12 +1346,16 @@ namespace mc_interface{
           lo_max_mos = 0.0;
           fault_stop(FAULT_CODE_OVER_TEMP_FET);
       } else {
-          float maxc = fabsf(conf->l_current_max);
+          ampere_t maxc = fabsf(conf->l_current_max);
           if (fabsf(conf->l_current_min) > maxc) {
               maxc = fabsf(conf->l_current_min);
           }
 
-          maxc = utils::map(m_temp_fet, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0_degC);
+          maxc = utils::map(m_temp_fet,
+                            conf->l_temp_fet_start,
+                            conf->l_temp_fet_end,
+                            maxc,
+                            0.0_A);
           using utils::SIGN;
           if (fabsf(conf->l_current_min) > maxc) {
               lo_min_mos = SIGN(conf->l_current_min) * maxc;
@@ -1372,12 +1376,16 @@ namespace mc_interface{
           lo_max_mot = 0.0;
           fault_stop(FAULT_CODE_OVER_TEMP_MOTOR);
       } else {
-          float maxc = fabsf(conf->l_current_max);
+          ampere_t maxc = fabsf(conf->l_current_max);
           if (fabsf(conf->l_current_min) > maxc) {
               maxc = fabsf(conf->l_current_min);
           }
 
-          maxc = utils::map(m_temp_motor, conf->l_temp_motor_start, conf->l_temp_motor_end, maxc, 0_degC);
+          maxc = utils::map(m_temp_motor,
+                            conf->l_temp_motor_start,
+                            conf->l_temp_motor_end,
+                            maxc,
+                            0.0_A);
 
           using utils::SIGN;
           if (fabsf(conf->l_current_min) > maxc) {
