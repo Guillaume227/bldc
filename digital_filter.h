@@ -29,6 +29,13 @@ namespace filter {
   void hamming(float *data, int len);
   void zeroPad(float *data, float *result, int dataLen, int resultLen);
   void create_fir_lowpass(float *filter_vector, float f_break, int bits, int use_hamming);
-  float run_fir_iteration(float *vector, float *filter, int bits, uint32_t offset);
+
+  float run_fir_iteration(float const* vector, float const* filter, int bits, uint32_t offset);
+
   void add_sample(float *buffer, float sample, int bits, uint32_t &offset);
+  template<typename T>
+  void add_sample(float *buffer, T sample, int bits, uint32_t &offset){
+    add_sample(buffer, static_cast<float>(sample), bits, offset);
+  }
+
 }

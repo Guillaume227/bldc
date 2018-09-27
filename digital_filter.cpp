@@ -201,7 +201,7 @@ namespace filter {
    *
    * returns: The filtered result sample.
    */
-  float run_fir_iteration(float *vector, float *filter, int bits, uint32_t offset) {
+  float run_fir_iteration(float const* vector, float const* filter, int bits, uint32_t offset) {
       float result = 0;
       int size = 1 << bits;
       uint32_t cnt_mask = 0xFFFFFFFF >> (32 - bits);
