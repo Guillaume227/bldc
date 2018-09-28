@@ -28,14 +28,33 @@ namespace filter {
   void fftshift(float *data, int len);
   void hamming(float *data, int len);
   void zeroPad(float *data, float *result, int dataLen, int resultLen);
-  void create_fir_lowpass(float *filter_vector, float f_break, int bits, int use_hamming);
 
-  float run_fir_iteration(float const* vector, float const* filter, int bits, uint32_t offset);
+  void create_fir_lowpass(float *filter_vector, float f_break, int bits, bool use_hamming);
+  float _run_fir_iteration(float const* vector, float const* filter, int bits, uint32_t offset);
 
-  void add_sample(float *buffer, float sample, int bits, uint32_t &offset);
-  template<typename T>
-  void add_sample(float *buffer, T sample, int bits, uint32_t &offset){
-    add_sample(buffer, static_cast<float>(sample), bits, offset);
-  }
+  void _add_sample(float *buffer, float sample, int bits, uint32_t &offset);
+
+  template<typename T, uint32_t BITS>
+  class FIRFilter{
+    static constexpr uint32_t FIR_TAPS_BITS = BITS;
+    static constexpr uint32_t FIR_LEN = (1 << BITS);
+
+    float m_fir_coeffs[FIR_LEN];
+    float m_fir_samples[FIR_LEN];
+    uint32_t m_fir_index = 0;
+
+  public:
+    FIRFilter(float f_break, bool use_hamming){
+      create_fir_lowpass(m_fir_coeffs, f_break, FIR_TAPS_BITS, use_hamming);
+    }
+
+    inline void add_sample(T sample) volatile {
+      _add_sample((float*)m_fir_samples, static_cast<float>(sample), FIR_TAPS_BITS, (uint32_t&)m_fir_index);
+    }
+
+    inline T run_fir_iteration() const volatile {
+      return T{_run_fir_iteration((float*)m_fir_samples, (float*)m_fir_coeffs, FIR_TAPS_BITS, m_fir_index)};
+    }
+  };
 
 }

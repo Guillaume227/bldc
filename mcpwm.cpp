@@ -115,29 +115,13 @@ namespace mcpwm {
 #endif
 
   // KV FIR filter
-  constexpr int KV_FIR_TAPS_BITS = 7;
-  constexpr int KV_FIR_LEN = (1 << KV_FIR_TAPS_BITS);
-  constexpr float KV_FIR_FCUT = 0.02;
-  volatile float m_kv_fir_coeffs[KV_FIR_LEN];
-  volatile float m_kv_fir_samples[KV_FIR_LEN];
-  volatile uint32_t m_kv_fir_index = 0;
+  volatile filter::FIRFilter<kv_t, 7> m_kv_fir_filter(0.02, /*use hamming*/ true);
 
   // Amplitude FIR filter
-  constexpr int AMP_FIR_TAPS_BITS = 7;
-  constexpr int AMP_FIR_LEN = (1 << AMP_FIR_TAPS_BITS);
-  constexpr float AMP_FIR_FCUT = 0.02;
-  volatile float m_amp_fir_coeffs[AMP_FIR_LEN];
-  volatile float m_amp_fir_samples[AMP_FIR_LEN];
-  volatile uint32_t m_amp_fir_index = 0;
+  volatile filter::FIRFilter<volt_t, 7> m_amp_fir_filter(0.02, /*use hamming*/ true);
 
   // Current FIR filter
-  constexpr int CURR_FIR_TAPS_BITS = 4;
-  constexpr int CURR_FIR_LEN = (1 << CURR_FIR_TAPS_BITS);
-  constexpr float CURR_FIR_FCUT = 0.15f;
-
-  volatile float m_current_fir_coeffs[CURR_FIR_LEN];
-  volatile float m_current_fir_samples[CURR_FIR_LEN];
-  volatile uint32_t m_current_fir_index = 0;
+  volatile filter::FIRFilter<volt_t, 4> m_current_fir_filter(0.15f, /*use hamming*/ true);
 
   volatil_ second_t m_last_adc_isr_duration;
   volatil_ second_t m_last_inj_adc_isr_duration;
@@ -221,18 +205,6 @@ namespace mcpwm {
     m_comm_mode_next = m_conf->comm_mode;
 
     init_hall_table((int8_t*)m_conf->hall_table);
-
-    // Create KV FIR filter
-    filter::create_fir_lowpass((float*)m_kv_fir_coeffs, KV_FIR_FCUT,
-                               KV_FIR_TAPS_BITS, 1);
-
-    // Create amplitude FIR filter
-    filter::create_fir_lowpass((float*)m_amp_fir_coeffs, AMP_FIR_FCUT,
-                               AMP_FIR_TAPS_BITS, 1);
-
-    // Create current FIR filter
-    filter::create_fir_lowpass((float*)m_current_fir_coeffs, CURR_FIR_FCUT,
-                               CURR_FIR_TAPS_BITS, 1);
 
     TIM_DeInit(TIM1);
     TIM_DeInit(TIM8);
@@ -780,10 +752,7 @@ namespace mcpwm {
    * The filtered KV value.
    */
   kv_t get_kv_filtered(void) {
-    return kv_t{filter::run_fir_iteration(const_cast<float*>(m_kv_fir_samples),
-                                          const_cast<float*>(m_kv_fir_coeffs),
-                                            KV_FIR_TAPS_BITS,
-                                            m_kv_fir_index)};
+    return m_kv_fir_filter.run_fir_iteration();
   }
 
   /**
@@ -1362,7 +1331,6 @@ namespace mcpwm {
 
     chRegSetThreadName("mcpwm timer");
 
-    float amp;
     float min_s;
     float max_s;
 
@@ -1375,10 +1343,7 @@ namespace mcpwm {
       if (m_state == MC_STATE_OFF) {
         // Track the motor back-emf and follow it with dutycycle_now. Also track
         // the direction of the motor.
-        amp = filter::run_fir_iteration((float*)m_amp_fir_samples,
-                                        (float*)m_amp_fir_coeffs,
-                                        AMP_FIR_TAPS_BITS,
-                                        m_amp_fir_index);
+        float amp = m_amp_fir_filter.run_fir_iteration();
 
         // Direction tracking
         if (m_sensorless_now) {
@@ -1436,12 +1401,9 @@ namespace mcpwm {
         }
 
         if (m_direction == 1) {
-          m_dutycycle_now =
-              amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
-        }
-        else {
-          m_dutycycle_now = -amp
-              / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
+          m_dutycycle_now =  amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
+        } else {
+          m_dutycycle_now = -amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
         }
         truncate_number_abs((float&)m_dutycycle_now, m_conf->l_max_duty);
       }
@@ -1455,12 +1417,9 @@ namespace mcpwm {
       if (cnt_tmp >= 10) {
         cnt_tmp = 0;
         if (m_state == MC_STATE_RUNNING ||
-           (m_state == MC_STATE_OFF && m_dutycycle_now >= m_conf->l_min_duty)) {
-          filter::add_sample(const_cast<float*>(m_kv_fir_samples),
-                             get_kv(),
-                             KV_FIR_TAPS_BITS,
-                             (uint32_t&)m_kv_fir_index);
-
+           (m_state == MC_STATE_OFF && m_dutycycle_now >= m_conf->l_min_duty))
+        {
+          m_kv_fir_filter.add_sample(get_kv());
         }
       }
 
@@ -1765,15 +1724,9 @@ namespace mcpwm {
       m_last_current_sample = SIGN(m_last_current_sample)* m_conf->l_abs_current_max * 1.2;
     }
 
-    filter::add_sample((float*)m_current_fir_samples,
-                       m_last_current_sample,
-                       CURR_FIR_TAPS_BITS,
-                       (uint32_t&)m_current_fir_index);
+    m_current_fir_filter.add_sample(m_last_current_sample);
 
-    m_last_current_sample_filtered = filter::run_fir_iteration((float*)m_current_fir_samples,
-                                                               (float*)m_current_fir_coeffs,
-                                                               CURR_FIR_TAPS_BITS,
-                                                               m_current_fir_index);
+    m_last_current_sample_filtered = m_current_fir_filter.run_fir_iteration();
 
     m_last_inj_adc_isr_duration = TIM12->CNT / TIM12_FREQ;
   }
@@ -1814,7 +1767,7 @@ namespace mcpwm {
     }
 
     if (m_direction) {
-      ph1 = ADC_V_L1- mcpwm_vzero;
+      ph1 = ADC_V_L1 - mcpwm_vzero;
       ph2 = ADC_V_L2 - mcpwm_vzero;
       ph3 = ADC_V_L3 - mcpwm_vzero;
       ph1_raw = ADC_V_L1;
@@ -1833,22 +1786,12 @@ namespace mcpwm {
     update_timer_attempt();
 
     {
-      float amp = 0.0;
-
-      if (m_has_commutated) {
-        amp = fabsf(
-            m_dutycycle_now) * (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
-      }
-      else {
-        amp = sqrtf((float)(ph1 * ph1 + ph2 * ph2 + ph3 * ph3)) * sqrtf(2.0);
-      }
+      float const amp = m_has_commutated ?
+        fabsf(m_dutycycle_now) * CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) :
+        sqrtf((float)(ph1 * ph1 + ph2 * ph2 + ph3 * ph3)) * sqrtf(2.0);
 
       // Fill the amplitude FIR filter
-      filter::add_sample((float*)m_amp_fir_samples,
-                         amp,
-                         AMP_FIR_TAPS_BITS,
-                         (uint32_t&)
-                         m_amp_fir_index);
+      m_amp_fir_filter.add_sample(amp);
     }
 
     if (m_sensorless_now) {

@@ -164,7 +164,7 @@ namespace filter {
       }
   }
 
-  void create_fir_lowpass(float *filter_vector, float f_break, int bits, int use_hamming) {
+  void create_fir_lowpass(float *filter_vector, float f_break, int bits, bool use_hamming) {
       int taps = 1 << bits;
       float imag[taps];
 
@@ -201,7 +201,7 @@ namespace filter {
    *
    * returns: The filtered result sample.
    */
-  float run_fir_iteration(float const* vector, float const* filter, int bits, uint32_t offset) {
+  float _run_fir_iteration(float const* vector, float const* filter, int bits, uint32_t offset) {
       float result = 0;
       int size = 1 << bits;
       uint32_t cnt_mask = 0xFFFFFFFF >> (32 - bits);
@@ -227,7 +227,7 @@ namespace filter {
    * Pointer to the current offset in the buffer. Will be updated in this call
    * and wrapped at the length of this buffer.
    */
-  void add_sample(float *buffer, float sample, int bits, uint32_t& offset) {
+  void _add_sample(float *buffer, float sample, int bits, uint32_t& offset) {
       uint32_t cnt_mask = 0xFFFFFFFF >> (32 - bits);
       buffer[offset] = sample;
       offset += 1;
