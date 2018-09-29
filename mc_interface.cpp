@@ -76,10 +76,10 @@ namespace mc_interface{
   CCM_SECTION volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
   CCM_SECTION volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
   CCM_SECTION volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
-  CCM_SECTION volatile int16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
-  CCM_SECTION volatile int16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
-  CCM_SECTION volatile int16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
-  CCM_SECTION volatile int16_t m_vzero_samples[ADC_SAMPLE_MAX_LEN];
+  CCM_SECTION volatile uint16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
+  CCM_SECTION volatile uint16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
+  CCM_SECTION volatile uint16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
+  CCM_SECTION volatile uint16_t m_vzero_samples[ADC_SAMPLE_MAX_LEN];
   CCM_SECTION volatile uint8_t m_status_samples[ADC_SAMPLE_MAX_LEN];
   CCM_SECTION volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
   CCM_SECTION volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
@@ -1267,7 +1267,7 @@ namespace mc_interface{
                   m_sample_now = 0;
               }
 
-              int16_t zero;
+              uint16_t zero;
               if (m_conf.motor_type == MOTOR_TYPE_FOC) {
                   zero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
                   m_phase_samples[m_sample_now] = (uint8_t)(mcpwm_foc::get_phase() / 360.0 * 250.0);
@@ -1283,17 +1283,20 @@ namespace mc_interface{
                   m_curr0_samples[m_sample_now] = (int16_t)mcpwm::detect_currents[mcpwm::get_comm_step() - 1];
                   m_curr1_samples[m_sample_now] = (int16_t)mcpwm::detect_currents_diff[mcpwm::get_comm_step() - 1];
 
-                  m_ph1_samples[m_sample_now] = (int16_t)mcpwm::detect_voltages[0];
-                  m_ph2_samples[m_sample_now] = (int16_t)mcpwm::detect_voltages[1];
-                  m_ph3_samples[m_sample_now] = (int16_t)mcpwm::detect_voltages[2];
+                  //const int vzero = ADC_V_ZERO;
+                  //          const int vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
+
+                  m_ph1_samples[m_sample_now] = mcpwm::detect_voltages[0];
+                  m_ph2_samples[m_sample_now] = mcpwm::detect_voltages[1];
+                  m_ph3_samples[m_sample_now] = mcpwm::detect_voltages[2];
               } else {
                   m_curr0_samples[m_sample_now] = ADC_curr_norm_value[0];
                   m_curr1_samples[m_sample_now] = ADC_curr_norm_value[1];
                   m_curr2_samples[m_sample_now] = ADC_curr_norm_value[2];
 
-                  m_ph1_samples[m_sample_now] = ADC_V_L1 - zero;
-                  m_ph2_samples[m_sample_now] = ADC_V_L2 - zero;
-                  m_ph3_samples[m_sample_now] = ADC_V_L3 - zero;
+                  m_ph1_samples[m_sample_now] = ADC_V_L1;
+                  m_ph2_samples[m_sample_now] = ADC_V_L2;
+                  m_ph3_samples[m_sample_now] = ADC_V_L3;
               }
 
               m_vzero_samples[m_sample_now] = zero;
@@ -1587,19 +1590,13 @@ namespace mc_interface{
               append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
               append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
               append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
-  #ifdef HW_IS_IHM0xM1
-              int16_t zero = m_vzero_samples[ind_samp];
-              float zeroV = GET_BEMF_VOLTAGE(zero);
-              append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph1_samples[ind_samp]+zero))-zeroV, &index);
-              append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph2_samples[ind_samp]+zero))-zeroV, &index);
-              append_float32_auto(buffer, GET_BEMF_VOLTAGE((m_ph3_samples[ind_samp]+zero))-zeroV, &index);
+
+              float const zeroV = PHASE_VOLTAGE_FROM_ADC(m_vzero_samples[ind_samp]);
+              append_float32_auto(buffer, PHASE_VOLTAGE_FROM_ADC(m_ph1_samples[ind_samp]) - zeroV, &index);
+              append_float32_auto(buffer, PHASE_VOLTAGE_FROM_ADC(m_ph2_samples[ind_samp]) - zeroV, &index);
+              append_float32_auto(buffer, PHASE_VOLTAGE_FROM_ADC(m_ph3_samples[ind_samp]) - zeroV, &index);
               append_float32_auto(buffer, zeroV, &index);
-  #else
-              append_float32_auto(buffer, ((float)m_ph1_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
-              append_float32_auto(buffer, ((float)m_ph2_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
-              append_float32_auto(buffer, ((float)m_ph3_samples[ind_samp] / ADC_RES * V_REG) * VOLTAGE_DIVIDER, &index);
-              append_float32_auto(buffer, GET_BEMF_VOLTAGE(m_vzero_samples[ind_samp]), &index);
-  #endif
+
               append_float32_auto(buffer, (float)m_curr_fir_samples[ind_samp] / (8.0 / FAC_CURRENT), &index);
               append_float32_auto(buffer, (float)m_f_sw_samples[ind_samp] * 10.0, &index);
               buffer[index++] = m_status_samples[ind_samp];

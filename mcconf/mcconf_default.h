@@ -169,7 +169,7 @@
 #define MCCONF_SL_CYCLE_INT_LIMIT		62.0	// Flux integrator limit 0 ERPM
 #endif
 #ifndef MCCONF_SL_BEMF_COUPLING_K
-#define MCCONF_SL_BEMF_COUPLING_K		600.0	// Input voltage to bemf coupling constant
+#define MCCONF_SL_BEMF_COUPLING_K		600_rpm	// Input voltage to bemf coupling constant
 #endif
 #ifndef MCCONF_SL_PHASE_ADVANCE_AT_BR
 #define MCCONF_SL_PHASE_ADVANCE_AT_BR	0.8		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM

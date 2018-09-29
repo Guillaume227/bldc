@@ -73,9 +73,9 @@ namespace mcpwm {
 
   // External variables
   extern volatile float detect_currents[];
-  extern volatile float detect_voltages[];
   extern volatile float detect_currents_diff[];
-  extern volatile int mcpwm_vzero;
+  extern volatile uint16_t detect_voltages[];
+  extern volatile uint16_t mcpwm_vzero;
 
   /*
    * Fixed parameters

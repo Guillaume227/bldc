@@ -442,7 +442,7 @@ namespace conf_general {
       mcconf.comm_mode = COMM_MODE_INTEGRATE;
       mcconf.sl_phase_advance_at_br = 1.0;
       mcconf.sl_min_erpm = min_rpm;
-      mcconf.sl_bemf_coupling_k = 300;
+      mcconf.sl_bemf_coupling_k = 300_rpm;
       mcconf.sl_cycle_int_limit = 50;
       mcconf.sl_min_erpm_cycle_int_limit = 1100_rpm;
       mcconf.m_invert_direction = false;
@@ -603,15 +603,14 @@ namespace conf_general {
       }
 
       auto avg_cycle_integrator_running = mcpwm::read_reset_avg_cycle_integrator();
-      auto rpm = rpm_sum / rpm_iterations;
+      auto const rpm = rpm_sum / rpm_iterations;
 
       mc_interface::lock_override_once();
       mc_interface::release_motor();
 
       // Try to figure out the coupling factor
       avg_cycle_integrator_running -= *int_limit;
-      avg_cycle_integrator_running /= (float)ADC_Value[ADC_IND_VIN_SENS];
-      avg_cycle_integrator_running *= static_cast<float>(rpm);
+      avg_cycle_integrator_running *= static_cast<float>(rpm) / PHASE_ADJ_VBUS_ADC;
       *bemf_coupling_k = avg_cycle_integrator_running;
 
       // Restore settings
@@ -655,7 +654,7 @@ namespace conf_general {
       mcconf.sl_phase_advance_at_br = 1.0;
       mcconf.sl_min_erpm = min_erpm;
       mcconf.m_bldc_f_sw_min = 10'000_Hz;
-      mcconf.sl_bemf_coupling_k = 300;
+      mcconf.sl_bemf_coupling_k = 300_rpm;
       mcconf.sl_cycle_int_limit = 50;
       mcconf.sl_min_erpm_cycle_int_limit = 1100_rpm;
       mc_interface::set_configuration(&mcconf);

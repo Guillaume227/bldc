@@ -37,9 +37,9 @@ namespace mcpwm {
 
 // Global variables
   volatile float detect_currents[6];
-  volatile float detect_voltages[6];
   volatile float detect_currents_diff[6];
-  volatile int mcpwm_vzero;
+  volatile uint16_t detect_voltages[6];
+  volatile uint16_t mcpwm_vzero;
 
   // Structs
   struct MCTimer {
@@ -1295,9 +1295,8 @@ namespace mcpwm {
       // Update the cycle integrator limit
       rpm_dep.cycle_int_limit = m_conf->sl_cycle_int_limit;
       rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit
-          + static_cast<float>(CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS])
-              * m_conf->sl_bemf_coupling_k
-              / (rpm_abs > m_conf->sl_min_erpm ? rpm_abs : m_conf->sl_min_erpm));
+          + PHASE_ADJ_VBUS_ADC * m_conf->sl_bemf_coupling_k
+             / (rpm_abs > m_conf->sl_min_erpm ? rpm_abs : m_conf->sl_min_erpm);
 
       rpm_dep.cycle_int_limit_running = map(
           rpm_abs, 0_rpm, m_conf->sl_cycle_int_rpm_br,
@@ -1305,9 +1304,8 @@ namespace mcpwm {
           rpm_dep.cycle_int_limit_running * m_conf->sl_phase_advance_at_br);
 
       rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit
-          + static_cast<float>(CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS])
-              * m_conf->sl_bemf_coupling_k
-              / m_conf->sl_min_erpm_cycle_int_limit);
+          + PHASE_ADJ_VBUS_ADC * m_conf->sl_bemf_coupling_k
+              / m_conf->sl_min_erpm_cycle_int_limit;
 
       if (rpm_dep.cycle_int_limit_running < 1.0) {
         rpm_dep.cycle_int_limit_running = 1.0;
@@ -1388,7 +1386,7 @@ namespace mcpwm {
           }
         }
 
-        m_dutycycle_now = m_direction * amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
+        m_dutycycle_now = m_direction * amp / PHASE_ADJ_VBUS_ADC;
 
         truncate_number_abs((float&)m_dutycycle_now, m_conf->l_max_duty);
       }
@@ -1435,23 +1433,20 @@ namespace mcpwm {
                                             - detect_currents[m_detect_step];
       }
 
-      const int vzero = ADC_V_ZERO;
-      //          const int vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
-
       switch (m_comm_step) {
       case 1:
       case 4:
-        detect_voltages[m_detect_step] = ADC_V_L1 - vzero;
+        detect_voltages[m_detect_step] = ADC_V_L1;
         break;
 
         case 2:
         case 5:
-        detect_voltages[m_detect_step] = ADC_V_L2 - vzero;
+        detect_voltages[m_detect_step] = ADC_V_L2;
         break;
 
         case 3:
         case 6:
-        detect_voltages[m_detect_step] = ADC_V_L3 - vzero;
+        detect_voltages[m_detect_step] = ADC_V_L3;
         break;
 
         default:
@@ -1729,10 +1724,6 @@ namespace mcpwm {
     // Reset the watchdog
     WWDG_SetCounter(100);
 
-    const float input_voltage = GET_INPUT_VOLTAGE();
-    int ph1, ph2, ph3;
-    int ph1_raw, ph2_raw, ph3_raw;
-
     {
       static int direction_before = 1;
       if (!(m_state == MC_STATE_RUNNING && m_direction == direction_before)) {
@@ -1750,30 +1741,30 @@ namespace mcpwm {
       mcpwm_vzero = (ADC_V_L1+ ADC_V_L2 + ADC_V_L3) / 3;
     }
 
+    uint16_t ph1_raw, ph2_raw, ph3_raw;
+
+    ph1_raw = ADC_V_L1;
+
     if (isDirection1()) {
-      ph1 = ADC_V_L1 - mcpwm_vzero;
-      ph2 = ADC_V_L2 - mcpwm_vzero;
-      ph3 = ADC_V_L3 - mcpwm_vzero;
-      ph1_raw = ADC_V_L1;
       ph2_raw = ADC_V_L2;
       ph3_raw = ADC_V_L3;
     } else {
-      ph1 = ADC_V_L1 - mcpwm_vzero;
-      ph2 = ADC_V_L3 - mcpwm_vzero;
-      ph3 = ADC_V_L2 - mcpwm_vzero;
-      ph1_raw = ADC_V_L1;
       ph2_raw = ADC_V_L3;
       ph3_raw = ADC_V_L2;
     }
 
+    int const ph1 = ph1_raw - mcpwm_vzero;
+    int const ph2 = ph2_raw - mcpwm_vzero;
+    int const ph3 = ph3_raw - mcpwm_vzero;
+
     update_timer_attempt();
 
     {
+      // Fill the amplitude FIR filter
       float const amp = m_has_commutated ?
-        fabsf(m_dutycycle_now) * CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) :
+        fabsf(m_dutycycle_now) * PHASE_ADJ_VBUS_ADC :
         sqrtf((float)(ph1 * ph1 + ph2 * ph2 + ph3 * ph3)) * sqrtf(2.0);
 
-      // Fill the amplitude FIR filter
       m_amp_fir_filter.add_sample(amp);
     }
 
@@ -1854,10 +1845,9 @@ namespace mcpwm {
 
           if (m_pwm_cycles_sum > (m_last_pwm_cycles_sum / 2.0)
               || !m_has_commutated
-              || (ph_now_raw > min
-                  && ph_now_raw
-                      < (CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]) - min))) {
-            cycle_integrator += (float)v_diff / static_cast<float>(m_switching_frequency_now);
+              || (ph_now_raw > min && ph_now_raw < (PHASE_ADJ_VBUS_ADC - min))) 
+          {
+            cycle_integrator += static_cast<float>(v_diff / m_switching_frequency_now);
           }
         }
 
@@ -1936,6 +1926,7 @@ namespace mcpwm {
 
     if (m_state == MC_STATE_RUNNING && m_has_commutated) {
       // Compensation for supply voltage variations
+      float const input_voltage = GET_INPUT_VOLTAGE();
       const float voltage_scale = 20.0 / input_voltage;
       float ramp_step = m_conf->m_duty_ramp_step
           / static_cast<float>(m_switching_frequency_now / 1000.0);

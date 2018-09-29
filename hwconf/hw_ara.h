@@ -144,31 +144,36 @@
 #define ADC_RES 4095.0
 
 // Voltage on ADC channel
-#define ADC_TO_VOLTS(adc_val)   ((float)(adc_val) / ADC_RES * V_REG)
-#define VOLTS_TO_ADC(volts)     ((int16_t)((volts)/ V_REG   * ADC_RES ))
-#define ADC_VOLTS(ch)           ADC_TO_VOLTS(ADC_Value[ch])
+#define ADC_TO_VOLTS(adc_val)   ((adc_val) * V_REG / ADC_RES)
+#define VOLTS_FROM_ADC_CH(ch)   ADC_TO_VOLTS(ADC_Value[ch])
 
 // Input voltage
 #define VOLTAGE_DIVIDER        ((VIN_R1 + VIN_R2) / VIN_R2)
-#define GET_INPUT_VOLTAGE()	   volt_t{ADC_VOLTS(ADC_IND_VIN_SENS) * VOLTAGE_DIVIDER}
+#define GET_INPUT_VOLTAGE()	   (VOLTS_FROM_ADC_CH(ADC_IND_VIN_SENS) * VOLTAGE_DIVIDER)
 
-// BEMF Voltage
+// converts straight adc reading to BEMF voltage
+#ifdef HW_IS_IHM0xM1
+
+// Phase Voltage
 #define R39_IHM0X 10.0 // 10k ohms
 #define R36_IHM0X 2.2  // 2.2k ohms
 #define V_D_IHM0X 0.3  // schotky BAT30kFILM typical voltage drop
 #define PHASE_DIVIDER ((R39_IHM0X + R36_IHM0X) / R36_IHM0X)
 
-// converts straight adc reading to BEMF voltage
-#ifdef HW_IS_IHM0xM1
+
 #define SCALE_V_P(V)    (V * VOLTAGE_DIVIDER / PHASE_DIVIDER)
-#define CONV_ADC_V(V)   (((V) * VOLTAGE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1)) / PHASE_DIVIDER)
+#define CONV_ADC_V(adcVal)   (((adcVal) * VOLTAGE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1)) / PHASE_DIVIDER)
+#define PHASE_ADJ_VBUS_ADC   CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS])
+#define PHASE_VOLTAGE_FROM_ADC(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM0X ) * PHASE_DIVIDER + V_D_IHM0X)
+
 #else
-#define SCALE_V_P(V)    (V)
-#define CONV_ADC_V(V)   (V)
+#define PHASE_VOLTAGE_FROM_ADC(adc_val) (ADC_TO_VOLTS(adc_val) * VOLTAGE_DIVIDER)
+
+#define SCALE_V_P(V)        (V) // no adjustment
+#define PHASE_ADJ_VBUS_ADC  (ADC_Value[ADC_IND_VIN_SENS]) // no adjustment
 #endif
 
-#define GET_BEMF_VOLTAGE(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM0X ) * PHASE_DIVIDER + V_D_IHM0X)
-#define GET_BEMF_VOLTAGE_CH(adc_ch) (GET_BEMF_VOLTAGE(ADC_Value[adc_ch]))
+#define GET_BEMF_VOLTAGE_CH(adc_ch) (PHASE_VOLTAGE_FROM_ADC(ADC_Value[adc_ch]))
 
 // NTC Termistors
 #define NTC_CONV(val)           (10 * val / (5.3 * val + 4.7))

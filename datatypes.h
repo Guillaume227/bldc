@@ -193,7 +193,7 @@ struct mc_configuration {
 	 I tried to avoid where possible because the RPM estimation has a delay
 	 and thus causes problems during acceleration.
 	 */
-	float sl_bemf_coupling_k;
+	rpm_t sl_bemf_coupling_k;
 	// Hall sensor
 	int8_t hall_table[8];
 	rpm_t hall_sl_erpm;
