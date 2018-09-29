@@ -193,11 +193,11 @@ namespace terminal{
                       min_rpm > 10.0 && min_rpm < 3000.0 &&
                       low_duty > 0.02 && low_duty < 0.8) {
 
-                  float cycle_integrator;
-                  float coupling_k;
+                  weber_t cycle_integrator;
+                  bemf_coupling_t coupling_k;
                   int8_t hall_table[8];
                   int hall_res;
-                  if (conf_general::detect_motor_param(ampere_t{current}, rpm_t{min_rpm}, low_duty, &cycle_integrator, &coupling_k, hall_table, &hall_res)) {
+                  if (conf_general::detect_motor_param(ampere_t{current}, rpm_t{min_rpm}, low_duty, cycle_integrator, coupling_k, hall_table, hall_res)) {
                       printf("Cycle integrator limit: %.2f", (double)cycle_integrator);
                       printf("Coupling factor: %.2f", (double)coupling_k);
 

@@ -75,6 +75,10 @@ constexpr ampere_t operator"" _A(long double f){
   return static_cast<float>(f);
 }
 
+constexpr volt_t operator"" _V(unsigned long long f){
+  return static_cast<float>(f);
+}
+
 constexpr volt_t operator"" _V(long double f){
   return static_cast<float>(f);
 }
@@ -82,6 +86,14 @@ constexpr volt_t operator"" _V(long double f){
 constexpr watt_t operator"" _W(unsigned long long f){
   return static_cast<float>(f);
 }
+
+using weber_t = decltype(1_V * 1_s);
+
+constexpr weber_t operator"" _Wb(unsigned long long f){
+  return weber_t{static_cast<float>(f)};
+}
+
+using bemf_coupling_t = decltype(1_Wb * 1_rpm / 1_V); //units::compound_unit<voltage::volt, angle::radian>;
 
 /*
 using namespace units::temperature;
@@ -131,6 +143,9 @@ using radians_per_second_t = float;
 using degrees_per_second_t = float;
 using revolutions_per_minute_t = float;
 using inv_sec_2_t = float;
+
+using weber_t = float;
+using bemf_coupling_t = float;
 
 
 constexpr revolutions_per_minute_t operator"" _rpm(unsigned long long f){
@@ -193,7 +208,15 @@ constexpr volt_t operator"" _V(long double f){
   return static_cast<float>(f);
 }
 
+constexpr volt_t operator"" _V(unsigned long long f){
+  return static_cast<float>(f);
+}
+
 constexpr watt_t operator"" _W(unsigned long long f){
+  return static_cast<float>(f);
+}
+
+constexpr weber_t operator"" _Wb(unsigned long long f){
   return static_cast<float>(f);
 }
 

@@ -429,7 +429,7 @@ namespace conf_general {
   }
 
   bool detect_motor_param(ampere_t current, rpm_t min_rpm, float low_duty,
-          float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res) {
+          weber_t& int_limit, bemf_coupling_t& bemf_coupling_k, int8_t *hall_table, int& hall_res) {
 
       int ok_steps = 0;
       const float spinup_to_duty = 0.5;
@@ -442,8 +442,8 @@ namespace conf_general {
       mcconf.comm_mode = COMM_MODE_INTEGRATE;
       mcconf.sl_phase_advance_at_br = 1.0;
       mcconf.sl_min_erpm = min_rpm;
-      mcconf.sl_bemf_coupling_k = 300_rpm;
-      mcconf.sl_cycle_int_limit = 50;
+      mcconf.sl_bemf_coupling_k = 300_Wb * 1_rpm / 1_V;
+      mcconf.sl_cycle_int_limit = 50_Wb;
       mcconf.sl_min_erpm_cycle_int_limit = 1100_rpm;
       mcconf.m_invert_direction = false;
       mc_interface::set_configuration(&mcconf);
@@ -478,7 +478,7 @@ namespace conf_general {
               mc_interface::lock_override_once();
               mc_interface::release_motor();
               mcconf.sl_min_erpm = 2 * min_rpm;
-              mcconf.sl_cycle_int_limit = 20;
+              mcconf.sl_cycle_int_limit = 20_Wb;
               mc_interface::lock_override_once();
               mc_interface::set_configuration(&mcconf);
               chThdSleepMilliseconds(1000);
@@ -569,9 +569,9 @@ namespace conf_general {
       }
 
       // Get hall detect result
-      *hall_res = mcpwm::get_hall_detect_result(hall_table);
+      hall_res = mcpwm::get_hall_detect_result(hall_table);
 
-      *int_limit = mcpwm::read_reset_avg_cycle_integrator();
+      int_limit = mcpwm::read_reset_avg_cycle_integrator();
 
       // Wait for the motor to slow down
       for (int i = 0;i < 5000;i++) {
@@ -609,9 +609,8 @@ namespace conf_general {
       mc_interface::release_motor();
 
       // Try to figure out the coupling factor
-      avg_cycle_integrator_running -= *int_limit;
-      avg_cycle_integrator_running *= static_cast<float>(rpm) / PHASE_ADJ_VBUS_ADC;
-      *bemf_coupling_k = avg_cycle_integrator_running;
+      avg_cycle_integrator_running -= int_limit;
+      bemf_coupling_k = avg_cycle_integrator_running * rpm / volt_t{PHASE_ADJ_VBUS_ADC};
 
       // Restore settings
       mc_interface::set_configuration(&mcconf_old);
@@ -654,8 +653,8 @@ namespace conf_general {
       mcconf.sl_phase_advance_at_br = 1.0;
       mcconf.sl_min_erpm = min_erpm;
       mcconf.m_bldc_f_sw_min = 10'000_Hz;
-      mcconf.sl_bemf_coupling_k = 300_rpm;
-      mcconf.sl_cycle_int_limit = 50;
+      mcconf.sl_bemf_coupling_k = 300_Wb * 1_rpm / 1_V;
+      mcconf.sl_cycle_int_limit = 50_Wb;
       mcconf.sl_min_erpm_cycle_int_limit = 1100_rpm;
       mc_interface::set_configuration(&mcconf);
 
@@ -689,7 +688,7 @@ namespace conf_general {
           if (i == 1) {
               mc_interface::lock_override_once();
               mc_interface::release_motor();
-              mcconf.sl_cycle_int_limit = 250;
+              mcconf.sl_cycle_int_limit = 250_Wb;
               mc_interface::lock_override_once();
               mc_interface::set_configuration(&mcconf);
               chThdSleepMilliseconds(1000);
@@ -699,7 +698,7 @@ namespace conf_general {
               mc_interface::lock_override_once();
               mc_interface::release_motor();
               mcconf.sl_min_erpm = 2 * min_erpm;
-              mcconf.sl_cycle_int_limit = 20;
+              mcconf.sl_cycle_int_limit = 20_Wb;
               mc_interface::lock_override_once();
               mc_interface::set_configuration(&mcconf);
               chThdSleepMilliseconds(1000);

@@ -171,8 +171,13 @@ namespace conf_general {
   bool store_app_configuration(app_configuration const*conf);
   void read_mc_configuration(mc_configuration *conf);
   bool store_mc_configuration(mc_configuration const*conf);
-  bool detect_motor_param(ampere_t current, rpm_t min_rpm, float low_duty,
-          float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
+  bool detect_motor_param(ampere_t current,
+                          rpm_t min_rpm,
+                          float low_duty,
+                          weber_t& int_limit,
+                          bemf_coupling_t& bemf_coupling_k,
+                          int8_t *hall_table,
+                          int& hall_res);
   bool measure_flux_linkage(ampere_t current, float duty,
           rpm_t min_erpm, float res, float *linkage);
 

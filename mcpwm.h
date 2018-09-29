@@ -58,7 +58,7 @@ namespace mcpwm {
   void reset_hall_detect_table(void);
   int get_hall_detect_result(int8_t *table);
   int read_hall_phase(void);
-  float read_reset_avg_cycle_integrator(void);
+  weber_t read_reset_avg_cycle_integrator(void);
   void set_comm_mode(mc_comm_mode mode);
   mc_comm_mode get_comm_mode(void);
   second_t get_last_adc_isr_duration(void);

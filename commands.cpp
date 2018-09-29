@@ -54,8 +54,8 @@ namespace commands{
 
   // Private variables
   uint8_t send_buffer[packet::MAX_PL_LEN];
-  float detect_cycle_int_limit;
-  float detect_coupling_k;
+  weber_t detect_cycle_int_limit;
+  bemf_coupling_t detect_coupling_k;
   ampere_t detect_current;
   rpm_t detect_min_rpm;
   float detect_low_duty;
@@ -1022,10 +1022,11 @@ namespace commands{
           chEvtWaitAny((eventmask_t) 1);
 
           if (!conf_general::detect_motor_param(detect_current, detect_min_rpm,
-                  detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k,
-                  detect_hall_table, &detect_hall_res)) {
-              detect_cycle_int_limit = 0.0;
-              detect_coupling_k = 0.0;
+                  detect_low_duty, detect_cycle_int_limit, detect_coupling_k,
+                  detect_hall_table, detect_hall_res))
+          {
+              detect_cycle_int_limit = 0_Wb;
+              detect_coupling_k = 0_Wb * 1_rpm;
           }
 
           int32_t ind = 0;

@@ -30,6 +30,7 @@
 #include "ledpwm.h"
 #include "terminal.h"
 #include "encoder.h"
+#include <algorithm>
 
 using namespace utils;
 
@@ -97,8 +98,8 @@ namespace mcpwm {
   volatile unsigned int m_slow_ramping_cycles;
   volatile bool m_has_commutated;
   mc_rpm_dep_struct rpm_dep;
-  volatile float m_cycle_integrator_sum;
-  volatile float m_cycle_integrator_iterations;
+  volatil_ weber_t m_cycle_integrator_sum;
+  volatile size_t m_cycle_integrator_iterations;
   mc_configuration *m_conf;
   volatil_ scalar_t m_pwm_cycles_sum;
   volatile int m_pwm_cycles;
@@ -193,8 +194,8 @@ namespace mcpwm {
     m_slow_ramping_cycles = 0;
     m_has_commutated = false;
     memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
-    m_cycle_integrator_sum = 0.0;
-    m_cycle_integrator_iterations = 0.0;
+    m_cycle_integrator_sum = 0_Wb;
+    m_cycle_integrator_iterations = 0;
     m_pwm_cycles_sum = 0.0;
     m_pwm_cycles = 0;
     m_last_pwm_cycles_sum = 0.0;
@@ -1307,8 +1308,8 @@ namespace mcpwm {
           + PHASE_ADJ_VBUS_ADC * m_conf->sl_bemf_coupling_k
               / m_conf->sl_min_erpm_cycle_int_limit;
 
-      if (rpm_dep.cycle_int_limit_running < 1.0) {
-        rpm_dep.cycle_int_limit_running = 1.0;
+      if (rpm_dep.cycle_int_limit_running < 1_Wb) {
+        rpm_dep.cycle_int_limit_running = 1_Wb;
       }
 
       if (rpm_dep.cycle_int_limit_running > rpm_dep.cycle_int_limit_max) {
@@ -1763,13 +1764,13 @@ namespace mcpwm {
       // Fill the amplitude FIR filter
       float const amp = m_has_commutated ?
         fabsf(m_dutycycle_now) * PHASE_ADJ_VBUS_ADC :
-        sqrtf((float)(ph1 * ph1 + ph2 * ph2 + ph3 * ph3)) * sqrtf(2.0);
+        volt_t{sqrtf((float)(ph1 * ph1 + ph2 * ph2 + ph3 * ph3))} * sqrtf(2.0);
 
       m_amp_fir_filter.add_sample(amp);
     }
 
     if (m_sensorless_now) {
-      static float cycle_integrator = 0;
+      static weber_t cycle_integrator{0};
 
       if (m_pwm_cycles_sum >= rpm_dep.comm_time_sum_min_rpm) {
         if (m_state == MC_STATE_RUNNING) {
@@ -1783,7 +1784,7 @@ namespace mcpwm {
             commutate(1);
           }
 
-          cycle_integrator = 0.0;
+          cycle_integrator = 0_Wb;
         }
       }
 
@@ -1837,35 +1838,28 @@ namespace mcpwm {
         if (v_diff > 0) {
           // TODO!
           //					const int min = 100;
-          int min = (int)((1.0 - fabsf(m_dutycycle_now))
-              * (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] * 0.3));
-          if (min > CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] / 4)) {
-            min = CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] / 4);
-          }
+          int const ph_min = 
+               (int)std::min((1.0 - fabsf(m_dutycycle_now)) * CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] * 0.3),
+                                                               CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] / 4));
 
-          if (m_pwm_cycles_sum > (m_last_pwm_cycles_sum / 2.0)
+          if (m_pwm_cycles_sum > m_last_pwm_cycles_sum / 2.0
               || !m_has_commutated
-              || (ph_now_raw > min && ph_now_raw < (PHASE_ADJ_VBUS_ADC - min))) 
+              || (ph_now_raw > ph_min && ph_now_raw < ((int)PHASE_ADJ_VBUS_ADC - ph_min)))
           {
-            cycle_integrator += static_cast<float>(v_diff / m_switching_frequency_now);
+            cycle_integrator += volt_t{static_cast<float>(v_diff)} / m_switching_frequency_now;
           }
         }
 
         static scalar_t cycle_sum = 0.0;
         if (m_conf->comm_mode == COMM_MODE_INTEGRATE) {
-          float limit;
-          if (m_has_commutated) {
-            limit = rpm_dep.cycle_int_limit_running * (0.0005 * VDIV_CORR);
-          }
-          else {
-            limit = rpm_dep.cycle_int_limit * (0.0005 * VDIV_CORR);
-          }
+          weber_t const limit = (m_has_commutated ? rpm_dep.cycle_int_limit_running
+                                                  : rpm_dep.cycle_int_limit) * (0.0005 * VDIV_CORR);
 
-          if (cycle_integrator
-              >= (rpm_dep.cycle_int_limit_max * (0.0005 * VDIV_CORR))
-              || cycle_integrator >= limit) {
+
+          if (cycle_integrator >= rpm_dep.cycle_int_limit_max * 0.0005 * VDIV_CORR
+           || cycle_integrator >= limit) {
             commutate(1);
-            cycle_integrator = 0.0;
+            cycle_integrator = 0_Wb;
             cycle_sum = 0.0;
           }
         }
@@ -1884,19 +1878,19 @@ namespace mcpwm {
               commutate(1);
               m_cycle_integrator_sum += cycle_integrator
                   * (1.0 / (0.0005 * VDIV_CORR));
-              m_cycle_integrator_iterations += 1.0;
-              cycle_integrator = 0.0;
+              m_cycle_integrator_iterations++;
+              cycle_integrator = 0_Wb;
               cycle_sum = 0.0;
             }
           }
           else {
-            cycle_integrator = 0.0;
+            cycle_integrator = 0_Wb;
             cycle_sum = 0.0;
           }
         }
       }
       else {
-        cycle_integrator = 0.0;
+        cycle_integrator = 0_Wb;
       }
 
       m_pwm_cycles_sum += m_conf->m_bldc_f_sw_max / m_switching_frequency_now;
@@ -2172,9 +2166,9 @@ namespace mcpwm {
     return res;
   }
 
-  float read_reset_avg_cycle_integrator(void) {
-    float res = m_cycle_integrator_sum / m_cycle_integrator_iterations;
-    m_cycle_integrator_sum = 0;
+  weber_t read_reset_avg_cycle_integrator(void) {
+    weber_t res = m_cycle_integrator_sum / m_cycle_integrator_iterations;
+    m_cycle_integrator_sum = 0_Wb;
     m_cycle_integrator_iterations = 0;
     return res;
   }

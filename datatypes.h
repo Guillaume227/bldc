@@ -98,9 +98,9 @@ enum sensor_port_mode {
 };
 
 struct mc_rpm_dep_struct {
-	float cycle_int_limit;
-	float cycle_int_limit_running;
-	float cycle_int_limit_max;
+	weber_t cycle_int_limit;
+	weber_t cycle_int_limit_running;
+	weber_t cycle_int_limit_max;
 	float comm_time_sum;
 	float comm_time_sum_min_rpm;
 	int32_t comms;
@@ -174,13 +174,14 @@ struct mc_configuration {
 	rpm_t sl_min_erpm;
 	rpm_t sl_min_erpm_cycle_int_limit;
 	ampere_t sl_max_fullbreak_current_dir_change;
-	/*Cycle ingegrator limit. This is how much area will be integrated
+
+	/* Cycle integrator limit. This is how much area will be integrated
 	 * under the back EMF after a zero crossing before doing a commutation.
 	 * A too low value will cause a too early commutation, and a too high value
 	 * will cause a too late commutation.
 	 * A too late commutation will cause more problems than too early commutations.
 	 */
-	float sl_cycle_int_limit;
+	weber_t sl_cycle_int_limit;
 	float sl_phase_advance_at_br;
 	rpm_t sl_cycle_int_rpm_br;
 	/*
@@ -193,7 +194,7 @@ struct mc_configuration {
 	 I tried to avoid where possible because the RPM estimation has a delay
 	 and thus causes problems during acceleration.
 	 */
-	rpm_t sl_bemf_coupling_k;
+	bemf_coupling_t sl_bemf_coupling_k;
 	// Hall sensor
 	int8_t hall_table[8];
 	rpm_t hall_sl_erpm;
