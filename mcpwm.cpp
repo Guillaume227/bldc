@@ -57,7 +57,8 @@ namespace mcpwm {
   // Private variables
   volatile int m_comm_step; // Range [1 6]
   volatile int m_detect_step; // Range [0 5]
-  volatile int m_direction;
+  volatile int m_direction; // 1 or -1
+  bool isDirection1(){ return m_direction == 1; }
   volatile float m_dutycycle_set;
   volatile float m_dutycycle_now;
   volatil_ rpm_t m_rpm_now;
@@ -94,7 +95,7 @@ namespace mcpwm {
   volatile int m_use_curr_samp_volt; // bitmap - Use the voltage-synchronized samples for this current sample
   int m_hall_to_phase_table[16];
   volatile unsigned int m_slow_ramping_cycles;
-  volatile int m_has_commutated;
+  volatile bool m_has_commutated;
   mc_rpm_dep_struct rpm_dep;
   volatile float m_cycle_integrator_sum;
   volatile float m_cycle_integrator_iterations;
@@ -190,7 +191,7 @@ namespace mcpwm {
     m_ignore_iterations = 0_ms;
     m_use_curr_samp_volt = 0;
     m_slow_ramping_cycles = 0;
-    m_has_commutated = 0;
+    m_has_commutated = false;
     memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
     m_cycle_integrator_sum = 0.0;
     m_cycle_integrator_iterations = 0.0;
@@ -724,7 +725,7 @@ namespace mcpwm {
    * The RPM value.
    */
   rpm_t get_rpm(void) {
-    return m_direction ? m_rpm_now : -m_rpm_now;
+    return m_direction * m_rpm_now;
   }
 
   mc_state get_state(void) {
@@ -988,10 +989,9 @@ namespace mcpwm {
   void set_duty_cycle_ll(float dutyCycle) {
     if (dutyCycle >= m_conf->l_min_duty) {
       m_direction = 1;
-    }
-    else if (dutyCycle <= -m_conf->l_min_duty) {
-      dutyCycle = -dutyCycle;
-      m_direction = 0;
+    } else if (dutyCycle <= -m_conf->l_min_duty) {
+      dutyCycle *= -1;
+      m_direction = -1;
     }
 
     if (dutyCycle < m_conf->l_min_duty) {
@@ -1343,7 +1343,7 @@ namespace mcpwm {
       if (m_state == MC_STATE_OFF) {
         // Track the motor back-emf and follow it with dutycycle_now. Also track
         // the direction of the motor.
-        float amp = m_amp_fir_filter.run_fir_iteration();
+        auto amp = m_amp_fir_filter.run_fir_iteration();
 
         // Direction tracking
         if (m_sensorless_now) {
@@ -1370,16 +1370,10 @@ namespace mcpwm {
 
           if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.2) {
             if (m_tachometer_for_direction > 12) {
-              if (m_direction == 1) {
-                m_direction = 0;
-              }
-              else {
-                m_direction = 1;
-              }
+              m_direction *= -1;
               m_tachometer_for_direction = 0;
             }
-          }
-          else {
+          } else {
             m_tachometer_for_direction = 0;
           }
         }
@@ -1387,24 +1381,15 @@ namespace mcpwm {
           // If the direction tachometer is counting backwards, the motor is
           // not moving in the direction we think it is.
           if (m_tachometer_for_direction < -3) {
-            if (m_direction == 1) {
-              m_direction = 0;
-            }
-            else {
-              m_direction = 1;
-            }
+            m_direction *= -1;
             m_tachometer_for_direction = 0;
-          }
-          else if (m_tachometer_for_direction > 0) {
+          } else if (m_tachometer_for_direction > 0) {
             m_tachometer_for_direction = 0;
           }
         }
 
-        if (m_direction == 1) {
-          m_dutycycle_now =  amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
-        } else {
-          m_dutycycle_now = -amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
-        }
+        m_dutycycle_now = m_direction * amp / (float)CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS]);
+
         truncate_number_abs((float&)m_dutycycle_now, m_conf->l_max_duty);
       }
       else { //state != MC_STATE_OFF
@@ -1568,7 +1553,7 @@ namespace mcpwm {
 
 #if CURR1_DOUBLE_SAMPLE || CURR2_DOUBLE_SAMPLE
     if (m_conf->pwm_mode != PWM_MODE_BIPOLAR) {
-      if (m_direction) {
+      if (isDirection1()) {
         if (CURR1_DOUBLE_SAMPLE && m_comm_step == 3) {
           curr0 = (curr0 + curr0_2) / 2.0;
         }
@@ -1632,7 +1617,7 @@ namespace mcpwm {
     }
     else {
 #ifdef HW_HAS_3_SHUNTS
-      if (m_direction) {
+      if (isDirection1()) {
         switch (m_comm_step) {
         case 1:
           curr_tot_sample = -(float)ADC_curr_norm_value[2];
@@ -1655,8 +1640,7 @@ namespace mcpwm {
         default:
           break;
         }
-      }
-      else {
+      } else {
         switch (m_comm_step) {
         case 1:
           curr_tot_sample = -(float)ADC_curr_norm_value[1];
@@ -1681,7 +1665,7 @@ namespace mcpwm {
         }
       }
 #else
-      if (m_direction) {
+      if (isDirection1()) {
         switch (m_comm_step) {
           case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
           case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
@@ -1691,8 +1675,7 @@ namespace mcpwm {
           case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
           default: break;
         }
-      }
-      else {
+      } else {
         switch (m_comm_step) {
           case 1: curr_tot_sample =  (float)ADC_curr_norm_value[1]; break;
           case 2: curr_tot_sample =  (float)ADC_curr_norm_value[0]; break;
@@ -1750,31 +1733,31 @@ namespace mcpwm {
     int ph1, ph2, ph3;
     int ph1_raw, ph2_raw, ph3_raw;
 
-    static int direction_before = 1;
-    if (!(m_state == MC_STATE_RUNNING && m_direction == direction_before)) {
-      m_has_commutated = 0;
+    {
+      static int direction_before = 1;
+      if (!(m_state == MC_STATE_RUNNING && m_direction == direction_before)) {
+        m_has_commutated = false;
+      }
+      direction_before = m_direction;
     }
-    direction_before = m_direction;
 
     /*
      * Calculate the virtual ground, depending on the state.
      */
     if (m_has_commutated && fabsf(m_dutycycle_now) > 0.2) {
       mcpwm_vzero = ADC_V_ZERO;
-    }
-    else {
+    } else {
       mcpwm_vzero = (ADC_V_L1+ ADC_V_L2 + ADC_V_L3) / 3;
     }
 
-    if (m_direction) {
+    if (isDirection1()) {
       ph1 = ADC_V_L1 - mcpwm_vzero;
       ph2 = ADC_V_L2 - mcpwm_vzero;
       ph3 = ADC_V_L3 - mcpwm_vzero;
       ph1_raw = ADC_V_L1;
       ph2_raw = ADC_V_L2;
       ph3_raw = ADC_V_L3;
-    }
-    else {
+    } else {
       ph1 = ADC_V_L1 - mcpwm_vzero;
       ph2 = ADC_V_L3 - mcpwm_vzero;
       ph3 = ADC_V_L2 - mcpwm_vzero;
@@ -1975,8 +1958,7 @@ namespace mcpwm {
             m_control_mode == CONTROL_MODE_POS) {
 #endif
         // Compute error
-        const float error = m_current_set
-            - (m_direction ? current_nofilter : -current_nofilter);
+        const float error = m_current_set - m_direction * current_nofilter;
         float step = error * m_conf->cc_gain * voltage_scale;
         const float start_boost = m_conf->cc_startup_boost_duty * voltage_scale;
 
@@ -2071,7 +2053,7 @@ namespace mcpwm {
       else if (current_nofilter < m_conf->lo_current_min) {
         step_towards(
             (float&)m_dutycycle_now,
-            m_direction ? m_conf->l_max_duty : -m_conf->l_max_duty,
+            m_direction * m_conf->l_max_duty,
             ramp_step_no_lim * fabsf(current_nofilter - m_conf->lo_current_min)
                 * m_conf->m_current_backoff_gain);
         limit_delay = 1;
@@ -2088,7 +2070,7 @@ namespace mcpwm {
       else if (current_in_nofilter < m_conf->lo_in_current_min) {
         step_towards(
             (float&)m_dutycycle_now,
-            m_direction ? m_conf->l_max_duty : -m_conf->l_max_duty,
+            m_direction * m_conf->l_max_duty,
             ramp_step_no_lim
                 * fabsf(current_in_nofilter - m_conf->lo_in_current_min)
                 * m_conf->m_current_backoff_gain);
@@ -2314,7 +2296,7 @@ namespace mcpwm {
    * The phase read.
    */
   int read_hall_phase(void) {
-    return m_hall_to_phase_table[read_hall() + (m_direction ? 8 : 0)];
+    return m_hall_to_phase_table[read_hall() + (isDirection1() ? 8 : 0)];
   }
 
   int read_hall(void) {
@@ -2387,35 +2369,32 @@ namespace mcpwm {
 
         switch (m_comm_step) {
         case 1:
-          if (m_direction) {
+          if (isDirection1()) {
             curr1_sample = samp_zero;
             curr2_sample = samp_neg;
             m_use_curr_samp_volt = (1 << 1);
-          }
-          else {
+          } else {
             curr1_sample = samp_zero;
             curr2_sample = samp_pos;
           }
           break;
 
         case 2:
-          if (m_direction) {
+          if (isDirection1()) {
             curr1_sample = samp_pos;
             curr2_sample = samp_neg;
             m_use_curr_samp_volt = (1 << 1);
-          }
-          else {
+          } else {
             curr1_sample = samp_pos;
             curr2_sample = samp_zero;
           }
           break;
 
         case 3:
-          if (m_direction) {
+          if (isDirection1()) {
             curr1_sample = samp_pos;
             curr2_sample = samp_zero;
-          }
-          else {
+          } else {
             curr1_sample = samp_pos;
             curr2_sample = samp_neg;
             m_use_curr_samp_volt = (1 << 1);
@@ -2423,11 +2402,10 @@ namespace mcpwm {
           break;
 
         case 4:
-          if (m_direction) {
+          if (isDirection1()) {
             curr1_sample = samp_zero;
             curr2_sample = samp_pos;
-          }
-          else {
+          } else {
             curr1_sample = samp_zero;
             curr2_sample = samp_neg;
             m_use_curr_samp_volt = (1 << 1);
@@ -2435,12 +2413,11 @@ namespace mcpwm {
           break;
 
         case 5:
-          if (m_direction) {
+          if (isDirection1()) {
             curr1_sample = samp_neg;
             curr2_sample = samp_pos;
             m_use_curr_samp_volt = (1 << 0);
-          }
-          else {
+          } else {
             curr1_sample = samp_neg;
             curr2_sample = samp_zero;
             m_use_curr_samp_volt = (1 << 0);
@@ -2448,20 +2425,18 @@ namespace mcpwm {
           break;
 
         case 6:
-          if (m_direction) {
+          if (isDirection1()) {
             curr1_sample = samp_neg;
             curr2_sample = samp_zero;
             m_use_curr_samp_volt = (1 << 0);
-          }
-          else {
+          } else {
             curr1_sample = samp_neg;
             curr2_sample = samp_pos;
             m_use_curr_samp_volt = (1 << 0);
           }
           break;
         }
-      }
-      else { // PWM_MODE_SYNCHRONOUS
+      } else { // PWM_MODE_SYNCHRONOUS
         // Voltage samples
         val_sample = duty / 2;
 
@@ -2487,13 +2462,12 @@ namespace mcpwm {
 #endif
 
 #if CURR2_DOUBLE_SAMPLE
-          if (m_direction) {
+          if (isDirection1()) {
             if (m_comm_step == 4 || m_comm_step == 5) {
               curr1_sample = duty + 90;
               curr2_sample = top - 230;
             }
-          }
-          else {
+          } else {
             if (m_comm_step == 1 || m_comm_step == 6) {
               curr1_sample = duty + 90;
               curr2_sample = top - 230;
@@ -2502,7 +2476,7 @@ namespace mcpwm {
 #endif
 
 #ifdef HW_HAS_3_SHUNTS
-          if (m_direction) {
+          if (isDirection1()) {
             switch (m_comm_step) {
             case 1:
               m_use_curr_samp_volt = (1 << 0) || (1 << 2);
@@ -2551,7 +2525,7 @@ namespace mcpwm {
             }
           }
 #else
-          if (m_direction) {
+          if (isDirection1()) {
             switch (m_comm_step) {
               case 1: m_use_curr_samp_volt = (1 << 0) || (1 << 1); break;
               case 2: m_use_curr_samp_volt = (1 << 1); break;
@@ -2608,13 +2582,7 @@ namespace mcpwm {
     // Tachometers
     m_tachometer_for_direction += tacho_diff;
     m_tachometer_abs += tacho_diff;
-
-    if (m_direction) {
-      m_tachometer += tacho_diff;
-    }
-    else {
-      m_tachometer -= tacho_diff;
-    }
+    m_tachometer += m_direction * tacho_diff;
   }
 
   void update_sensor_mode(void) {
@@ -2656,7 +2624,7 @@ namespace mcpwm {
     }
 
     TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
-    m_has_commutated = 1;
+    m_has_commutated = true;
 
     MCTimer timer_tmp;
 
@@ -2757,7 +2725,7 @@ namespace mcpwm {
     }
 
     if (next_step == 1) {
-      if (m_direction) {
+      if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
         DISABLE_BR1()
         ;
@@ -2807,7 +2775,7 @@ namespace mcpwm {
       }
     }
     else if (next_step == 2) {
-      if (m_direction) {
+      if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
         DISABLE_BR2()
         ;
@@ -2857,7 +2825,7 @@ namespace mcpwm {
       }
     }
     else if (next_step == 3) {
-      if (m_direction) {
+      if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
         DISABLE_BR3()
         ;
@@ -2907,7 +2875,7 @@ namespace mcpwm {
       }
     }
     else if (next_step == 4) {
-      if (m_direction) {
+      if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
         DISABLE_BR1()
         ;
@@ -2957,7 +2925,7 @@ namespace mcpwm {
       }
     }
     else if (next_step == 5) {
-      if (m_direction) {
+      if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
         DISABLE_BR2()
         ;
@@ -3007,7 +2975,7 @@ namespace mcpwm {
       }
     }
     else if (next_step == 6) {
-      if (m_direction) {
+      if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
         DISABLE_BR3()
         ;
