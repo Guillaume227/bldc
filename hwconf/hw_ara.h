@@ -29,21 +29,20 @@
 #endif
 
 #ifdef HW_IS_IHM07M1
-	#define HW_NAME			"ARA_F446_IHM07"
-	/*
-	* Benjamin on March 7, 2015 at 12:04 said:
-	* when not using FOC one shunt on the input is actually better than using two
-	* on the phases since the software becomes simpler.
-	* Also, with only one shunt you can run at 100% duty cycle.
-	*/
-	#define HW_HAS_3_SHUNTS
-	#define HW_HAS_PHASE_SHUNTS // used for FOC only
-	#define HW_HAS_DRV8313
+#define HW_NAME			"ARA_F446_IHM07"
+/*
+ * Benjamin on March 7, 2015 at 12:04 said:
+ * when not using FOC one shunt on the input is actually better than using two
+ * on the phases since the software becomes simpler.
+ * Also, with only one shunt you can run at 100% duty cycle.
+ */
+#define HW_HAS_3_SHUNTS
+#define HW_HAS_PHASE_SHUNTS // used for FOC only
+#define HW_HAS_DRV8313
 #else
-	#define HW_NAME			"ARA_F446_IHM08"
+#define HW_NAME			"ARA_F446_IHM08"
 //#define HW_HAS_PHASE_SHUNTS // used for FOC only
 #endif
-
 
 #define HW_NO_CCM_RAM           // F446 specific
 #define HW_HAS_POTENTIOMETER
@@ -55,9 +54,9 @@
 #define DCCAL_OFF()
 
 #ifdef HW_IS_IHM0xM1 
-	#define IS_DRV_FAULT()			FALSE
+#define IS_DRV_FAULT()			FALSE
 #else
-	#define IS_DRV_FAULT()			(!palReadPad(GPIOD, 2))
+#define IS_DRV_FAULT()			(!palReadPad(GPIOD, 2))
 #endif
 
 #define LED_GREEN_ON()			palSetPad(GPIOA, 5)
@@ -66,17 +65,17 @@
 #define LED_RED_OFF()			palClearPad(GPIOB, 2)
 
 #ifdef HW_HAS_DRV8313
-	// For power stages with enable pins (e.g. DRV8313)
-	#define ENABLE_BR1()			palSetPad(GPIOC, 10)
-	#define ENABLE_BR2()			palSetPad(GPIOC, 11)
-	#define ENABLE_BR3()			palSetPad(GPIOC, 12)
-	#define DISABLE_BR1()			palClearPad(GPIOC, 10)
-	#define DISABLE_BR2()			palClearPad(GPIOC, 11)
-	#define DISABLE_BR3()			palClearPad(GPIOC, 12)
-	#define ENABLE_BR()				palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 7)
-	#define DISABLE_BR()			palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 0)
+// For power stages with enable pins (e.g. DRV8313)
+#define ENABLE_BR1()			palSetPad(GPIOC, 10)
+#define ENABLE_BR2()			palSetPad(GPIOC, 11)
+#define ENABLE_BR3()			palSetPad(GPIOC, 12)
+#define DISABLE_BR1()			palClearPad(GPIOC, 10)
+#define DISABLE_BR2()			palClearPad(GPIOC, 11)
+#define DISABLE_BR3()			palClearPad(GPIOC, 12)
+#define ENABLE_BR()				palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 7)
+#define DISABLE_BR()			palWriteGroup(GPIOC, PAL_GROUP_MASK(3), 10, 0)
 
-	#define INIT_BR()				palSetPadMode(GPIOC, 10, \
+#define INIT_BR()				palSetPadMode(GPIOC, 10, \
 									PAL_MODE_OUTPUT_PUSHPULL | \
 									PAL_STM32_OSPEED_HIGHEST); \
 									palSetPadMode(GPIOC, 11, \
@@ -126,19 +125,19 @@
 
 // ADC macros and settings
 
-#define V_REG					3.3
-#define VIN_R1					169.000 // kOhm
-#define VIN_R2					9.310 // kOhm
+#define V_REG					3.3_V
+#define VIN_R1					169_kOhm
+#define VIN_R2					9.31_kOhm
 #ifdef HW_IS_IHM07M1
-    #define CURRENT_AMP_GAIN		1.528
+#define CURRENT_AMP_GAIN		1.528
 #elif defined(HW_IS_IHM08M1)
-    #define CURRENT_AMP_GAIN		5.18
+#define CURRENT_AMP_GAIN		5.18
 #endif
 
 #ifdef HW_IS_IHM07M1
-    #define CURRENT_SHUNT_RES		0.33
+#define CURRENT_SHUNT_RES		0.33_Ohm
 #elif defined(HW_IS_IHM08M1)
-    #define CURRENT_SHUNT_RES		0.01
+#define CURRENT_SHUNT_RES		0.01_Ohm
 #endif
 
 #define ADC_RES 4095.0
@@ -155,14 +154,14 @@
 #ifdef HW_IS_IHM0xM1
 
 // Phase Voltage
-#define R39_IHM0X 10.0 // 10k ohms
-#define R36_IHM0X 2.2  // 2.2k ohms
-#define V_D_IHM0X 0.3  // schotky BAT30kFILM typical voltage drop
+#define R39_IHM0X 10_kOhm // 10k ohms
+#define R36_IHM0X 2.2_kOhm  // 2.2k ohms
+#define V_D_IHM0X 0.3_V  // schotky BAT30kFILM typical voltage drop
 #define PHASE_DIVIDER ((R39_IHM0X + R36_IHM0X) / R36_IHM0X)
 
 
 #define SCALE_V_P(V)    (V * VOLTAGE_DIVIDER / PHASE_DIVIDER)
-#define CONV_ADC_V(adcVal)   volt_t{((adcVal) * VOLTAGE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1)) / PHASE_DIVIDER}
+#define CONV_ADC_V(adcVal)   (float)(((adcVal) * VOLTAGE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1)) / PHASE_DIVIDER)
 #define PHASE_ADJ_VBUS_ADC   CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS])
 #define PHASE_VOLTAGE_FROM_ADC(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM0X ) * PHASE_DIVIDER + V_D_IHM0X)
 
@@ -190,13 +189,13 @@
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
 #ifndef CURR1_DOUBLE_SAMPLE
-	#define CURR1_DOUBLE_SAMPLE		FALSE
+#define CURR1_DOUBLE_SAMPLE		FALSE
 #endif
 #ifndef CURR2_DOUBLE_SAMPLE
-	#define CURR2_DOUBLE_SAMPLE		FALSE
+#define CURR2_DOUBLE_SAMPLE		FALSE
 #endif
 #ifndef CURR3_DOUBLE_SAMPLE
-	#define CURR3_DOUBLE_SAMPLE		FALSE
+#define CURR3_DOUBLE_SAMPLE		FALSE
 #endif
 
 // Number of servo outputs
@@ -286,46 +285,46 @@
 #endif
 
 #ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX				2.0	// Current limit in Amperes (Upper)
+#define MCCONF_L_CURRENT_MAX				2.0_A	// Current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_CURRENT_MIN
-#define MCCONF_L_CURRENT_MIN				-2.0	// Current limit in Amperes (Lower)
+#define MCCONF_L_CURRENT_MIN				-1 * 2.0_A	// Current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX				2.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX				2.0_A	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN				-2.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN				-1 * 2.0_A	// Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT			10.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT			10.0_A	// The maximum absolute current above which a fault is generated
 #endif
 
 #ifndef MCCONF_CC_MIN_CURRENT
-#define MCCONF_CC_MIN_CURRENT				0.01	// Minimum allowed current
+#define MCCONF_CC_MIN_CURRENT				0.01_A	// Minimum allowed current
 #endif
 
 // FOC settings
 #ifndef MCCONF_FOC_CURRENT_KP
-#define MCCONF_FOC_CURRENT_KP				4.8
+#define MCCONF_FOC_CURRENT_KP				4.8_Ohm
 #endif
 #ifndef MCCONF_FOC_CURRENT_KI
-#define MCCONF_FOC_CURRENT_KI				5800_Hz
+#define MCCONF_FOC_CURRENT_KI				5800_Ohm / 1_s
 #endif
 #ifndef MCCONF_FOC_F_SW
 #define MCCONF_FOC_F_SW						20'000_Hz
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
-#define MCCONF_FOC_MOTOR_L					0.0048
+#define MCCONF_FOC_MOTOR_L					0.0048_H
 #endif
 #ifndef MCCONF_FOC_MOTOR_R
-#define MCCONF_FOC_MOTOR_R					5.8
+#define MCCONF_FOC_MOTOR_R					5.8_Ohm
 #endif
 #ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE		0.023
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE		0.023_Wb
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN
-#define MCCONF_FOC_OBSERVER_GAIN			31e4
+#define MCCONF_FOC_OBSERVER_GAIN			31e4_Hz / (1_Wb*1_Wb)
 #endif
 #ifndef MCCONF_FOC_OPENLOOP_RPM
 #define MCCONF_FOC_OPENLOOP_RPM				500_rpm

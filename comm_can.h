@@ -36,8 +36,8 @@ namespace comm{
     void set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
     void send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, bool send);
     void set_duty(uint8_t controller_id, float duty);
-    void set_current(uint8_t controller_id, float current);
-    void set_current_brake(uint8_t controller_id, float current);
+    void set_current(uint8_t controller_id, ampere_t current);
+    void set_current_brake(uint8_t controller_id, ampere_t current);
     void set_rpm(uint8_t controller_id, float rpm);
     void set_pos(uint8_t controller_id, float pos);
     void set_current_rel(uint8_t controller_id, float current_rel);

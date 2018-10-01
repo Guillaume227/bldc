@@ -104,7 +104,7 @@ struct mc_rpm_dep_struct {
 	float comm_time_sum;
 	float comm_time_sum_min_rpm;
 	int32_t comms;
-	uint32_t time_at_comm; // number of ticks spent at commutation step (6 step only)?
+	uint32_t ticks_at_comm; // number of ticks spent at commutation step (6 step only)?
 };
 
 enum drv8301_oc_mode {
@@ -199,17 +199,17 @@ struct mc_configuration {
 	int8_t hall_table[8];
 	rpm_t hall_sl_erpm;
 	// FOC
-	scalar_t foc_current_kp;
-	hertz_t foc_current_ki;
+	ohm_t foc_current_kp;
+	decltype(1_Ohm/1_s) foc_current_ki;
 	hertz_t foc_f_sw;
 	microsecond_t foc_dt_us;
 	degree_t foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
-	microhenry_t foc_motor_l;
+	henry_t foc_motor_l;
 	ohm_t foc_motor_r;
-	float foc_motor_flux_linkage;
-	float foc_observer_gain;
+	weber_t foc_motor_flux_linkage;
+	decltype(1_Hz/(1_Wb*1_Wb)) foc_observer_gain;
 	float foc_observer_gain_slow;
 	hertz_t foc_pll_kp;
 	inv_sec_2_t  foc_pll_ki;
@@ -250,7 +250,7 @@ struct mc_configuration {
 	// Misc
 	millisecond_t m_fault_stop_time_ms;
 	float m_duty_ramp_step;
-	float m_current_backoff_gain;
+	decltype(1/1_A) m_current_backoff_gain;
 	uint32_t m_encoder_counts;
 	sensor_port_mode m_sensor_port_mode;
 	bool m_invert_direction;
@@ -438,7 +438,7 @@ struct app_configuration {
 	// Settings
 	uint8_t controller_id;
 	uint32_t timeout_msec;
-	float timeout_brake_current;
+	ampere_t timeout_brake_current;
 	bool send_can_status;
 	uint32_t send_can_status_rate_hz;
 	CAN_BAUD can_baud_rate;
@@ -565,8 +565,8 @@ struct chuck_data {
 struct can_status_msg {
 	int id;
 	systime_t rx_time;
-	float rpm;
-	float current;
+	rpm_t rpm;
+	ampere_t current;
 	float duty;
 };
 

@@ -39,9 +39,9 @@ namespace app {
     void stop(void);
     void configure(adc_config *conf);
     float get_decoded_level(void);
-    float get_voltage(void);
+    volt_t get_voltage(void);
     float get_decoded_level2(void);
-    float get_voltage2(void);
+    volt_t get_voltage2(void);
   }
 
   namespace uartcomm {

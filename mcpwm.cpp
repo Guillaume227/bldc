@@ -76,8 +76,8 @@ namespace mcpwm {
   volatile int m_curr1_offset;
   volatile mc_state m_state;
   volatile mc_control_mode m_control_mode;
-  volatile ampere_t m_last_current_sample;
-  volatile ampere_t m_last_current_sample_filtered;
+  volatil_ ampere_t m_last_current_sample;
+  volatil_ ampere_t m_last_current_sample_filtered;
   volatile float m_detect_currents_avg[6];
   volatile float m_detect_avg_samples[6];
 
@@ -120,10 +120,10 @@ namespace mcpwm {
   volatile filter::FIRFilter<kv_t, 7> m_kv_fir_filter(0.02, /*use hamming*/ true);
 
   // Amplitude FIR filter
-  volatile filter::FIRFilter<volt_t, 7> m_amp_fir_filter(0.02, /*use hamming*/ true);
+  volatile filter::FIRFilter<float, 7> m_amp_fir_filter(0.02, /*use hamming*/ true);
 
   // Current FIR filter
-  volatile filter::FIRFilter<volt_t, 4> m_current_fir_filter(0.15f, /*use hamming*/ true);
+  volatile filter::FIRFilter<ampere_t, 4> m_current_fir_filter(0.15f, /*use hamming*/ true);
 
   volatil_ second_t m_last_adc_isr_duration;
   volatil_ second_t m_last_inj_adc_isr_duration;
@@ -180,14 +180,14 @@ namespace mcpwm {
     m_dutycycle_now = 0.0;
     m_speed_pid_set_rpm = 0_rpm;
     m_pos_pid_set_pos = 0_deg;
-    m_current_set = 0.0;
+    m_current_set = 0.0_A;
     m_tachometer = 0;
     m_tachometer_abs = 0;
     m_tachometer_for_direction = 0;
     m_state = MC_STATE_OFF;
     m_control_mode = CONTROL_MODE_NONE;
-    m_last_current_sample = 0.0;
-    m_last_current_sample_filtered = 0.0;
+    m_last_current_sample = 0.0_A;
+    m_last_current_sample_filtered = 0.0_A;
     m_switching_frequency_now = m_conf->m_bldc_f_sw_max;
     m_ignore_iterations = 0_ms;
     m_use_curr_samp_volt = 0;
@@ -1271,12 +1271,11 @@ namespace mcpwm {
         // GG: commutations occurred since previous rpm measure
         sys_lock_cnt();
         const float comms = (float)rpm_dep.comms;
-        const float time_at_comm = (float)rpm_dep.time_at_comm;
+        const float ticks_at_comm = (float)rpm_dep.ticks_at_comm;
         rpm_dep.comms = 0;
-        rpm_dep.time_at_comm = 0;
+        rpm_dep.ticks_at_comm = 0;
         sys_unlock_cnt();
-
-        m_rpm_now = rpm_t(comms * static_cast<float>(RPM_TIMER_FREQ) * 60.0) / (time_at_comm * 6.0);
+        m_rpm_now = rpm_t(comms * static_cast<float>(RPM_TIMER_FREQ) * 60.0) / (ticks_at_comm * 6.0);
       }
       else {
         // GG: still on the same commutation as in previous rpm evaluation
@@ -1291,12 +1290,12 @@ namespace mcpwm {
       static rpm_t rpm_filtered = 0_rpm;
       UTILS_LP_FAST(rpm_filtered, m_rpm_now, 0.1);
       m_rpm_now = rpm_filtered;
-      auto const rpm_abs = fabsf(m_rpm_now);
+      rpm_t const rpm_abs = fabsf(m_rpm_now);
 
       // Update the cycle integrator limit
       rpm_dep.cycle_int_limit = m_conf->sl_cycle_int_limit;
       rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit
-          + PHASE_ADJ_VBUS_ADC * m_conf->sl_bemf_coupling_k
+          + volt_t{PHASE_ADJ_VBUS_ADC} * m_conf->sl_bemf_coupling_k
              / (rpm_abs > m_conf->sl_min_erpm ? rpm_abs : m_conf->sl_min_erpm);
 
       rpm_dep.cycle_int_limit_running = map(
@@ -1305,7 +1304,7 @@ namespace mcpwm {
           rpm_dep.cycle_int_limit_running * m_conf->sl_phase_advance_at_br);
 
       rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit
-          + PHASE_ADJ_VBUS_ADC * m_conf->sl_bemf_coupling_k
+          + volt_t{PHASE_ADJ_VBUS_ADC} * m_conf->sl_bemf_coupling_k
               / m_conf->sl_min_erpm_cycle_int_limit;
 
       if (rpm_dep.cycle_int_limit_running < 1_Wb) {
@@ -1316,8 +1315,8 @@ namespace mcpwm {
         rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit_max;
       }
 
-      rpm_dep.comm_time_sum = static_cast<float>(m_conf->m_bldc_f_sw_max / ((rpm_abs / 60.0) * 6.0));
-      rpm_dep.comm_time_sum_min_rpm = static_cast<float>(m_conf->m_bldc_f_sw_max / ((m_conf->sl_min_erpm / 60.0) * 6.0));
+      rpm_dep.comm_time_sum         = static_cast<float>(m_conf->m_bldc_f_sw_max) / static_cast<float>((rpm_abs / 60.0) * 6.0);
+      rpm_dep.comm_time_sum_min_rpm = static_cast<float>(m_conf->m_bldc_f_sw_max) / static_cast<float>((m_conf->sl_min_erpm / 60.0) * 6.0);
 
       run_pid_control_speed();
 
@@ -1376,7 +1375,7 @@ namespace mcpwm {
             m_tachometer_for_direction = 0;
           }
         }
-        else { // sensorless_now
+        else { // !sensorless_now
           // If the direction tachometer is counting backwards, the motor is
           // not moving in the direction we think it is.
           if (m_tachometer_for_direction < -3) {
@@ -1388,6 +1387,7 @@ namespace mcpwm {
         }
 
         m_dutycycle_now = m_direction * amp / PHASE_ADJ_VBUS_ADC;
+
 
         truncate_number_abs((float&)m_dutycycle_now, m_conf->l_max_duty);
       }
@@ -1483,7 +1483,7 @@ namespace mcpwm {
 
   void adc_inj_int_handler(void) {
     TIM12->CNT = 0;
-
+    {
     int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
     int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
 
@@ -1582,7 +1582,7 @@ namespace mcpwm {
     ADC_curr_norm_value[1] *= -1;
     ADC_curr_norm_value[2] *= -1;
 #endif
-
+    }
     float curr_tot_sample = 0;
 
     /*
@@ -1707,6 +1707,7 @@ namespace mcpwm {
 
     m_last_current_sample_filtered = m_current_fir_filter.run_fir_iteration();
 
+
     m_last_inj_adc_isr_duration = TIM12->CNT / TIM12_FREQ;
   }
 
@@ -1724,6 +1725,7 @@ namespace mcpwm {
 
     // Reset the watchdog
     WWDG_SetCounter(100);
+
 
     {
       static int direction_before = 1;
@@ -1764,7 +1766,7 @@ namespace mcpwm {
       // Fill the amplitude FIR filter
       float const amp = m_has_commutated ?
         fabsf(m_dutycycle_now) * PHASE_ADJ_VBUS_ADC :
-        volt_t{sqrtf((float)(ph1 * ph1 + ph2 * ph2 + ph3 * ph3))} * sqrtf(2.0);
+        sqrtf((float)(ph1 * ph1 + ph2 * ph2 + ph3 * ph3)) * sqrtf(2.0);
 
       m_amp_fir_filter.add_sample(amp);
     }
@@ -1840,7 +1842,7 @@ namespace mcpwm {
           //					const int min = 100;
           int const ph_min = 
                (int)std::min((1.0 - fabsf(m_dutycycle_now)) * CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] * 0.3),
-                                                               CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] / 4));
+                                                              CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS] / 4));
 
           if (m_pwm_cycles_sum > m_last_pwm_cycles_sum / 2.0
               || !m_has_commutated
@@ -1877,7 +1879,7 @@ namespace mcpwm {
                         * m_conf->sl_phase_advance_at_br)) {
               commutate(1);
               m_cycle_integrator_sum += cycle_integrator
-                  * (1.0 / (0.0005 * VDIV_CORR));
+                  * (1.0 / (0.0005 * (VDIV_CORR)));
               m_cycle_integrator_iterations++;
               cycle_integrator = 0_Wb;
               cycle_sum = 0.0;
@@ -1920,8 +1922,8 @@ namespace mcpwm {
 
     if (m_state == MC_STATE_RUNNING && m_has_commutated) {
       // Compensation for supply voltage variations
-      float const input_voltage = GET_INPUT_VOLTAGE();
-      const float voltage_scale = 20.0 / input_voltage;
+      volt_t const input_voltage = GET_INPUT_VOLTAGE();
+      float const voltage_scale = 20_V / input_voltage;
       float ramp_step = m_conf->m_duty_ramp_step
           / static_cast<float>(m_switching_frequency_now / 1000.0);
       float ramp_step_no_lim = ramp_step;
@@ -1943,8 +1945,8 @@ namespace mcpwm {
             m_control_mode == CONTROL_MODE_POS) {
 #endif
         // Compute error
-        const float error = m_current_set - m_direction * current_nofilter;
-        float step = error * m_conf->cc_gain * voltage_scale;
+        auto const error = m_current_set - m_direction * current_nofilter;
+        auto step = static_cast<float>(error) * m_conf->cc_gain * voltage_scale;
         const float start_boost = m_conf->cc_startup_boost_duty * voltage_scale;
 
         // Do not ramp too much
@@ -1961,7 +1963,7 @@ namespace mcpwm {
         // Optionally apply startup boost.
         if (fabsf(dutycycle_now_tmp) < start_boost) {
           step_towards(dutycycle_now_tmp,
-                       m_current_set > 0.0 ? start_boost : -start_boost,
+                       m_current_set > 0_A ? start_boost : -start_boost,
                        ramp_step);
         }
         else {
@@ -1973,10 +1975,10 @@ namespace mcpwm {
 
         // Lower truncation
         if (fabsf(dutycycle_now_tmp) < m_conf->l_min_duty) {
-          if (dutycycle_now_tmp < 0.0 && m_current_set > 0.0) {
+          if (dutycycle_now_tmp < 0.0 && m_current_set > 0_A) {
             dutycycle_now_tmp = m_conf->l_min_duty;
           }
-          else if (dutycycle_now_tmp > 0.0 && m_current_set < 0.0) {
+          else if (dutycycle_now_tmp > 0.0 && m_current_set < 0_A) {
             dutycycle_now_tmp = -m_conf->l_min_duty;
           }
         }
@@ -1989,8 +1991,8 @@ namespace mcpwm {
       }
       else if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
         // Compute error
-        const float error = -fabsf(m_current_set) - current_nofilter;
-        float step = error * m_conf->cc_gain * voltage_scale;
+        auto const error = static_cast<float>(-fabsf(m_current_set) - current_nofilter);
+        auto step = error * m_conf->cc_gain * voltage_scale;
 
         // Do not ramp too much
         truncate_number_abs(step, m_conf->cc_ramp_step_max);
@@ -2560,7 +2562,7 @@ namespace mcpwm {
 
     if (tacho_diff != 0) {
       rpm_dep.comms += tacho_diff;
-      rpm_dep.time_at_comm += TIM2->CNT;
+      rpm_dep.ticks_at_comm += TIM2->CNT;
       TIM2->CNT = 0;
     }
 

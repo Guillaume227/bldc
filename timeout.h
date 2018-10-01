@@ -22,20 +22,21 @@
 #include "ch.h"
 #include "chtypes.h"
 #include "chsystypes.h"
+#include "units_def.h"
 
 namespace timeout{
 
   // Functions
   void init(void);
-  void configure(systime_t timeout, float brake_current);
+  void configure(systime_t timeout, ampere_t brake_current);
   void reset(void);
   bool has_timeout(void);
   systime_t get_timeout_msec(void);
-  float get_brake_current(void);
+  ampere_t get_brake_current(void);
 
   class Disabler {
     systime_t const m_timeout_msec;
-    float const m_brake_current;
+    ampere_t const m_brake_current;
 
   public:
     Disabler():
@@ -44,7 +45,7 @@ namespace timeout{
     {
       // disable timeout
       reset();
-      configure(60'000, 0.0);
+      configure(60'000, 0_A);
     }
 
     ~Disabler(){

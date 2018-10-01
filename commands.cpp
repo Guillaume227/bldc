@@ -199,13 +199,13 @@ namespace commands{
 
       case COMM_SET_CURRENT:
           ind = 0;
-          mc_interface::set_current((float)get_int32(data, &ind) / 1000.0);
+          mc_interface::set_current(ampere_t{get_int32(data, &ind) / 1000.0});
           timeout::reset();
           break;
 
       case COMM_SET_CURRENT_BRAKE:
           ind = 0;
-          mc_interface::set_brake_current((float)get_int32(data, &ind) / 1000.0);
+          mc_interface::set_brake_current(ampere_t{get_int32(data, &ind) / 1000.0});
           timeout::reset();
           break;
 
@@ -223,7 +223,7 @@ namespace commands{
 
       case COMM_SET_HANDBRAKE:
           ind = 0;
-          mc_interface::set_handbrake(get_float32(data, 1e3, &ind));
+          mc_interface::set_handbrake(ampere_t{get_float32(data, 1e3, &ind)});
           timeout::reset();
           break;
 
@@ -664,14 +664,14 @@ namespace commands{
           mcconf.motor_type = MOTOR_TYPE_FOC;
           mc_interface::set_configuration(&mcconf);
 
-          float r = 0.0;
-          float l = 0.0;
+          ohm_t r = 0_Ohm;
+          microhenry_t l = 0_uH;
           bool res = mcpwm_foc::measure_res_ind(r, l);
           mc_interface::set_configuration(&mcconf_old);
 
           if (!res) {
-              r = 0.0;
-              l = 0.0;
+              r = 0_Ohm;
+              l = 0_uH;
           }
 
           ind = 0;
@@ -693,15 +693,16 @@ namespace commands{
           rpm_t min_rpm;
           get_float32(min_rpm, data, 1e3, &ind);
           float duty = get_float32(data, 1e3, &ind);
-          float resistance = get_float32(data, 1e6, &ind);
+          ohm_t resistance;
+          get_float32(resistance, data, 1e6, &ind);
 
           send_func_last = send_func;
 
-          float linkage;
-          bool res = conf_general::measure_flux_linkage(current, duty, min_rpm, resistance, &linkage);
+          weber_t linkage;
+          bool res = conf_general::measure_flux_linkage(current, duty, min_rpm, resistance, linkage);
 
           if (!res) {
-              linkage = 0.0;
+              linkage = 0_Wb;
           }
 
           ind = 0;
@@ -728,8 +729,8 @@ namespace commands{
 
               mcconf.motor_type = MOTOR_TYPE_FOC;
               mcconf.foc_f_sw = 10'000_Hz;
-              mcconf.foc_current_kp = 0.01;
-              mcconf.foc_current_ki = 10_Hz;
+              mcconf.foc_current_kp = 0.01_Ohm;
+              mcconf.foc_current_ki = 10_Ohm / 1_s;
               mc_interface::set_configuration(&mcconf);
 
               degree_t offset = 0_deg;
@@ -765,14 +766,15 @@ namespace commands{
           if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_HALL) {
               mcconf_old = mcconf;
               ind = 0;
-              float current = get_float32(data, 1e3, &ind);
+              ampere_t current;
+              get_float32(current, data, 1e3, &ind);
 
               send_func_last = send_func;
 
               mcconf.motor_type = MOTOR_TYPE_FOC;
               mcconf.foc_f_sw = 10'000_Hz;
-              mcconf.foc_current_kp = 0.01;
-              mcconf.foc_current_ki = 10_Hz;
+              mcconf.foc_current_kp = 0.01_Ohm;
+              mcconf.foc_current_ki = 10_Ohm / 1_s;
               mc_interface::set_configuration(&mcconf);
 
               uint8_t hall_tab[8];
@@ -1026,7 +1028,7 @@ namespace commands{
                   detect_hall_table, detect_hall_res))
           {
               detect_cycle_int_limit = 0_Wb;
-              detect_coupling_k = 0_Wb * 1_rpm;
+              detect_coupling_k = 0_Wb * 1_rpm / 1_V;
           }
 
           int32_t ind = 0;

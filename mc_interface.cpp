@@ -50,18 +50,18 @@ namespace mc_interface{
   volatile unsigned int m_cycles_running;
   volatile bool m_lock_enabled;
   volatile bool m_lock_override_once;
-  volatile ampere_t m_motor_current_sum;
-  volatile ampere_t m_input_current_sum;
+  volatil_ ampere_t m_motor_current_sum;
+  volatil_ ampere_t m_input_current_sum;
   volatile float m_motor_current_iterations;
   volatile float m_input_current_iterations;
-  volatile float m_motor_id_sum;
-  volatile float m_motor_iq_sum;
+  volatil_ ampere_t m_motor_id_sum;
+  volatil_ ampere_t m_motor_iq_sum;
   volatile float m_motor_id_iterations;
   volatile float m_motor_iq_iterations;
-  volatile float m_amp_seconds;
-  volatile float m_amp_seconds_charged;
-  volatile float m_watt_seconds;
-  volatile float m_watt_seconds_charged;
+  volatil_ ampere_second_t m_amp_seconds;
+  volatil_ ampere_second_t m_amp_seconds_charged;
+  volatil_ watt_second_t m_watt_seconds;
+  volatil_ watt_second_t m_watt_seconds_charged;
   volatil_ degree_t m_position_set;
   volatil_ celsius_t m_temp_fet;
   volatil_ celsius_t m_temp_motor;
@@ -112,18 +112,18 @@ namespace mc_interface{
       m_cycles_running = 0;
       m_lock_enabled = false;
       m_lock_override_once = false;
-      m_motor_current_sum = 0.0;
-      m_input_current_sum = 0.0;
+      m_motor_current_sum = 0_A;
+      m_input_current_sum = 0_A;
       m_motor_current_iterations = 0.0;
       m_input_current_iterations = 0.0;
-      m_motor_id_sum = 0.0;
-      m_motor_iq_sum = 0.0;
+      m_motor_id_sum = 0_A;
+      m_motor_iq_sum = 0_A;
       m_motor_id_iterations = 0.0;
       m_motor_iq_iterations = 0.0;
-      m_amp_seconds = 0.0;
-      m_amp_seconds_charged = 0.0;
-      m_watt_seconds = 0.0;
-      m_watt_seconds_charged = 0.0;
+      m_amp_seconds = 0_C;
+      m_amp_seconds_charged = 0_C;
+      m_watt_seconds = 0_J;
+      m_watt_seconds_charged = 0_J;
       m_position_set = 0_deg;
       m_last_adc_duration_sample = 0_s;
       m_temp_fet = 0_degC;
@@ -522,7 +522,7 @@ namespace mc_interface{
    * Disconnect the motor and let it turn freely.
    */
   void release_motor(void) {
-      set_current(0.0);
+      set_current(0_A);
   }
 
   /**
@@ -617,11 +617,15 @@ namespace mc_interface{
    * @return
    * The amount of amp hours drawn.
    */
-  float get_amp_hours(bool reset) {
+  ampere_hour_t get_amp_hours(bool reset) {
+#ifdef USE_UNITS
+      auto val = m_amp_seconds;
+#else
       float val = m_amp_seconds / 3600;
+#endif
 
       if (reset) {
-          m_amp_seconds = 0.0;
+          m_amp_seconds = 0_C;
       }
 
       return val;
@@ -636,11 +640,15 @@ namespace mc_interface{
    * @return
    * The amount of amp hours fed back.
    */
-  float get_amp_hours_charged(bool reset) {
+  ampere_hour_t get_amp_hours_charged(bool reset) {
+#ifdef USE_UNITS
+      auto val = m_amp_seconds_charged;
+#else
       float val = m_amp_seconds_charged / 3600;
+#endif
 
       if (reset) {
-          m_amp_seconds_charged = 0.0;
+          m_amp_seconds_charged = 0_C;
       }
 
       return val;
@@ -655,11 +663,15 @@ namespace mc_interface{
    * @return
    * The amount of watt hours drawn.
    */
-  float get_watt_hours(bool reset) {
+  watt_hour_t get_watt_hours(bool reset) {
+#ifdef USE_UNITS
+      auto val = m_watt_seconds;
+#else
       float val = m_watt_seconds / 3600;
+#endif
 
       if (reset) {
-          m_watt_seconds = 0.0;
+          m_watt_seconds = 0_J;
       }
 
       return val;
@@ -674,18 +686,22 @@ namespace mc_interface{
    * @return
    * The amount of watt hours fed back.
    */
-  float get_watt_hours_charged(bool reset) {
+  watt_hour_t get_watt_hours_charged(bool reset) {
+#ifdef USE_UNITS
+      auto val = m_watt_seconds_charged;
+#else
       float val = m_watt_seconds_charged / 3600;
+#endif
 
       if (reset) {
-          m_watt_seconds_charged = 0.0;
+          m_watt_seconds_charged = 0_J;
       }
 
       return val;
   }
 
   ampere_t get_tot_current(void) {
-      float ret = 0.0;
+      ampere_t ret = 0_A;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -714,13 +730,13 @@ namespace mc_interface{
           return mcpwm_foc::get_tot_current_filtered();
 
       default:
-          return 0.0;
+          return 0_A;
       }
 
   }
 
   ampere_t get_tot_current_directional(void) {
-      float ret = 0.0;
+      ampere_t ret = 0_A;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -740,7 +756,7 @@ namespace mc_interface{
   }
 
   ampere_t get_tot_current_directional_filtered(void) {
-      float ret = 0.0;
+      ampere_t ret = 0_A;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -760,7 +776,7 @@ namespace mc_interface{
   }
 
   ampere_t get_tot_current_in(void) {
-      float ret = 0.0;
+      ampere_t ret = 0_A;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -780,7 +796,7 @@ namespace mc_interface{
   }
 
   ampere_t get_tot_current_in_filtered(void) {
-      float ret = 0.0;
+      ampere_t ret = 0_A;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -859,16 +875,16 @@ namespace mc_interface{
       return ret;
   }
 
-  float read_reset_avg_motor_current(void) {
+  ampere_t read_reset_avg_motor_current(void) {
       auto res = m_motor_current_sum / m_motor_current_iterations;
-      m_motor_current_sum = 0.0;
+      m_motor_current_sum = 0_A;
       m_motor_current_iterations = 0.0;
       return res;
   }
 
-  float read_reset_avg_input_current(void) {
+  ampere_t read_reset_avg_input_current(void) {
       auto res = m_input_current_sum / m_input_current_iterations;
-      m_input_current_sum = 0.0;
+      m_input_current_sum = 0_A;
       m_input_current_iterations = 0.0;
       return res;
   }
@@ -879,9 +895,9 @@ namespace mc_interface{
    * @return
    * The average D axis current.
    */
-  float read_reset_avg_id(void) {
+  ampere_t read_reset_avg_id(void) {
       auto res = m_motor_id_sum / m_motor_id_iterations;
-      m_motor_id_sum = 0.0;
+      m_motor_id_sum = 0_A;
       m_motor_id_iterations = 0.0;
       return DIR_MULT * res; // TODO: DIR_MULT?
   }
@@ -892,9 +908,9 @@ namespace mc_interface{
    * @return
    * The average Q axis current.
    */
-  float read_reset_avg_iq(void) {
+  ampere_t read_reset_avg_iq(void) {
       auto res = m_motor_iq_sum / m_motor_iq_iterations;
-      m_motor_iq_sum = 0.0;
+      m_motor_iq_sum = 0_A;
       m_motor_iq_iterations = 0.0;
       return DIR_MULT * res;
   }
@@ -1140,17 +1156,17 @@ namespace mc_interface{
       }
 
       // Watt and ah counters
-      auto const f_samp = static_cast<float>(get_sampling_frequency_now());
-      if (fabsf(current) > 1.0) {
+      auto const f_samp = get_sampling_frequency_now();
+      if (fabsf(current) > 1_A) {
           // Some extra filtering
-          static float curr_diff_sum = 0.0;
-          static float curr_diff_samples = 0;
+          static ampere_second_t curr_diff_sum = 0_C;
+          static second_t curr_diff_samples = 0_s;
 
           curr_diff_sum += current_in / f_samp;
           curr_diff_samples += 1.0 / f_samp;
 
-          if (curr_diff_samples >= 0.01) {
-              if (curr_diff_sum > 0.0) {
+          if (curr_diff_samples >= 0.01_s) {
+              if (curr_diff_sum > 0_C) {
                   m_amp_seconds  += curr_diff_sum;
                   m_watt_seconds += curr_diff_sum * input_voltage;
               } else {
@@ -1158,8 +1174,8 @@ namespace mc_interface{
                   m_watt_seconds_charged -= curr_diff_sum * input_voltage;
               }
 
-              curr_diff_samples = 0.0;
-              curr_diff_sum = 0.0;
+              curr_diff_samples = 0_s;
+              curr_diff_sum = 0_C;
           }
       }
 
@@ -1345,8 +1361,8 @@ namespace mc_interface{
       if (m_temp_fet < conf->l_temp_fet_start) {
           // Keep values
       } else if (m_temp_fet > conf->l_temp_fet_end) {
-          lo_min_mos = 0.0;
-          lo_max_mos = 0.0;
+          lo_min_mos = 0_A;
+          lo_max_mos = 0_A;
           fault_stop(FAULT_CODE_OVER_TEMP_FET);
       } else {
           ampere_t maxc = fabsf(conf->l_current_max);
@@ -1375,8 +1391,8 @@ namespace mc_interface{
       if (m_temp_motor < conf->l_temp_motor_start) {
           // Keep values
       } else if (m_temp_motor > conf->l_temp_motor_end) {
-          lo_min_mot = 0.0;
-          lo_max_mot = 0.0;
+          lo_min_mot = 0_A;
+          lo_max_mot = 0_A;
           fault_stop(FAULT_CODE_OVER_TEMP_MOTOR);
       } else {
           ampere_t maxc = fabsf(conf->l_current_max);
@@ -1410,21 +1426,21 @@ namespace mc_interface{
       celsius_t const temp_motor_accel_start = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_motor_start, 25_degC);
       celsius_t const temp_motor_accel_end   = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_motor_end, 25_degC);
 
-      float lo_fet_temp_accel = 0.0;
+      ampere_t lo_fet_temp_accel = 0_A;
       if (m_temp_fet < temp_fet_accel_start) {
           lo_fet_temp_accel = conf->l_current_max;
       } else if (m_temp_fet > temp_fet_accel_end) {
-          lo_fet_temp_accel = 0.0;
+          lo_fet_temp_accel = 0_A;
       } else {
           lo_fet_temp_accel = utils::map(m_temp_fet, temp_fet_accel_start,
                   temp_fet_accel_end, conf->l_current_max, 0.0_A);
       }
 
-      float lo_motor_temp_accel = 0.0;
+      ampere_t lo_motor_temp_accel = 0_A;
       if (m_temp_motor < temp_motor_accel_start) {
           lo_motor_temp_accel = conf->l_current_max;
       } else if (m_temp_motor > temp_motor_accel_end) {
-          lo_motor_temp_accel = 0.0;
+          lo_motor_temp_accel = 0_A;
       } else {
           lo_motor_temp_accel = utils::map(m_temp_motor,
                                            temp_motor_accel_start,
@@ -1591,7 +1607,7 @@ namespace mc_interface{
               append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
               append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
 
-              float const zeroV = PHASE_VOLTAGE_FROM_ADC(m_vzero_samples[ind_samp]);
+              volt_t const zeroV = PHASE_VOLTAGE_FROM_ADC(m_vzero_samples[ind_samp]);
               append_float32_auto(buffer, PHASE_VOLTAGE_FROM_ADC(m_ph1_samples[ind_samp]) - zeroV, &index);
               append_float32_auto(buffer, PHASE_VOLTAGE_FROM_ADC(m_ph2_samples[ind_samp]) - zeroV, &index);
               append_float32_auto(buffer, PHASE_VOLTAGE_FROM_ADC(m_ph3_samples[ind_samp]) - zeroV, &index);

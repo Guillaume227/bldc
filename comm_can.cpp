@@ -170,35 +170,37 @@ namespace comm{
                     buffer::get_enum(cmd, rxmsg.EID >> 8);
                     can_status_msg *stat_tmp;
 
+                    using buffer::get_float32;
+
                     if (id == 255 || id == app::get_configuration().controller_id) {
                         switch (cmd) {
                         case CAN_PACKET_SET_DUTY:
                             ind = 0;
-                            mc_interface::set_duty(buffer::get_float32(rxmsg.data8, 1e5, &ind));
+                            mc_interface::set_duty(get_float32(rxmsg.data8, 1e5, &ind));
                             timeout::reset();
                             break;
 
                         case CAN_PACKET_SET_CURRENT:
                             ind = 0;
-                            mc_interface::set_current(buffer::get_float32(rxmsg.data8, 1e3, &ind));
+                            mc_interface::set_current(ampere_t{get_float32(rxmsg.data8, 1e3, &ind)});
                             timeout::reset();
                             break;
 
                         case CAN_PACKET_SET_CURRENT_BRAKE:
                             ind = 0;
-                            mc_interface::set_brake_current(buffer::get_float32(rxmsg.data8, 1e3, &ind));
+                            mc_interface::set_brake_current(ampere_t{get_float32(rxmsg.data8, 1e3, &ind)});
                             timeout::reset();
                             break;
 
                         case CAN_PACKET_SET_RPM:
                             ind = 0;
-                            mc_interface::set_pid_speed(rpm_t{buffer::get_float32(rxmsg.data8, 1e0, &ind)});
+                            mc_interface::set_pid_speed(rpm_t{get_float32(rxmsg.data8, 1e0, &ind)});
                             timeout::reset();
                             break;
 
                         case CAN_PACKET_SET_POS:
                             ind = 0;
-                            mc_interface::set_pid_pos(degree_t{buffer::get_float32(rxmsg.data8, 1e6, &ind)});
+                            mc_interface::set_pid_pos(degree_t{get_float32(rxmsg.data8, 1e6, &ind)});
                             timeout::reset();
                             break;
 
@@ -256,25 +258,25 @@ namespace comm{
 
                         case CAN_PACKET_SET_CURRENT_REL:
                             ind = 0;
-                            mc_interface::set_current_rel(buffer::get_float32(rxmsg.data8, 1e5, &ind));
+                            mc_interface::set_current_rel(get_float32(rxmsg.data8, 1e5, &ind));
                             timeout::reset();
                             break;
 
                         case CAN_PACKET_SET_CURRENT_BRAKE_REL:
                             ind = 0;
-                            mc_interface::set_brake_current_rel(buffer::get_float32(rxmsg.data8, 1e5, &ind));
+                            mc_interface::set_brake_current_rel(get_float32(rxmsg.data8, 1e5, &ind));
                             timeout::reset();
                             break;
 
                         case CAN_PACKET_SET_CURRENT_HANDBRAKE:
                             ind = 0;
-                            mc_interface::set_handbrake(buffer::get_float32(rxmsg.data8, 1e3, &ind));
+                            mc_interface::set_handbrake(ampere_t{get_float32(rxmsg.data8, 1e3, &ind)});
                             timeout::reset();
                             break;
 
                         case CAN_PACKET_SET_CURRENT_HANDBRAKE_REL:
                             ind = 0;
-                            mc_interface::set_handbrake_rel(buffer::get_float32(rxmsg.data8, 1e5, &ind));
+                            mc_interface::set_handbrake_rel(get_float32(rxmsg.data8, 1e5, &ind));
                             timeout::reset();
                             break;
 
@@ -291,8 +293,8 @@ namespace comm{
                                 ind = 0;
                                 stat_tmp->id = id;
                                 stat_tmp->rx_time = chVTGetSystemTime();
-                                stat_tmp->rpm = (float)buffer::get_int32(rxmsg.data8, &ind);
-                                stat_tmp->current = (float)buffer::get_int16(rxmsg.data8, &ind) / 10.0;
+                                stat_tmp->rpm = rpm_t{(float)buffer::get_int32(rxmsg.data8, &ind)};
+                                stat_tmp->current = ampere_t{buffer::get_int16(rxmsg.data8, &ind) / 10.0};
                                 stat_tmp->duty = (float)buffer::get_int16(rxmsg.data8, &ind) / 1000.0;
                                 break;
                             }
@@ -488,18 +490,18 @@ namespace comm{
                 ((uint32_t)CAN_PACKET_SET_DUTY << 8), buffer, send_index);
     }
 
-    void set_current(uint8_t controller_id, float current) {
+    void set_current(uint8_t controller_id, ampere_t current) {
         int32_t send_index = 0;
         uint8_t buffer[4];
-        buffer::append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
+        buffer::append_int32(buffer, (int32_t)static_cast<float>(current * 1000.0), &send_index);
         transmit_eid(controller_id |
                 ((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index);
     }
 
-    void set_current_brake(uint8_t controller_id, float current) {
+    void set_current_brake(uint8_t controller_id, ampere_t current) {
         int32_t send_index = 0;
         uint8_t buffer[4];
-        buffer::append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
+        buffer::append_int32(buffer, (int32_t)static_cast<float>(current * 1000.0), &send_index);
         transmit_eid(controller_id |
                 ((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE << 8), buffer, send_index);
     }

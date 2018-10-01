@@ -68,7 +68,7 @@ namespace mcpwm_foc{
   ohm_t measure_resistance(ampere_t current, size_t samples);
   microhenry_t measure_inductance(float duty, size_t samples, ampere_t *curr);
   bool measure_res_ind(ohm_t &res, microhenry_t &ind);
-  bool hall_detect(float current, uint8_t *hall_table);
+  bool hall_detect(ampere_t current, uint8_t *hall_table);
   void print_state(void);
   second_t get_last_inj_adc_isr_duration(void);
 
