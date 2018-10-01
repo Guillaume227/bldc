@@ -192,7 +192,7 @@ namespace app {
                 servo_val = servo_val_ramp;
             }
 
-            float current = 0;
+            ampere_t current = 0_A;
             bool current_mode = false;
             bool current_mode_brake = false;
             bool send_current = false;
@@ -282,7 +282,7 @@ namespace app {
             }
 
             if (send_current && config.multi_esc) {
-                float current = mc_interface::get_tot_current_directional_filtered();
+                ampere_t current = mc_interface::get_tot_current_directional_filtered();
 
                 for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
                     can_status_msg *msg = comm::can::get_status_msg_index(i);
@@ -306,9 +306,9 @@ namespace app {
                         }
                     }
                 } else {
-                    float current_out = current;
+                    ampere_t current_out = current;
                     bool is_reverse = false;
-                    if (current_out < 0.0) {
+                    if (current_out < 0_A) {
                         is_reverse = true;
                         current_out = -current_out;
                         current = -current;
@@ -329,9 +329,9 @@ namespace app {
                                     }
 
                                     auto diff = rpm_tmp - rpm_lowest;
-                                    current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0.0);
+                                    current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0_A);
                                     if (current_out < mcconf.cc_min_current) {
-                                        current_out = 0.0;
+                                        current_out = 0_A;
                                     }
                                 }
 
@@ -345,9 +345,9 @@ namespace app {
 
                         if (config.tc) {
                             auto diff = rpm_local - rpm_lowest;
-                            current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0.0);
+                            current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0.0_A);
                             if (current_out < mcconf.cc_min_current) {
-                                current_out = 0.0;
+                                current_out = 0_A;
                             }
                         }
                     }

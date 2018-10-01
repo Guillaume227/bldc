@@ -24,7 +24,7 @@ namespace timeout{
   // Private variables
   volatile systime_t m_timeout_msec;
   volatile systime_t m_last_update_time;
-  volatile float m_brake_current;
+  volatil_ ampere_t m_brake_current;
   volatile bool m_has_timeout;
 
   // Threads
@@ -34,13 +34,13 @@ namespace timeout{
   void init(void) {
       m_timeout_msec = 1000;
       m_last_update_time = 0;
-      m_brake_current = 0.0;
+      m_brake_current = 0_A;
       m_has_timeout = false;
 
       chThdCreateStatic(timeout_thread_wa, sizeof(timeout_thread_wa), NORMALPRIO, timeout_thread, NULL);
   }
 
-  void configure(systime_t timeout, float brake_current) {
+  void configure(systime_t timeout, ampere_t brake_current) {
       m_timeout_msec = timeout;
       m_brake_current = brake_current;
   }
@@ -57,7 +57,7 @@ namespace timeout{
       return m_timeout_msec;
   }
 
-  float get_brake_current(void) {
+  ampere_t get_brake_current(void) {
       return m_brake_current;
   }
 
@@ -69,7 +69,7 @@ namespace timeout{
       for(;;) {
           if (m_timeout_msec != 0 && chVTTimeElapsedSinceX(m_last_update_time) > MS2ST(m_timeout_msec)) {
               mc_interface::unlock();
-              mc_interface::set_brake_current(m_brake_current);
+              mc_interface::set_brake_current(get_brake_current());
               m_has_timeout = true;
           } else {
               m_has_timeout = false;

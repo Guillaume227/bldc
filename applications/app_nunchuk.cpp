@@ -227,9 +227,9 @@ namespace app{
 			auto const& mcconf = mc_interface::get_configuration();
 			static bool is_reverse = false;
 			static bool was_z = false;
-			const float current_now = mc_interface::get_tot_current_directional_filtered();
-			static float prev_current = 0.0;
-			const float max_current_diff = mcconf.l_current_max * 0.2;
+			auto const current_now = mc_interface::get_tot_current_directional_filtered();
+			static ampere_t prev_current = 0_A;
+			auto const max_current_diff = mcconf.l_current_max * 0.2;
 
 			if (chuck_d.bt_c && chuck_d.bt_z) {
 				led_external_set_state(LED_EXT_BATT);
@@ -332,7 +332,7 @@ namespace app{
 
 				// Send the same current to the other controllers
 				if (config.multi_esc) {
-					float current = mc_interface::get_tot_current_directional_filtered();
+					auto current = mc_interface::get_tot_current_directional_filtered();
 
 					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 						can_status_msg *msg = comm::can::get_status_msg_index(i);
@@ -352,7 +352,7 @@ namespace app{
 
 			was_pid = false;
 
-			float current = 0;
+			ampere_t current = 0_A;
 
 			if (out_val >= 0.0) {
 				current = out_val * mcconf.lo_current_motor_max_now;
@@ -367,7 +367,7 @@ namespace app{
 			}
 
 			auto rpm_lowest = rpm_local;
-			float current_highest_abs = current_now;
+			auto current_highest_abs = current_now;
 
 			if (config.multi_esc) {
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -384,7 +384,7 @@ namespace app{
 						}
 
 						// Make the current directional
-						float msg_current = msg->current;
+						auto msg_current = msg->current;
 						if (msg->duty < 0.0) {
 							msg_current = -msg_current;
 						}
@@ -397,20 +397,20 @@ namespace app{
 			}
 
 			// Apply ramping
-			const float current_range = mcconf.l_current_max + fabsf(mcconf.l_current_min);
+			const auto current_range = mcconf.l_current_max + fabsf(mcconf.l_current_min);
 			const float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
 
 			if (ramp_time > 0.01) {
-				const float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);
+				auto const ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);
 
-				float current_goal = prev_current;
-				const float goal_tmp = current_goal;
+				auto current_goal = prev_current;
+				auto const goal_tmp = current_goal;
 				utils::step_towards(current_goal, current, ramp_step);
 				bool is_decreasing = current_goal < goal_tmp;
 
 				// Make sure the desired current is close to the actual current to avoid surprises
 				// when changing direction
-				float goal_tmp2 = current_goal;
+				auto goal_tmp2 = current_goal;
 				if (is_reverse) {
 					if (fabsf(current_goal + current_highest_abs) > max_current_diff) {
 						utils::step_towards(goal_tmp2, -current_highest_abs, 2.0 * ramp_step);
@@ -432,7 +432,7 @@ namespace app{
 
 			prev_current = current;
 
-			if (current < 0.0) {
+			if (current < 0_A) {
 				mc_interface::set_brake_current(current);
 
 				// Send brake command to all ESCs seen recently on the CAN bus
@@ -444,7 +444,7 @@ namespace app{
 					}
 				}
 			} else {
-				float current_out = current;
+				auto current_out = current;
 
 				// Traction control
 				if (config.multi_esc) {
@@ -461,7 +461,7 @@ namespace app{
 								auto diff = rpm_tmp - rpm_lowest;
 								current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0.0_A);
 								if (current_out < mcconf.cc_min_current) {
-									current_out = 0.0;
+									current_out = 0_A;
 								}
 							}
 
@@ -477,7 +477,7 @@ namespace app{
 						auto diff = rpm_local - rpm_lowest;
 						current_out = utils::map(diff, 0_rpm, config.tc_max_diff, current, 0.0_A);
 						if (current_out < mcconf.cc_min_current) {
-							current_out = 0.0;
+							current_out = 0_A;
 						}
 					}
 				}

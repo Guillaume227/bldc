@@ -242,13 +242,13 @@
 #define MCCONF_FOC_PLL_KI				40000_inv_s2
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
-#define MCCONF_FOC_MOTOR_L				0.000007
+#define MCCONF_FOC_MOTOR_L				0.000007_H
 #endif
 #ifndef MCCONF_FOC_MOTOR_R
-#define MCCONF_FOC_MOTOR_R				0.015
+#define MCCONF_FOC_MOTOR_R				0.015_Ohm
 #endif
 #ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00245
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00245_Wb
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN
 #define MCCONF_FOC_OBSERVER_GAIN		9e7		// Can be something like 600 / L
@@ -331,7 +331,7 @@
 #define MCCONF_M_RAMP_STEP				0.02	// Duty cycle ramping step (1000 times/sec) at maximum duty cycle
 #endif
 #ifndef MCCONF_M_CURRENT_BACKOFF_GAIN
-#define MCCONF_M_CURRENT_BACKOFF_GAIN	0.5		// The error gain of the current limiting algorithm
+#define MCCONF_M_CURRENT_BACKOFF_GAIN	1/2_A   // The error gain of the current limiting algorithm
 #endif
 #ifndef MCCONF_M_ENCODER_COUNTS
 #define MCCONF_M_ENCODER_COUNTS			8192	// The number of encoder counts

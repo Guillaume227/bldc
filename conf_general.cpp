@@ -464,7 +464,7 @@ namespace conf_general {
       systime_t tout = timeout::get_timeout_msec();
       auto tout_c = timeout::get_brake_current();
       timeout::reset();
-      timeout::configure(60000, 0.0);
+      timeout::configure(60000, 0.0_A);
 
       mc_interface::lock();
 
@@ -526,7 +526,7 @@ namespace conf_general {
       }
 
       if (!started) {
-          mc_interface::set_current(0.0);
+          mc_interface::set_current(0_A);
           timeout::configure(tout, tout_c);
           mc_interface::set_configuration(&mcconf_old);
           mc_interface::unlock();
@@ -545,7 +545,7 @@ namespace conf_general {
 
       // Release the motor and wait a few commutations
       mc_interface::lock_override_once();
-      mc_interface::set_current(0.0);
+      mc_interface::set_current(0_A);
       int tacho = mc_interface::get_tachometer_value(0);
       for (int i = 0;i < 2000;i++) {
           if ((mc_interface::get_tachometer_value(0) - tacho) < 3) {
@@ -602,15 +602,15 @@ namespace conf_general {
           }
       }
 
-      auto avg_cycle_integrator_running = mcpwm::read_reset_avg_cycle_integrator();
-      auto const rpm = rpm_sum / rpm_iterations;
+      weber_t avg_cycle_integrator_running = mcpwm::read_reset_avg_cycle_integrator();
+      rpm_t const avg_rpm = rpm_sum / rpm_iterations;
 
       mc_interface::lock_override_once();
       mc_interface::release_motor();
 
       // Try to figure out the coupling factor
       avg_cycle_integrator_running -= int_limit;
-      bemf_coupling_k = avg_cycle_integrator_running * rpm / volt_t{PHASE_ADJ_VBUS_ADC};
+      bemf_coupling_k = avg_cycle_integrator_running * avg_rpm / volt_t{PHASE_ADJ_VBUS_ADC};
 
       // Restore settings
       mc_interface::set_configuration(&mcconf_old);
@@ -643,7 +643,7 @@ namespace conf_general {
    * True for success, false otherwise.
    */
   bool measure_flux_linkage(ampere_t current, float duty,
-          rpm_t min_erpm, float res, float *linkage) {
+          rpm_t min_erpm, ohm_t res, weber_t &linkage) {
       mcconf = mc_interface::get_configuration();
       mcconf_old = mcconf;
 
@@ -673,9 +673,9 @@ namespace conf_general {
 
       // Disable timeout
       systime_t tout = timeout::get_timeout_msec();
-      float tout_c = timeout::get_brake_current();
+      auto tout_c = timeout::get_brake_current();
       timeout::reset();
-      timeout::configure(60000, 0.0);
+      timeout::configure(60000, 0_A);
 
       mc_interface::lock();
 
@@ -746,7 +746,7 @@ namespace conf_general {
       }
 
       if (!started) {
-          mc_interface::set_current(0.0);
+          mc_interface::set_current(0_A);
           timeout::configure(tout, tout_c);
           mc_interface::set_configuration(&mcconf_old);
           mc_interface::unlock();
@@ -756,29 +756,30 @@ namespace conf_general {
       mc_interface::lock_override_once();
       mc_interface::set_duty(duty);
 
-      auto avg_voltage = 0.0_V;
-      auto avg_rpm = 0_rpm;
-      auto avg_current = 0.0_A;
+      auto avg_voltage = 0_V;
+      auto avg_rpm     = 0_rpm;
+      auto avg_current = 0_A;
       float samples = 0.0;
       for (int i = 0;i < 2000;i++) {
           avg_voltage += GET_INPUT_VOLTAGE() * mc_interface::get_duty_cycle_now();
-          avg_rpm += mc_interface::get_rpm();
+          avg_rpm     += mc_interface::get_rpm();
           avg_current += mc_interface::get_tot_current();
-          samples += 1.0;
+          samples     += 1.0;
           chThdSleepMilliseconds(1.0);
       }
 
       timeout::configure(tout, tout_c);
       mc_interface::set_configuration(&mcconf_old);
       mc_interface::unlock();
-      mc_interface::set_current(0.0);
+      mc_interface::set_current(0_A);
 
       avg_voltage /= samples;
-      avg_rpm /= samples;
+      avg_rpm     /= samples;
       avg_current /= samples;
+
       avg_voltage -= avg_current * res * 2.0;
 
-      *linkage = avg_voltage * 60.0 / (sqrtf(3.0) * 2.0 * M_PI * static_cast<float>(avg_rpm));
+      linkage = weber_t{static_cast<float>(avg_voltage) * 60.0 / (sqrtf(3.0) * 2.0 * M_PI * static_cast<float>(avg_rpm))};
 
       return true;
   }

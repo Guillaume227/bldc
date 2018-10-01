@@ -24,6 +24,12 @@
 namespace utils{
 
   void step_towards(float& value, float const goal, float const step);
+
+  template<typename T>
+  void step_towards(T& value, T const goal, T const step) {
+    step_towards(static_cast<float&>(value), static_cast<float>(goal), static_cast<float>(step));
+  }
+
   float calc_ratio(float low, float high, float val);
   void norm_angle(degree_t &angle);
   void norm_angle_rad(radian_t &angle);
@@ -60,18 +66,32 @@ namespace utils{
   int middle_of_3_int(int a, int b, int c);
   float fast_inv_sqrt(float x);
   radian_t fast_atan2(float y, float x);
+  template<typename T>
+  radian_t fast_atan2(T y, T x){
+    return fast_atan2(static_cast<float>(y), static_cast<float>(x));
+  }
   bool saturate_vector_2d(float &x, float &y, float max);
+
+  template<typename T>
+  inline bool saturate_vector_2d(T &x, T &y, T max){
+    return saturate_vector_2d(static_cast<float&>(x), static_cast<float&>(y), static_cast<float>(max));
+  }
 
   void fast_sincos(radian_t angle, float *sin, float *cos);
   void fast_sincos_better(radian_t angle, float *sin, float *cos);
 
   float min_abs(float va, float vb);
-  template<typename T, typename TT=typename unit_t_traits<T>::underlying_type>
+  template<typename T>
   inline T min_abs(T va, T vb){
     return T{min_abs(static_cast<float>(va), static_cast<float>(vb))};
   }
 
   float max_abs(float va, float vb);
+  template<typename T>
+  inline T max_abs(T va, T vb){
+    return T{max_abs(static_cast<float>(va), static_cast<float>(vb))};
+  }
+
   void byte_to_binary(int x, char *b);
   float throttle_curve(float val, float curve_acc, float curve_brake, int mode);
 
@@ -79,10 +99,12 @@ namespace utils{
   void sys_unlock_cnt(void);
 
   // Return the sign of the argument. -1 if negative, 1 if zero or positive.
-  inline constexpr int SIGN(auto x){ return x < 0 ? -1 : 1; }
+  template<typename T>
+  inline constexpr int SIGN(T x){ return x < T{0} ? -1 : 1; }
 
   // Squared
-  inline constexpr auto SQ(auto x){ return x * x; }
+  template<typename T>
+  inline constexpr auto SQ(T x){ return x * x; }
 }
 
 // Return the age of a timestamp in seconds

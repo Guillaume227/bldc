@@ -101,8 +101,8 @@
 /*
  * Settings for the external LEDs (hardcoded for now)
  */
-constexpr scalar_t LED_EXT_BATT_LOW	 = 28.0;
-constexpr scalar_t LED_EXT_BATT_HIGH = 33.0;
+constexpr volt_t LED_EXT_BATT_LOW  = 28_V;
+constexpr volt_t LED_EXT_BATT_HIGH = 33_V;
 
 /*
  * Output WS2811 signal on the HALL1 pin. Notice that hall sensors can't be used
@@ -129,14 +129,14 @@ constexpr scalar_t LED_EXT_BATT_HIGH = 33.0;
 #define SERVO_OUT_RATE_HZ			50		// Update rate in Hz
 
 // Correction factor for computations that depend on the old resistor division factor
-#define VDIV_CORR					((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2 / (2.2 + 33.0)))
+#define VDIV_CORR					((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2_kOhm / (2.2_kOhm + 33.0_kOhm)))
 
 // Current ADC to amperes factor
-#define FAC_CURRENT					((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
+#define FAC_CURRENT ((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
 
 // Actual voltage on 3.3V net based on internal reference
 //#define V_REG						(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
-#define V_REG						3.3
+//#define V_REG 3.3_V
 
 // Use the pins for the hardware SPI port instead of the hall/encoder pins for the AS5047
 #ifndef AS5047_USE_HW_SPI_PINS
@@ -179,6 +179,6 @@ namespace conf_general {
                           int8_t *hall_table,
                           int& hall_res);
   bool measure_flux_linkage(ampere_t current, float duty,
-          rpm_t min_erpm, float res, float *linkage);
+          rpm_t min_erpm, ohm_t res, weber_t &linkage);
 
 }

@@ -59,6 +59,11 @@ namespace {
 
 namespace terminal{
 
+  template<typename T>
+  inline void sscanf(char const* input, T& out){
+    ::sscanf(input, "%f", &static_cast<float&>(out));
+  }
+
   namespace{
     // static to save some stack - used in process_string only
     mc_configuration mcconf;
@@ -182,22 +187,22 @@ namespace terminal{
       } else if (strcmp(argv[0], "param_detect") == 0) {
           // Use COMM_MODE_DELAY and try to figure out the motor parameters.
           if (argc == 4) {
-              float current = -1.0;
-              float min_rpm = -1.0;
+              ampere_t current {-1.0};
+              rpm_t min_rpm {-1.0};
               float low_duty = -1.0;
-              sscanf(argv[1], "%f", &current);
-              sscanf(argv[2], "%f", &min_rpm);
-              sscanf(argv[3], "%f", &low_duty);
+              sscanf(argv[1], current);
+              sscanf(argv[2], min_rpm);
+              sscanf(argv[3], low_duty);
 
-              if (current > 0.0 && current < mcconf.l_current_max &&
-                      min_rpm > 10.0 && min_rpm < 3000.0 &&
+              if (current > 0_A && current < mcconf.l_current_max &&
+                      min_rpm > 10_rpm && min_rpm < 3000_rpm &&
                       low_duty > 0.02 && low_duty < 0.8) {
 
                   weber_t cycle_integrator;
                   bemf_coupling_t coupling_k;
                   int8_t hall_table[8];
                   int hall_res;
-                  if (conf_general::detect_motor_param(ampere_t{current}, rpm_t{min_rpm}, low_duty, cycle_integrator, coupling_k, hall_table, hall_res)) {
+                  if (conf_general::detect_motor_param(current, min_rpm, low_duty, cycle_integrator, coupling_k, hall_table, hall_res)) {
                       printf("Cycle integrator limit: %.2f", (double)cycle_integrator);
                       printf("Coupling factor: %.2f", (double)coupling_k);
 
@@ -246,10 +251,10 @@ namespace terminal{
           }
       } else if (strcmp(argv[0], "foc_encoder_detect") == 0) {
           if (argc == 2) {
-              float current = -1.0;
-              sscanf(argv[1], "%f", &current);
+              ampere_t current {-1.0};
+              sscanf(argv[1], current);
 
-              if (current > 0.0 && current <= mcconf.l_current_max) {
+              if (current > 0_A && current <= mcconf.l_current_max) {
                   if (encoder::is_configured()) {
                       mc_motor_type type_old = mcconf.motor_type;
                       mcconf.motor_type = MOTOR_TYPE_FOC;
@@ -277,10 +282,10 @@ namespace terminal{
           }
       } else if (strcmp(argv[0], "measure_res") == 0) {
           if (argc == 2) {
-              float current = -1.0;
-              sscanf(argv[1], "%f", &current);
+              ampere_t current {-1.0};
+              sscanf(argv[1], current);
 
-              if (current > 0.0 && current <= mcconf.l_current_max) {
+              if (current > 0_A && current <= mcconf.l_current_max) {
                   mcconf.motor_type = MOTOR_TYPE_FOC;
                   mc_interface::set_configuration(&mcconf);
 
@@ -296,15 +301,15 @@ namespace terminal{
       } else if (strcmp(argv[0], "measure_ind") == 0) {
           if (argc == 2) {
               float duty = -1.0;
-              sscanf(argv[1], "%f", &duty);
+              sscanf(argv[1], duty);
 
               if (duty > 0.0 && duty < 0.9) {
                   mcconf.motor_type = MOTOR_TYPE_FOC;
                   mcconf.foc_f_sw = 3000_Hz;
                   mc_interface::set_configuration(&mcconf);
 
-                  float curr;
-                  float ind = mcpwm_foc::measure_inductance(duty, 200, &curr);
+                  ampere_t curr;
+                  auto ind = mcpwm_foc::measure_inductance(duty, 200, &curr);
                   printf("Inductance: %.2f microhenry (%.2f A)\n", (double)ind, (double)curr);
 
                   mc_interface::set_configuration(&mcconf_old);
@@ -316,18 +321,18 @@ namespace terminal{
           }
       } else if (strcmp(argv[0], "measure_linkage") == 0) {
           if (argc == 5) {
-              float current = -1.0;
+              ampere_t current {-1.0};
               float duty = -1.0;
-              float min_erpm = -1.0;
-              float res = -1.0;
-              sscanf(argv[1], "%f", &current);
-              sscanf(argv[2], "%f", &duty);
-              sscanf(argv[3], "%f", &min_erpm);
-              sscanf(argv[4], "%f", &res);
+              rpm_t min_erpm {-1.0};
+              ohm_t resistance {-1.0};
+              sscanf(argv[1], current);
+              sscanf(argv[2], duty);
+              sscanf(argv[3], min_erpm);
+              sscanf(argv[4], resistance);
 
-              if (current > 0.0 && current <= mcconf.l_current_max && min_erpm > 0.0 && duty > 0.02 && res >= 0.0) {
-                  float linkage;
-                  conf_general::measure_flux_linkage(ampere_t{current}, duty, rpm_t{min_erpm}, res, &linkage);
+              if (current > 0_A && current <= mcconf.l_current_max && min_erpm > 0_rpm && duty > 0.02 && resistance >= 0_Ohm) {
+                  weber_t linkage;
+                  conf_general::measure_flux_linkage(current, duty, min_erpm, resistance, linkage);
                   printf("Flux linkage: %.7f\n", (double)linkage);
               } else {
                   printf("Invalid argument(s).\n");
@@ -339,8 +344,8 @@ namespace terminal{
           mcconf.motor_type = MOTOR_TYPE_FOC;
           mc_interface::set_configuration(&mcconf);
 
-          float res = 0.0;
-          float ind = 0.0;
+          ohm_t res = 0.0_Ohm;
+          microhenry_t ind = 0.0_uH;
           mcpwm_foc::measure_res_ind(res, ind);
           printf("Resistance: %.6f ohm", (double)res);
           printf("Inductance: %.2f microhenry\n", (double)ind);
@@ -349,28 +354,28 @@ namespace terminal{
       } else if (strcmp(argv[0], "measure_linkage_foc") == 0) {
           if (argc == 2) {
               float duty = -1.0;
-              sscanf(argv[1], "%f", &duty);
+              sscanf(argv[1], duty);
 
               if (duty > 0.0) {
                   mcconf.motor_type = MOTOR_TYPE_FOC;
                   mc_interface::set_configuration(&mcconf);
-                  const float res = (3.0 / 2.0) * mcconf.foc_motor_r;
+                  auto const res = (3.0 / 2.0) * mcconf.foc_motor_r;
 
                   // Disable timeout
                   systime_t tout = timeout::get_timeout_msec();
-                  float tout_c = timeout::get_brake_current();
+                  auto tout_c = timeout::get_brake_current();
                   timeout::reset();
-                  timeout::configure(60000, 0.0);
+                  timeout::configure(60000, 0._A);
 
                   for (int i = 0;i < 100;i++) {
                       mc_interface::set_duty(((float)i / 100.0) * duty);
                       chThdSleepMilliseconds(20);
                   }
 
-                  float vq_avg = 0.0;
+                  volt_t vq_avg = 0_V;
                   rpm_t rpm_avg = 0_rpm;
-                  float samples = 0.0;
-                  float iq_avg = 0.0;
+                  size_t samples = 0;
+                  ampere_t iq_avg = 0_A;
                   for (int i = 0;i < 1000;i++) {
                       vq_avg += mcpwm_foc::get_vq();
                       rpm_avg += mc_interface::get_rpm();
@@ -389,7 +394,7 @@ namespace terminal{
                   rpm_avg /= samples;
                   iq_avg /= samples;
 
-                  float linkage = (vq_avg - res * iq_avg) / static_cast<float>(rpm_avg * ((2.0 * M_PI) / 60.0));
+                  weber_t linkage = weber_t{static_cast<float>(vq_avg - res * iq_avg) / static_cast<float>(rpm_avg * ((2.0 * M_PI) / 60.0))};
 
                   printf("Flux linkage: %.7f\n", (double)linkage);
               } else {
@@ -414,13 +419,13 @@ namespace terminal{
           printf(" ");
       } else if (strcmp(argv[0], "foc_openloop") == 0) {
           if (argc == 3) {
-              float current = -1.0;
-              float erpm = -1.0;
-              sscanf(argv[1], "%f", &current);
-              sscanf(argv[2], "%f", &erpm);
+              ampere_t current {-1.0};
+              rpm_t erpm {-1.0};
+              sscanf(argv[1], current);
+              sscanf(argv[2], erpm);
 
-              if (current >= 0.0 && erpm >= 0.0) {
-                  mcpwm_foc::set_openloop(ampere_t{current}, rpm_t{erpm});
+              if (current >= 0_A && erpm >= 0_rpm) {
+                  mcpwm_foc::set_openloop(current, erpm);
               } else {
                   printf("Invalid argument(s).\n");
               }

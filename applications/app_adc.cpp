@@ -45,9 +45,9 @@ namespace app {
     adc_config config;
     volatile float ms_without_power = 0.0;
     volatile float decoded_level = 0.0;
-    volatile float read_voltage = 0.0;
+    volatil_ volt_t read_voltage = 0_V;
     volatile float decoded_level2 = 0.0;
-    volatile float read_voltage2 = 0.0;
+    volatil_ volt_t read_voltage2 = 0_V;
     volatile bool use_rx_tx_as_buttons = false;
     volatile bool stop_now = true;
     volatile bool is_running = false;
@@ -74,7 +74,7 @@ namespace app {
         return decoded_level;
     }
 
-    float get_voltage(void) {
+    volt_t get_voltage(void) {
         return read_voltage;
     }
 
@@ -82,7 +82,7 @@ namespace app {
         return decoded_level2;
     }
 
-    float get_voltage2(void) {
+    volt_t get_voltage2(void) {
         return read_voltage2;
     }
 
@@ -125,11 +125,9 @@ namespace app {
             }
 
             // Read the external ADC pin and convert the value to a voltage.
-            float pwr = (float)ADC_Value[ADC_IND_EXT];
-            pwr /= 4095;
-            pwr *= V_REG;
+            volt_t const read_voltage = ADC_Value[ADC_IND_EXT] / 4095 * V_REG;
 
-            read_voltage = pwr;
+            auto pwr = static_cast<float>(read_voltage);
 
             // Optionally apply a mean value filter
             if (config.use_filter) {
@@ -155,18 +153,18 @@ namespace app {
             case ADC_CTRL_TYPE_DUTY_REV_CENTER:
             case ADC_CTRL_TYPE_PID_REV_CENTER:
                 // Mapping with respect to center voltage
-                if (pwr < config.voltage_center) {
-                    pwr = utils::map(pwr, config.voltage_start,
+                if (volt_t{pwr} < config.voltage_center) {
+                    pwr = utils::map(volt_t{pwr}, config.voltage_start,
                             config.voltage_center, 0.0, 0.5);
                 } else {
-                    pwr = utils::map(pwr, config.voltage_center,
+                    pwr = utils::map(volt_t{pwr}, config.voltage_center,
                             config.voltage_end, 0.5, 1.0);
                 }
                 break;
 
             default:
                 // Linear mapping between the start and end voltage
-                pwr = utils::map(pwr, config.voltage_start, config.voltage_end, 0.0, 1.0);
+                pwr = utils::map(volt_t{pwr}, config.voltage_start, config.voltage_end, 0.0, 1.0);
                 break;
             }
 
@@ -182,14 +180,12 @@ namespace app {
 
             // Read the external ADC pin and convert the value to a voltage.
     #ifdef ADC_IND_EXT2
-            float brake = (float)ADC_Value[ADC_IND_EXT2];
-            brake /= 4095;
-            brake *= V_REG;
+            volt_t read_voltage2 = ADC_Value[ADC_IND_EXT2] / 4095 * V_REG;
     #else
-            float brake = 0.0;
+            volt_t read_voltage2 = 0_V;
     #endif
 
-            read_voltage2 = brake;
+             auto brake = static_cast<float>(read_voltage2);
 
             // Optionally apply a mean value filter
             if (config.use_filter) {
@@ -209,7 +205,7 @@ namespace app {
             }
 
             // Map and truncate the read voltage
-            brake = utils::map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
+            brake = utils::map(volt_t{brake}, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
             utils::truncate_number(brake, 0.0, 1.0);
 
             // Optionally invert the read voltage
@@ -435,7 +431,7 @@ namespace app {
 
                 // Send the same duty cycle to the other controllers
                 if (config.multi_esc) {
-                    float current = mc_interface::get_tot_current_directional_filtered();
+                    auto current = mc_interface::get_tot_current_directional_filtered();
 
                     for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
                         can_status_msg *msg = comm::can::get_status_msg_index(i);
