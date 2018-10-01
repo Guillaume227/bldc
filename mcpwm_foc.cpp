@@ -100,9 +100,11 @@ namespace mcpwm_foc{
   volatil_ motor_state_t m_motor_state;
   volatile int m_curr0_sum;
   volatile int m_curr1_sum;
+  volatile int m_curr2_sum;
   volatile int m_curr_samples;
   volatile int m_curr0_offset;
   volatile int m_curr1_offset;
+  volatile int m_curr2_offset;
   volatile bool m_phase_override;
   volatil_ radian_t m_phase_now_override;
   volatile float m_duty_cycle_set;
@@ -129,11 +131,6 @@ namespace mcpwm_foc{
   volatil_ degree_t m_pos_pid_now;
   volatile bool m_init_done;
   volatil_ decltype(1_Hz/(1_Wb*1_Wb)) m_gamma_now;
-
-#ifdef HW_HAS_3_SHUNTS
-  volatile int m_curr2_sum;
-  volatile int m_curr2_offset;
-#endif
 
   // Private functions
   void do_dc_cal(void);
@@ -249,6 +246,7 @@ namespace mcpwm_foc{
       m_control_mode = CONTROL_MODE_NONE;
       m_curr0_sum = 0;
       m_curr1_sum = 0;
+      m_curr2_sum = 0;
       m_curr_samples = 0;
       m_dccal_done = false;
       m_phase_override = false;
@@ -276,10 +274,6 @@ namespace mcpwm_foc{
       m_gamma_now = decltype(m_gamma_now){0.0};
       memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
       memset((void*)&m_samples, 0, sizeof(mc_sample_t));
-
-  #ifdef HW_HAS_3_SHUNTS
-      m_curr2_sum = 0;
-  #endif
 
       TIM_DeInit(TIM1);
       TIM_DeInit(TIM8);
@@ -1491,32 +1485,25 @@ namespace mcpwm_foc{
     {
       int curr0 = ADC_Value[ADC_IND_CURR1];
       int curr1 = ADC_Value[ADC_IND_CURR2];
-
 #ifdef HW_HAS_3_SHUNTS
       int curr2 = ADC_Value[ADC_IND_CURR3];
+#else
+      int curr2 = -(curr0 + curr1);
 #endif
 
       m_curr0_sum += curr0;
       m_curr1_sum += curr1;
-#ifdef HW_HAS_3_SHUNTS
       m_curr2_sum += curr2;
-#endif
 
       curr0 -= m_curr0_offset;
       curr1 -= m_curr1_offset;
-#ifdef HW_HAS_3_SHUNTS
       curr2 -= m_curr2_offset;
-#endif
 
       m_curr_samples++;
 
       ADC_curr_norm_value[0] = curr0;
       ADC_curr_norm_value[1] = curr1;
-#ifdef HW_HAS_3_SHUNTS
       ADC_curr_norm_value[2] = curr2;
-#else
-      ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
-#endif
 
 #ifdef HW_IS_IHM0xM1
     ADC_curr_norm_value[0] *= -1;
@@ -2078,16 +2065,14 @@ namespace mcpwm_foc{
       chThdSleepMilliseconds(1000);
       m_curr0_sum = 0;
       m_curr1_sum = 0;
-  #ifdef HW_HAS_3_SHUNTS
       m_curr2_sum = 0;
-  #endif
+
       m_curr_samples = 0;
       while(m_curr_samples < 4000) {};
       m_curr0_offset = m_curr0_sum / m_curr_samples;
       m_curr1_offset = m_curr1_sum / m_curr_samples;
-  #ifdef HW_HAS_3_SHUNTS
       m_curr2_offset = m_curr2_sum / m_curr_samples;
-  #endif
+
       DCCAL_OFF();
       m_dccal_done = true;
   }
