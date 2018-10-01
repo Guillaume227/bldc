@@ -1475,51 +1475,57 @@ namespace mcpwm_foc{
       bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
 
       if (!m_samples.measure_inductance_now) {
-  #ifdef HW_HAS_PHASE_SHUNTS
+#ifdef HW_HAS_PHASE_SHUNTS
           if (!m_conf->foc_sample_v0_v7 && is_v7) {
               return;
           }
-  #else
+#else
           if (is_v7) {
               return;
           }
-  #endif
+#endif
       }
 
       // Reset the watchdog
       WWDG_SetCounter(100);
-
+    {
       int curr0 = ADC_Value[ADC_IND_CURR1];
       int curr1 = ADC_Value[ADC_IND_CURR2];
 
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
       int curr2 = ADC_Value[ADC_IND_CURR3];
-  #endif
+#endif
 
       m_curr0_sum += curr0;
       m_curr1_sum += curr1;
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
       m_curr2_sum += curr2;
-  #endif
+#endif
 
       curr0 -= m_curr0_offset;
       curr1 -= m_curr1_offset;
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
       curr2 -= m_curr2_offset;
-  #endif
+#endif
 
       m_curr_samples++;
 
       ADC_curr_norm_value[0] = curr0;
       ADC_curr_norm_value[1] = curr1;
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
       ADC_curr_norm_value[2] = curr2;
-  #else
+#else
       ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
-  #endif
+#endif
 
+#ifdef HW_IS_IHM0xM1
+    ADC_curr_norm_value[0] *= -1;
+    ADC_curr_norm_value[1] *= -1;
+    ADC_curr_norm_value[2] *= -1;
+#endif
+    }
       // Use the best current samples depending on the modulation state.
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
       if (m_conf->foc_sample_high_current) {
           // High current sampling mode. Choose the lower currents to derive the highest one
           // in order to be able to measure higher currents.
@@ -1535,7 +1541,7 @@ namespace mcpwm_foc{
               ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
           }
       } else {
-  #ifdef HW_HAS_PHASE_SHUNTS
+#ifdef HW_HAS_PHASE_SHUNTS
           if (m_conf->foc_sample_v0_v7 && is_v7) {
               if (TIM1->CCR1 < TIM1->CCR2 && TIM1->CCR1 < TIM1->CCR3) {
                   ADC_curr_norm_value[0] = -(ADC_curr_norm_value[1] + ADC_curr_norm_value[2]);
@@ -1553,7 +1559,7 @@ namespace mcpwm_foc{
                   ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
               }
           }
-  #else
+#else
           if (TIM1->CCR1 > TIM1->CCR2 && TIM1->CCR1 > TIM1->CCR3) {
               ADC_curr_norm_value[0] = -(ADC_curr_norm_value[1] + ADC_curr_norm_value[2]);
           } else if (TIM1->CCR2 > TIM1->CCR1 && TIM1->CCR2 > TIM1->CCR3) {
@@ -1561,13 +1567,9 @@ namespace mcpwm_foc{
           } else if (TIM1->CCR3 > TIM1->CCR1 && TIM1->CCR3 > TIM1->CCR2) {
               ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
           }
-  #endif
+#endif
       }
-  #endif
-
-      ampere_t ia = ADC_curr_norm_value[0] * FAC_CURRENT;
-      ampere_t ib = ADC_curr_norm_value[1] * FAC_CURRENT;
-  //	float ic = -(ia + ib);
+#endif
 
       if (m_samples.measure_inductance_now) {
           if (!is_v7) {
@@ -1584,29 +1586,25 @@ namespace mcpwm_foc{
           } else if (inductance_state == 2) {
               TIMER_UPDATE_DUTY(duty_cnt,	0, duty_cnt);
           } else if (inductance_state == 3) {
-              m_samples.avg_current_tot += -((float)curr1 * FAC_CURRENT);
+              m_samples.avg_current_tot += - ADC_curr_norm_value[1] * FAC_CURRENT;
               m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
               m_samples.sample_num++;
               TIMER_UPDATE_DUTY(0, 0, 0);
           } else if (inductance_state == 5) {
               TIMER_UPDATE_DUTY(0, duty_cnt, duty_cnt);
           } else if (inductance_state == 6) {
-              m_samples.avg_current_tot += -((float)curr0 * FAC_CURRENT);
+              m_samples.avg_current_tot += - ADC_curr_norm_value[0] * FAC_CURRENT;
               m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
               m_samples.sample_num++;
               TIMER_UPDATE_DUTY(0, 0, 0);
           } else if (inductance_state == 8) {
-  #ifdef HW_HAS_3_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
               TIMER_UPDATE_DUTY(duty_cnt, duty_cnt, 0);
-  #else
+#else
               TIMER_UPDATE_DUTY(0, 0, duty_cnt);
-  #endif
+#endif
           } else if (inductance_state == 9) {
-  #ifdef HW_HAS_3_SHUNTS
-              m_samples.avg_current_tot += -curr2 * FAC_CURRENT;
-  #else
-              m_samples.avg_current_tot += -(curr0 + curr1) * FAC_CURRENT);
-  #endif
+              m_samples.avg_current_tot += - ADC_curr_norm_value[2] * FAC_CURRENT;
               m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
               m_samples.sample_num++;
               stop_pwm_hw();
@@ -1626,7 +1624,7 @@ namespace mcpwm_foc{
       if (m_conf->foc_sample_v0_v7) {
           dt = 1.0 / m_conf->foc_f_sw;
       } else {
-          dt = 1.0 / (m_conf->foc_f_sw / 2.0);
+          dt = 2.0 / m_conf->foc_f_sw;
       }
   #else
       second_t const dt = 2.0 / m_conf->foc_f_sw;
@@ -1654,6 +1652,10 @@ namespace mcpwm_foc{
       static radian_t phase_before = 0.0_rad;
       auto const phase_diff = angle_difference_rad(m_motor_state.phase, phase_before);
       phase_before = m_motor_state.phase;
+
+      ampere_t ia = ADC_curr_norm_value[0] * FAC_CURRENT;
+      ampere_t ib = ADC_curr_norm_value[1] * FAC_CURRENT;
+  //    float ic = -(ia + ib);
 
       if (m_state == MC_STATE_RUNNING) {
           // Clarke transform assuming balanced currents
