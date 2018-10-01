@@ -1494,12 +1494,6 @@ namespace mcpwm {
     int curr2 = ADC_GetInjectedConversionValue(ADC3, ADC_InjectedChannel_1);
 #endif
 
-    float curr0_currsamp = curr0;
-    float curr1_currsamp = curr1;
-#ifdef HW_HAS_3_SHUNTS
-    float curr2_currsamp = curr2;
-#endif
-
     if (m_use_curr_samp_volt & (1 << 0)) {
       curr0 = ADC_Value[ADC_IND_CURR1];
     }
@@ -1535,15 +1529,12 @@ namespace mcpwm {
 
     m_curr_start_samples++;
 
-    curr0_currsamp -= m_curr0_offset;
-    curr1_currsamp -= m_curr1_offset;
-    curr0 -= m_curr0_offset;
-    curr1 -= m_curr1_offset;
+    curr0   -= m_curr0_offset;
+    curr1   -= m_curr1_offset;
     curr0_2 -= m_curr0_offset;
     curr1_2 -= m_curr1_offset;
 
 #ifdef HW_HAS_3_SHUNTS
-    curr2_currsamp -= m_curr2_offset;
     curr2 -= m_curr2_offset;
 #endif
 
@@ -1610,54 +1601,27 @@ namespace mcpwm {
       float c1 = (float)ADC_curr_norm_value[1];
       float c2 = (float)ADC_curr_norm_value[2];
       curr_tot_sample = sqrtf((c0 * c0 + c1 * c1 + c2 * c2) / 1.5);
-    }
-    else {
+    } else {
 #ifdef HW_HAS_3_SHUNTS
       if (isDirection1()) {
         switch (m_comm_step) {
-        case 1:
-          curr_tot_sample = -(float)ADC_curr_norm_value[2];
-          break;
-        case 2:
-          curr_tot_sample = -(float)ADC_curr_norm_value[2];
-          break;
-        case 3:
-          curr_tot_sample = -(float)ADC_curr_norm_value[1];
-          break;
-        case 4:
-          curr_tot_sample = -(float)ADC_curr_norm_value[1];
-          break;
-        case 5:
-          curr_tot_sample = -(float)ADC_curr_norm_value[0];
-          break;
-        case 6:
-          curr_tot_sample = -(float)ADC_curr_norm_value[0];
-          break;
-        default:
-          break;
+        case 1: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+        case 2: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+        case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+        case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+        case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+        case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+        default: break;
         }
       } else {
         switch (m_comm_step) {
-        case 1:
-          curr_tot_sample = -(float)ADC_curr_norm_value[1];
-          break;
-        case 2:
-          curr_tot_sample = -(float)ADC_curr_norm_value[1];
-          break;
-        case 3:
-          curr_tot_sample = -(float)ADC_curr_norm_value[2];
-          break;
-        case 4:
-          curr_tot_sample = -(float)ADC_curr_norm_value[2];
-          break;
-        case 5:
-          curr_tot_sample = -(float)ADC_curr_norm_value[0];
-          break;
-        case 6:
-          curr_tot_sample = -(float)ADC_curr_norm_value[0];
-          break;
-        default:
-          break;
+        case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+        case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+        case 3: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+        case 4: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+        case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+        case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+        default: break;
         }
       }
 #else
