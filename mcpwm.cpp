@@ -142,9 +142,9 @@ namespace mcpwm {
   void update_rpm_tacho(void);
   void update_sensor_mode(void);
   int read_hall(void);
-  void update_adc_sample_pos(MCTimer *timer_tmp);
+  void update_adc_sample_pos(MCTimer& timer_tmp);
   void commutate(int steps);
-  void set_next_timer_settings(MCTimer const*settings);
+  void set_next_timer_settings(MCTimer const& settings);
   void update_timer_attempt(void);
   void set_switching_frequency(hertz_t frequency);
   void do_dc_cal(void);
@@ -429,14 +429,14 @@ namespace mcpwm {
     MCTimer timer_tmp;
     timer_tmp.top = TIM1->ARR;
     timer_tmp.duty = TIM1->ARR / 2;
-    update_adc_sample_pos(&timer_tmp);
-    set_next_timer_settings(&timer_tmp);
+    update_adc_sample_pos  (timer_tmp);
+    set_next_timer_settings(timer_tmp);
 
     sys_unlock_cnt();
 
     // Calibrate current offset
-    ENABLE_GATE()
-    ; DCCAL_OFF();
+    ENABLE_GATE();
+    DCCAL_OFF();
     do_dc_cal();
 
     // Various time measurements
@@ -998,12 +998,12 @@ namespace mcpwm {
     if (dutyCycle < m_conf->l_min_duty) {
       rpm_t max_erpm_fbrake;
 #if BLDC_SPEED_CONTROL_CURRENT
-      if (m_control_mode == CONTROL_MODE_CURRENT
-          || m_control_mode == CONTROL_MODE_CURRENT_BRAKE
-          || m_control_mode == CONTROL_MODE_SPEED) {
+      if (m_control_mode == CONTROL_MODE_CURRENT ||
+          m_control_mode == CONTROL_MODE_CURRENT_BRAKE ||
+          m_control_mode == CONTROL_MODE_SPEED) {
 #else
-        if (m_control_mode == CONTROL_MODE_CURRENT ||
-            m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+      if (m_control_mode == CONTROL_MODE_CURRENT ||
+          m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 #endif
         max_erpm_fbrake = m_conf->l_max_erpm_fbrake_cc;
       }
@@ -1096,16 +1096,15 @@ namespace mcpwm {
     timer_tmp.top = hw::SYSTEM_CORE_CLOCK / m_switching_frequency_now;
 
     if (m_conf->pwm_mode == PWM_MODE_BIPOLAR && !is_detecting()) {
-      timer_tmp.duty = (uint16_t)(
-          ((float)timer_tmp.top / 2.0) * dutyCycle
-              + ((float)timer_tmp.top / 2.0));
+      timer_tmp.duty = (uint16_t)(((float)timer_tmp.top / 2.0) * dutyCycle +
+                                  ((float)timer_tmp.top / 2.0));
     }
     else {
       timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
     }
 
-    update_adc_sample_pos(&timer_tmp);
-    set_next_timer_settings(&timer_tmp);
+    update_adc_sample_pos  (timer_tmp);
+    set_next_timer_settings(timer_tmp);
   }
 
   void run_pid_control_speed(void) {
@@ -1601,6 +1600,7 @@ namespace mcpwm {
       float c1 = (float)ADC_curr_norm_value[1];
       float c2 = (float)ADC_curr_norm_value[2];
       curr_tot_sample = sqrtf((c0 * c0 + c1 * c1 + c2 * c2) / 1.5);
+
     } else {
 #ifdef HW_HAS_3_SHUNTS
       if (isDirection1()) {
@@ -2274,15 +2274,16 @@ namespace mcpwm {
    * 6		-		0		+
    */
 
-  void update_adc_sample_pos(MCTimer *timer_tmp) {
-    volatile uint32_t duty = timer_tmp->duty;
-    volatile uint32_t top = timer_tmp->top;
-    volatile uint32_t val_sample = timer_tmp->val_sample;
-    volatile uint32_t curr1_sample = timer_tmp->curr1_sample;
-    volatile uint32_t curr2_sample = timer_tmp->curr2_sample;
+  void update_adc_sample_pos(MCTimer& timer_tmp)
+  {
+    volatile uint32_t duty          = timer_tmp.duty;
+    volatile uint32_t top           = timer_tmp.top;
+    volatile uint32_t val_sample    = timer_tmp.val_sample;
+    volatile uint32_t curr1_sample  = timer_tmp.curr1_sample;
+    volatile uint32_t curr2_sample  = timer_tmp.curr2_sample;
 
 #ifdef HW_HAS_3_SHUNTS
-    volatile uint32_t curr3_sample = timer_tmp->curr3_sample;
+    volatile uint32_t curr3_sample = timer_tmp.curr3_sample;
 #endif
 
     if (duty > (uint32_t)((float)top * m_conf->l_max_duty)) {
@@ -2477,11 +2478,11 @@ namespace mcpwm {
       }
     }
 
-    timer_tmp->val_sample = val_sample;
-    timer_tmp->curr1_sample = curr1_sample;
-    timer_tmp->curr2_sample = curr2_sample;
+    timer_tmp.val_sample   = val_sample;
+    timer_tmp.curr1_sample = curr1_sample;
+    timer_tmp.curr2_sample = curr2_sample;
 #ifdef HW_HAS_3_SHUNTS
-    timer_tmp->curr3_sample = curr3_sample;
+    timer_tmp.curr3_sample = curr3_sample;
 #endif
   }
 
@@ -2557,15 +2558,15 @@ namespace mcpwm {
     timer_tmp = m_timer_struct;
     sys_unlock_cnt();
 
-    update_adc_sample_pos(&timer_tmp);
-    set_next_timer_settings(&timer_tmp);
+    update_adc_sample_pos  (timer_tmp);
+    set_next_timer_settings(timer_tmp);
     update_sensor_mode();
     m_conf->comm_mode = m_comm_mode_next;
   }
 
-  void set_next_timer_settings(MCTimer const*settings) {
+  void set_next_timer_settings(MCTimer const& settings) {
     sys_lock_cnt();
-    m_timer_struct = *settings;
+    m_timer_struct = settings;
     m_timer_struct.updated = false;
     sys_unlock_cnt();
 
@@ -2616,8 +2617,8 @@ namespace mcpwm {
     sys_unlock_cnt();
 
     timer_tmp.top = hw::SYSTEM_CORE_CLOCK / m_switching_frequency_now;
-    update_adc_sample_pos(&timer_tmp);
-    set_next_timer_settings(&timer_tmp);
+    update_adc_sample_pos  (timer_tmp);
+    set_next_timer_settings(timer_tmp);
   }
 
   /**

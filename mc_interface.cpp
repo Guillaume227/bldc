@@ -1421,10 +1421,10 @@ namespace mc_interface{
       //float x, float in_min, float in_max, float out_min, float out_max
       //return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
       //conf->l_temp_accel_dec * (25.0 - conf->l_temp_fet_start) + conf->l_temp_fet_start
-      celsius_t const temp_fet_accel_start   = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_fet_start, 25_degC);
-      celsius_t const temp_fet_accel_end     = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_fet_end, 25_degC);
+      celsius_t const temp_fet_accel_start   = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_fet_start,   25_degC);
+      celsius_t const temp_fet_accel_end     = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_fet_end,     25_degC);
       celsius_t const temp_motor_accel_start = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_motor_start, 25_degC);
-      celsius_t const temp_motor_accel_end   = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_motor_end, 25_degC);
+      celsius_t const temp_motor_accel_end   = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_motor_end,   25_degC);
 
       ampere_t lo_fet_temp_accel = 0_A;
       if (m_temp_fet < temp_fet_accel_start) {
@@ -1432,8 +1432,11 @@ namespace mc_interface{
       } else if (m_temp_fet > temp_fet_accel_end) {
           lo_fet_temp_accel = 0_A;
       } else {
-          lo_fet_temp_accel = utils::map(m_temp_fet, temp_fet_accel_start,
-                  temp_fet_accel_end, conf->l_current_max, 0.0_A);
+          lo_fet_temp_accel = utils::map(m_temp_fet,
+                                         temp_fet_accel_start,
+                                         temp_fet_accel_end,
+                                         conf->l_current_max,
+                                         0.0_A);
       }
 
       ampere_t lo_motor_temp_accel = 0_A;
