@@ -70,7 +70,7 @@ namespace mc_interface{
   ampere_t get_tot_current_in_filtered(void);
   int get_tachometer_value(bool reset);
   int get_tachometer_abs_value(bool reset);
-  second_t get_last_inj_adc_isr_duration(void);
+  second_t get_last_adc_isr_duration(void);
   ampere_t read_reset_avg_motor_current(void);
   ampere_t read_reset_avg_input_current(void);
   ampere_t read_reset_avg_id(void);

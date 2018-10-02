@@ -94,8 +94,8 @@ namespace terminal{
           mc_interface::set_duty(0);
           printf("Motor stopped\n");
       } else if (strcmp(argv[0], "last_adc_duration") == 0) {
-          printf("Latest ADC duration: %.4f ms", (double)static_cast<float>(mcpwm::get_last_adc_isr_duration() * 1000.0));
-          printf("Latest injected ADC duration: %.4f ms", (double)static_cast<float>(mc_interface::get_last_inj_adc_isr_duration() * 1000.0));
+          printf("Latest ADC duration: %.4f ms", (double)static_cast<float>(mc_interface::get_last_adc_isr_duration() * 1000.0));
+          printf("Latest injected ADC duration: %.4f ms", (double)static_cast<float>(mcpwm::get_last_inj_adc_isr_duration() * 1000.0));
           printf("Latest sample ADC duration: %.4f ms\n", (double)static_cast<float>(mc_interface::get_last_sample_adc_isr_duration() * 1000.0));
       } else if (strcmp(argv[0], "kv") == 0) {
           printf("Calculated KV: %.2f rpm/volt\n", (double)mcpwm::get_kv_filtered());

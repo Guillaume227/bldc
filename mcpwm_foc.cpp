@@ -127,7 +127,7 @@ namespace mcpwm_foc{
   mc_sample_t m_samples;
   volatile int m_tachometer;
   volatile int m_tachometer_abs;
-  volatil_ second_t last_inj_adc_isr_duration;
+  volatil_ second_t m_last_adc_isr_duration;
   volatil_ degree_t m_pos_pid_now;
   volatile bool m_init_done;
   volatil_ decltype(1_Hz/(1_Wb*1_Wb)) m_gamma_now;
@@ -269,7 +269,7 @@ namespace mcpwm_foc{
       m_pll_speed = 0.0_rad_per_s;
       m_tachometer = 0;
       m_tachometer_abs = 0;
-      last_inj_adc_isr_duration = 0_s;
+      m_last_adc_isr_duration = 0_s;
       m_pos_pid_now = 0_deg;
       m_gamma_now = decltype(m_gamma_now){0.0};
       memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
@@ -1297,9 +1297,9 @@ namespace mcpwm_foc{
       uint32_t top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
-      ohm_t res_tmp = 0.0_Ohm;
-      ampere_t i_last = 0.0_A;
-      for (ampere_t i = 2_A; i < (m_conf->l_current_max / 2.0); i *= 1.5) {
+      ohm_t res_tmp = 0_Ohm;
+      ampere_t i_last = 0_A;
+      for (ampere_t i = 2_A; i < (m_conf->l_current_max / 2); i *= 1.5) {
           res_tmp = measure_resistance(i, 20);
 
           if (i > (1_V / res_tmp)) {
@@ -1449,8 +1449,8 @@ namespace mcpwm_foc{
       commands::printf("Obs_x2:       %.2f", (double)m_observer_x2);
   }
 
-  second_t get_last_inj_adc_isr_duration(void) {
-      return last_inj_adc_isr_duration;
+  second_t get_last_adc_isr_duration(void) {
+      return m_last_adc_isr_duration;
   }
 
   void tim_sample_int_handler(void) {
@@ -1943,10 +1943,9 @@ namespace mcpwm_foc{
       // MCIF handler
       mc_interface::mc_timer_isr();
 
-      last_inj_adc_isr_duration = TIM12->CNT / TIM12_FREQ;
+      m_last_adc_isr_duration = TIM12->CNT / TIM12_FREQ;
   }
 
-  // Private functions
 
   THD_FUNCTION(timer_thread, arg) {
       (void)arg;
@@ -1960,8 +1959,10 @@ namespace mcpwm_foc{
           }
 
           auto openloop_rpm = map(fabsf(m_motor_state.iq_target),
-                  0_A, m_conf->l_current_max,
-                  0_rpm, m_conf->foc_openloop_rpm);
+                                        0_A,
+                                        m_conf->l_current_max,
+                                        0_rpm,
+                                        m_conf->foc_openloop_rpm);
 
           truncate_number_abs(openloop_rpm, m_conf->foc_openloop_rpm);
 
@@ -2040,8 +2041,8 @@ namespace mcpwm_foc{
 
           // Update and the observer gain.
           m_gamma_now = map(fabsf(m_motor_state.duty_now), 0.0, 1.0,
-                  m_conf->foc_observer_gain * m_conf->foc_observer_gain_slow,
-                  m_conf->foc_observer_gain);
+                            m_conf->foc_observer_gain * m_conf->foc_observer_gain_slow,
+                            m_conf->foc_observer_gain);
 
           run_pid_control_speed(dt);
           chThdSleepMilliseconds(1);
@@ -2510,9 +2511,9 @@ namespace mcpwm_foc{
       }
 
       // Compute parameters
-      p_term  = error * m_conf->s_pid_kp * (1.0 / 20.0);
-      i_term += error * (m_conf->s_pid_ki * dt) * (1.0 / 20.0);
-      d_term  =(error - prev_error) * (m_conf->s_pid_kd / dt) * (1.0 / 20.0);
+      p_term  = error               * m_conf->s_pid_kp      / 20.0;
+      i_term += error               * m_conf->s_pid_ki * dt / 20.0;
+      d_term  =(error - prev_error) * m_conf->s_pid_kd / dt / 20.0;
 
       // Filter D
       static rpm_t d_filter = 0_rpm;

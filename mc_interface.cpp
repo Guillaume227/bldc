@@ -855,17 +855,17 @@ namespace mc_interface{
       return ret;
   }
 
-  second_t get_last_inj_adc_isr_duration(void) {
+  second_t get_last_adc_isr_duration(void) {
       second_t ret = 0_s;
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
       case MOTOR_TYPE_DC:
-          ret = mcpwm::get_last_inj_adc_isr_duration();
+          ret = mcpwm::get_last_adc_isr_duration();
           break;
 
       case MOTOR_TYPE_FOC:
-          ret = second_t(mcpwm_foc::get_last_inj_adc_isr_duration());
+          ret = mcpwm_foc::get_last_adc_isr_duration();
           break;
 
       default:

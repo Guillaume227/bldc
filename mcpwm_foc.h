@@ -70,7 +70,7 @@ namespace mcpwm_foc{
   bool measure_res_ind(ohm_t &res, microhenry_t &ind);
   bool hall_detect(ampere_t current, uint8_t *hall_table);
   void print_state(void);
-  second_t get_last_inj_adc_isr_duration(void);
+  second_t get_last_adc_isr_duration(void);
 
   // Interrupt handlers
   void tim_sample_int_handler(void);
