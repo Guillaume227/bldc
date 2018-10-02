@@ -2281,14 +2281,11 @@ namespace mcpwm {
     uint32_t val_sample    = timer_tmp.val_sample;
     uint32_t curr1_sample  = timer_tmp.curr1_sample;
     uint32_t curr2_sample  = timer_tmp.curr2_sample;
-
 #ifdef HW_HAS_3_SHUNTS
     uint32_t curr3_sample = timer_tmp.curr3_sample;
 #endif
 
-    if (duty > (uint32_t)((float)top * m_conf->l_max_duty)) {
-      duty = (uint32_t)((float)top * m_conf->l_max_duty);
-    }
+    duty = std::min<uint32_t>(duty, top * m_conf->l_max_duty);
 
     m_use_curr_samp_volt = 0;
 
@@ -2298,16 +2295,16 @@ namespace mcpwm {
       val_sample = duty / 2;
 
       // Current samples
-      curr1_sample = (top - duty) / 2 + duty;
-      curr2_sample = (top - duty) / 2 + duty;
+      curr1_sample = (top + duty) / 2;
+      curr2_sample = (top + duty) / 2;
 #ifdef HW_HAS_3_SHUNTS
-      curr3_sample = (top - duty) / 2 + duty;
+      curr3_sample = (top + duty) / 2;
 #endif
     }
     else {
       if (m_conf->pwm_mode == PWM_MODE_BIPOLAR) {
         uint32_t samp_neg = top - 2;
-        uint32_t samp_pos = duty + (top - duty) / 2;
+        uint32_t samp_pos = (top + duty) / 2;
         uint32_t samp_zero = top - 2;
 
         // Voltage and other sampling
@@ -2393,10 +2390,7 @@ namespace mcpwm {
         val_sample = duty / 2;
 
         // Current samples
-        curr1_sample = duty + (top - duty) / 2;
-        if (curr1_sample > (top - 70)) {
-          curr1_sample = top - 70;
-        }
+        curr1_sample = std::min((top + duty) / 2, top - 70);
 
         curr2_sample = curr1_sample;
 #ifdef HW_HAS_3_SHUNTS
@@ -2507,8 +2501,8 @@ namespace mcpwm {
 
     // Tachometers
     m_tachometer_for_direction += tacho_diff;
-    m_tachometer_abs += tacho_diff;
-    m_tachometer += m_direction * tacho_diff;
+    m_tachometer_abs           += tacho_diff;
+    m_tachometer               += tacho_diff * m_direction;
   }
 
   void update_sensor_mode(void) {
