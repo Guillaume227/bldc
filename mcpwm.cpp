@@ -2276,14 +2276,14 @@ namespace mcpwm {
 
   void update_adc_sample_pos(MCTimer& timer_tmp)
   {
-    volatile uint32_t duty          = timer_tmp.duty;
-    volatile uint32_t top           = timer_tmp.top;
-    volatile uint32_t val_sample    = timer_tmp.val_sample;
-    volatile uint32_t curr1_sample  = timer_tmp.curr1_sample;
-    volatile uint32_t curr2_sample  = timer_tmp.curr2_sample;
+    uint32_t duty          = timer_tmp.duty;
+    uint32_t top           = timer_tmp.top;
+    uint32_t val_sample    = timer_tmp.val_sample;
+    uint32_t curr1_sample  = timer_tmp.curr1_sample;
+    uint32_t curr2_sample  = timer_tmp.curr2_sample;
 
 #ifdef HW_HAS_3_SHUNTS
-    volatile uint32_t curr3_sample = timer_tmp.curr3_sample;
+    uint32_t curr3_sample = timer_tmp.curr3_sample;
 #endif
 
     if (duty > (uint32_t)((float)top * m_conf->l_max_duty)) {
@@ -2589,8 +2589,8 @@ namespace mcpwm {
 
       // Set the new configuration
       TIM1->ARR = m_timer_struct.top;
-      TIM1->CCR1 = m_timer_struct.duty;
-      TIM1->CCR2 = m_timer_struct.duty;
+      TIM1->CCR1 = 
+      TIM1->CCR2 = 
       TIM1->CCR3 = m_timer_struct.duty;
       TIM8->CCR1 = m_timer_struct.val_sample;
       TIM1->CCR4 = m_timer_struct.curr1_sample;
@@ -2653,12 +2653,9 @@ namespace mcpwm {
     if (next_step == 1) {
       if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR1()
-        ;
-        ENABLE_BR2()
-        ;
-        ENABLE_BR3()
-        ;
+        DISABLE_BR1();
+        ENABLE_BR2();
+        ENABLE_BR3();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
@@ -2677,12 +2674,9 @@ namespace mcpwm {
       }
       else {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR1()
-        ;
-        ENABLE_BR3()
-        ;
-        ENABLE_BR2()
-        ;
+        DISABLE_BR1();
+        ENABLE_BR3();
+        ENABLE_BR2();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
@@ -2703,12 +2697,9 @@ namespace mcpwm {
     else if (next_step == 2) {
       if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR2()
-        ;
-        ENABLE_BR1()
-        ;
-        ENABLE_BR3()
-        ;
+        DISABLE_BR2();
+        ENABLE_BR1();
+        ENABLE_BR3();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
@@ -2727,12 +2718,9 @@ namespace mcpwm {
       }
       else {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR3()
-        ;
-        ENABLE_BR1()
-        ;
-        ENABLE_BR2()
-        ;
+        DISABLE_BR3();
+        ENABLE_BR1();
+        ENABLE_BR2();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
@@ -2753,12 +2741,9 @@ namespace mcpwm {
     else if (next_step == 3) {
       if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR3()
-        ;
-        ENABLE_BR1()
-        ;
-        ENABLE_BR2()
-        ;
+        DISABLE_BR3();
+        ENABLE_BR1();
+        ENABLE_BR2();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
@@ -2777,12 +2762,9 @@ namespace mcpwm {
       }
       else {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR2()
-        ;
-        ENABLE_BR1()
-        ;
-        ENABLE_BR3()
-        ;
+        DISABLE_BR2();
+        ENABLE_BR1();
+        ENABLE_BR3();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
@@ -2803,12 +2785,9 @@ namespace mcpwm {
     else if (next_step == 4) {
       if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR1()
-        ;
-        ENABLE_BR3()
-        ;
-        ENABLE_BR2()
-        ;
+        DISABLE_BR1();
+        ENABLE_BR3();
+        ENABLE_BR2();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
@@ -2827,12 +2806,9 @@ namespace mcpwm {
       }
       else {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR1()
-        ;
-        ENABLE_BR2()
-        ;
-        ENABLE_BR3()
-        ;
+        DISABLE_BR1();
+        ENABLE_BR2();
+        ENABLE_BR3();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
@@ -2853,12 +2829,9 @@ namespace mcpwm {
     else if (next_step == 5) {
       if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR2()
-        ;
-        ENABLE_BR3()
-        ;
-        ENABLE_BR1()
-        ;
+        DISABLE_BR2();
+        ENABLE_BR3();
+        ENABLE_BR1();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
@@ -2877,12 +2850,9 @@ namespace mcpwm {
       }
       else {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR3()
-        ;
-        ENABLE_BR2()
-        ;
-        ENABLE_BR1()
-        ;
+        DISABLE_BR3();
+        ENABLE_BR2();
+        ENABLE_BR1();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
@@ -2903,12 +2873,9 @@ namespace mcpwm {
     else if (next_step == 6) {
       if (isDirection1()) {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR3()
-        ;
-        ENABLE_BR2()
-        ;
-        ENABLE_BR1()
-        ;
+        DISABLE_BR3();
+        ENABLE_BR2();
+        ENABLE_BR1();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
@@ -2927,12 +2894,9 @@ namespace mcpwm {
       }
       else {
 #ifdef HW_HAS_DRV8313
-        DISABLE_BR2()
-        ;
-        ENABLE_BR3()
-        ;
-        ENABLE_BR1()
-        ;
+        DISABLE_BR2();
+        ENABLE_BR3();
+        ENABLE_BR1();
 #endif
         // 0
         TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
@@ -2952,12 +2916,9 @@ namespace mcpwm {
     }
     else {
 #ifdef HW_HAS_DRV8313
-      DISABLE_BR1()
-      ;
-      DISABLE_BR2()
-      ;
-      DISABLE_BR3()
-      ;
+      DISABLE_BR1();
+      DISABLE_BR2();
+      DISABLE_BR3();
 #endif
       // Invalid phase.. stop PWM!
       TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
