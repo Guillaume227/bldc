@@ -341,7 +341,7 @@ namespace mcpwm_foc{
 
       dmaStreamAllocate(STM32_DMA_STREAM(STM32_DMA_STREAM_ID(2, 4)),
               3,
-              (stm32_dmaisr_t)adc_int_handler,
+              (stm32_dmaisr_t)adc_interrupt_handler,
               (void *)0);
 
       // DMA for the ADC
@@ -1456,7 +1456,7 @@ namespace mcpwm_foc{
       return m_last_adc_isr_duration;
   }
 
-  void tim_sample_int_handler(void) {
+  void tim_sample_interrupt_handler(void) {
       if (m_init_done) {
           // Generate COM event here for synchronization
           TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
@@ -1542,7 +1542,7 @@ namespace mcpwm_foc{
 
   }
 
-  void adc_int_handler(void *p, uint32_t flags) {
+  void adc_interrupt_handler(void *p, uint32_t flags) {
       (void)p;
       (void)flags;
 
@@ -1708,7 +1708,7 @@ namespace mcpwm_foc{
       }
 
       // MCIF handler
-      mc_interface::mc_timer_isr();
+      mc_interface::collect_mc_state_samples();
 
       m_last_adc_isr_duration = TIM12->CNT / TIM12_FREQ;
   }

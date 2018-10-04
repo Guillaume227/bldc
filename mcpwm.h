@@ -68,8 +68,8 @@ namespace mcpwm {
   void switch_comm_mode(mc_comm_mode next);
 
   // Interrupt handlers
-  void adc_inj_int_handler(void);
-  void adc_int_handler(void *p, uint32_t flags);
+  void adc_interrupt_handler_injected(void);
+  void adc_interrupt_handler(void *p, uint32_t flags);
 
   // External variables
   extern volatile float detect_currents[];

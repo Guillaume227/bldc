@@ -274,7 +274,7 @@ namespace mcpwm {
         ENABLE);
 
     dmaStreamAllocate(STM32_DMA_STREAM(STM32_DMA_STREAM_ID(2, 4)), 3,
-                      (stm32_dmaisr_t)adc_int_handler, (void *)0);
+                      (stm32_dmaisr_t)adc_interrupt_handler, (void *)0);
 
     // DMA for the ADC
     DMA_InitStructure.DMA_Channel = DMA_Channel_0;
@@ -1480,7 +1480,7 @@ namespace mcpwm {
     }
   }
 
-  void adc_inj_int_handler(void) {
+  void adc_interrupt_handler_injected(void) {
     TIM12->CNT = 0;
     {
     int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
@@ -1678,7 +1678,7 @@ namespace mcpwm {
   /*
    * New ADC samples ready. Do commutation!
    */
-  void adc_int_handler(void *p, uint32_t flags) {
+  void adc_interrupt_handler(void *p, uint32_t flags) {
     (void)p;
     (void)flags;
 
@@ -2059,7 +2059,7 @@ namespace mcpwm {
       set_duty_cycle_ll(m_dutycycle_now);
     }
 
-    mc_interface::mc_timer_isr();
+    mc_interface::collect_mc_state_samples();
 
     if (encoder::is_configured()) {
       run_pid_control_pos(1.0 / m_switching_frequency_now);

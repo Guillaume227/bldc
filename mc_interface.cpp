@@ -1090,7 +1090,7 @@ namespace mc_interface{
       m_fault_now = fault;
   }
 
-  void mc_timer_isr(void) {
+  void collect_mc_state_samples(void) {
       ledpwm_update_pwm(); // LED PWM Driver update
 
       const volt_t input_voltage = GET_INPUT_VOLTAGE();
@@ -1327,11 +1327,11 @@ namespace mc_interface{
       }
   }
 
-  void adc_inj_int_handler(void) {
+  void adc_interrupt_handler_injected(void) {
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
       case MOTOR_TYPE_DC:
-          mcpwm::adc_inj_int_handler();
+          mcpwm::adc_interrupt_handler_injected();
           break;
 
       case MOTOR_TYPE_FOC:

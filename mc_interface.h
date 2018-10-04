@@ -44,6 +44,7 @@ namespace mc_interface{
   mc_state get_state(void);
   void set_duty(dutycycle_t dutyCycle);
   void set_duty_noramp(dutycycle_t dutyCycle);
+  void set_duty_from_potentiometer(void);
   void set_pid_speed(rpm_t rpm);
   void set_pid_pos(degree_t pos);
   void set_current(ampere_t current);
@@ -85,12 +86,12 @@ namespace mc_interface{
   // MC implementation functions
   void fault_stop(mc_fault_code fault);
   bool try_input(void);
-  void mc_timer_isr(void);
 
-  void set_duty_from_potentiometer(void);
+  // called from adc interrupt
+  void collect_mc_state_samples(void);
 
   // Interrupt handlers
-  void adc_inj_int_handler(void);
+  void adc_interrupt_handler_injected(void);
 }
 // External variables
 extern volatile uint16_t ADC_Value[];
@@ -98,5 +99,5 @@ extern volatile int ADC_curr_norm_value[];
 
 // Common fixed parameters
 #ifndef HW_DEAD_TIME_VALUE
-#define HW_DEAD_TIME_VALUE	60 // Dead time
+#define HW_DEAD_TIME_VALUE	60 // Dead time in clock ticks
 #endif

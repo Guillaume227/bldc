@@ -29,7 +29,7 @@ extern "C" {
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
 	ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
-	mc_interface::adc_inj_int_handler();
+	mc_interface::adc_interrupt_handler_injected();
 	CH_IRQ_EPILOGUE();
 }
 
@@ -53,7 +53,7 @@ CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC) {
 
 CH_IRQ_HANDLER(TIM8_CC_IRQHandler) {
 	if (TIM_GetITStatus(TIM8, TIM_IT_CC1) != RESET) {
-		mcpwm_foc::tim_sample_int_handler();
+		mcpwm_foc::tim_sample_interrupt_handler();
 
 		// Clear the IT pending bit
 		TIM_ClearITPendingBit(TIM8, TIM_IT_CC1);

@@ -73,8 +73,8 @@ namespace mcpwm_foc{
   second_t get_last_adc_isr_duration(void);
 
   // Interrupt handlers
-  void tim_sample_int_handler(void);
-  void adc_int_handler(void *p, uint32_t flags);
+  void tim_sample_interrupt_handler(void);
+  void adc_interrupt_handler(void *p, uint32_t flags);
 }
 
 // Defines
