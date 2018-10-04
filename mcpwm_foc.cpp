@@ -145,6 +145,9 @@ namespace mcpwm_foc{
           uint32_t& tAout, uint32_t& tBout, uint32_t& tCout, uint32_t& svm_sector);
   void run_pid_control_pos(degree_t angle_now, degree_t angle_set, second_t dt);
   void run_pid_control_speed(second_t dt);
+  void run_foc_control(second_t dt);
+  void measure_currents(bool is_v7);
+  void track_bemf(second_t dt);
   void stop_pwm_hw(void);
   void start_pwm_hw(void);
   int read_hall(void);
@@ -1460,29 +1463,8 @@ namespace mcpwm_foc{
       }
   }
 
-  void adc_int_handler(void *p, uint32_t flags) {
-      (void)p;
-      (void)flags;
-
-      TIM12->CNT = 0;
-
-      bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
-
-      if (!m_samples.measure_inductance_now) {
-#ifdef HW_HAS_PHASE_SHUNTS
-          if (!m_conf->foc_sample_v0_v7 && is_v7) {
-              return;
-          }
-#else
-          if (is_v7) {
-              return;
-          }
-#endif
-      }
-
-      // Reset the watchdog
-      WWDG_SetCounter(100);
-    {
+  void measure_currents(bool is_v7){
+  {
       int curr0 = ADC_Value[ADC_IND_CURR1];
       int curr1 = ADC_Value[ADC_IND_CURR2];
 #ifdef HW_HAS_3_SHUNTS
@@ -1557,6 +1539,33 @@ namespace mcpwm_foc{
 #endif
       }
 #endif
+
+  }
+
+  void adc_int_handler(void *p, uint32_t flags) {
+      (void)p;
+      (void)flags;
+
+      TIM12->CNT = 0;
+
+      bool const is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
+
+      if (!m_samples.measure_inductance_now) {
+#ifdef HW_HAS_PHASE_SHUNTS
+          if (!m_conf->foc_sample_v0_v7 && is_v7) {
+              return;
+          }
+#else
+          if (is_v7) {
+              return;
+          }
+#endif
+      }
+
+      // Reset the watchdog
+      WWDG_SetCounter(100);
+
+      measure_currents(is_v7);
 
       if (m_samples.measure_inductance_now) {
           if (!is_v7) {
@@ -1636,254 +1645,12 @@ namespace mcpwm_foc{
 #endif
       }
 
-      static radian_t phase_before = 0.0_rad;
-      auto const phase_diff = angle_difference_rad(m_motor_state.phase, phase_before);
-      phase_before = m_motor_state.phase;
-
-      ampere_t ia = ADC_curr_norm_value[0] * FAC_CURRENT;
-      ampere_t ib = ADC_curr_norm_value[1] * FAC_CURRENT;
-  //    float ic = -(ia + ib);
-
       if (m_state == MC_STATE_RUNNING) {
-          // Clarke transform assuming balanced currents
-          m_motor_state.i_alpha = ia;
-          m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
+          run_foc_control(dt);
 
-          // Full Clarke transform in case there are current offsets
-  //		m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
-  //		m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
-
-          const float duty_abs = fabsf(m_motor_state.duty_now);
-          auto id_set_tmp = m_id_set;
-          auto iq_set_tmp = m_iq_set;
-          m_motor_state.max_duty = m_conf->l_max_duty;
-
-          static float duty_filtered = 0.0;
-          UTILS_LP_FAST(duty_filtered, m_motor_state.duty_now, 0.1);
-          truncate_number_abs(duty_filtered, 1.0);
-
-          float duty_set = m_duty_cycle_set;
-          bool control_duty = m_control_mode == CONTROL_MODE_DUTY;
-
-          // When the filtered duty cycle in sensorless mode becomes low in brake mode, the
-          // observer has lost tracking. Use duty cycle control with the lowest duty cycle
-          // to get as smooth braking as possible.
-          if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
-                  //				&& (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoders
-                  && fabsf(duty_filtered) < 0.03) {
-              control_duty = true;
-              duty_set = 0.0;
-          }
-
-          // Brake when set ERPM is below min ERPM
-          if (m_control_mode == CONTROL_MODE_SPEED &&
-                  fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
-              control_duty = true;
-              duty_set = 0.0;
-          }
-
-          if (control_duty) {
-              // Duty cycle control
-              static scalar_t duty_i_term = 0.0;
-              if (fabsf(duty_set) < (duty_abs - 0.05) ||
-                      (SIGN(m_motor_state.vq) * m_motor_state.iq) < m_conf->lo_current_min) {
-                  // Truncating the duty cycle here would be dangerous, so run a PID controller.
-
-                  // Compensation for supply voltage variations
-                  float scale = 1_V / GET_INPUT_VOLTAGE();
-
-                  // Compute error
-                  float error = duty_set - m_motor_state.duty_now;
-
-                  // Compute parameters
-                  float p_term = error * m_conf->foc_duty_dowmramp_kp * scale;
-                  duty_i_term += error * (m_conf->foc_duty_dowmramp_ki * dt) * scale;
-
-                  // I-term wind-up protection
-                  truncate_number_abs(duty_i_term, 1.0);
-
-                  // Calculate output
-                  float output = p_term + duty_i_term;
-                  truncate_number_abs(output, 1.0);
-                  iq_set_tmp = output * m_conf->lo_current_max;
-              } else {
-                  // If the duty cycle is less than or equal to the set duty cycle just limit
-                  // the modulation and use the maximum allowed current.
-                  duty_i_term = 0.0;
-                  m_motor_state.max_duty = duty_set;
-                  if (duty_set > 0.0) {
-                      iq_set_tmp = m_conf->lo_current_max;
-                  } else {
-                      iq_set_tmp = -m_conf->lo_current_max;
-                  }
-              }
-          } else if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
-              // Braking
-              iq_set_tmp = fabsf(iq_set_tmp);
-
-              if (phase_diff > 0.0_rad) {
-                  iq_set_tmp = -iq_set_tmp;
-              } else if (phase_diff == 0.0_rad) {
-                  iq_set_tmp = 0_A;
-              }
-          }
-
-          // Run observer
-          if (!m_phase_override) {
-              observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
-                      m_motor_state.i_alpha, m_motor_state.i_beta, dt,
-                      m_observer_x1, m_observer_x2, m_phase_now_observer);
-          }
-
-          switch (m_conf->foc_sensor_mode) {
-          case FOC_SENSOR_MODE_ENCODER:
-              if (encoder::index_found()) {
-                  m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
-              } else {
-                  // Rotate the motor in open loop if the index isn't found.
-                  m_motor_state.phase = m_phase_now_encoder_no_index;
-              }
-
-              if (!m_phase_override) {
-                  id_set_tmp = 0_A;
-              }
-              break;
-          case FOC_SENSOR_MODE_HALL:
-              m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
-              m_motor_state.phase = m_phase_now_observer;
-
-              if (!m_phase_override) {
-                  id_set_tmp = 0_A;
-              }
-              break;
-          case FOC_SENSOR_MODE_SENSORLESS:
-              if (m_phase_observer_override) {
-                  m_motor_state.phase = m_phase_now_observer_override;
-              } else {
-                  m_motor_state.phase = m_phase_now_observer;
-              }
-
-              // Inject D axis current at low speed to make the observer track
-              // better. This does not seem to be necessary with dead time
-              // compensation.
-              // Note: this is done at high rate prevent noise.
-              if (!m_phase_override) {
-                  if (duty_abs < m_conf->foc_sl_d_current_duty) {
-                      id_set_tmp = map(duty_abs, 0.0, m_conf->foc_sl_d_current_duty,
-                              fabsf(m_motor_state.iq_target) * m_conf->foc_sl_d_current_factor, 0_A);
-                  } else {
-                      id_set_tmp = 0_A;
-                  }
-              }
-              break;
-          }
-
-          // Force the phase to 0 in handbrake mode so that the current simply locks the rotor.
-          if (m_control_mode == CONTROL_MODE_HANDBRAKE) {
-              m_motor_state.phase = 0.0_rad;
-          } else if (m_control_mode == CONTROL_MODE_OPENLOOP) {
-              static radian_t openloop_angle = 0.0_rad;
-              openloop_angle += dt * m_openloop_speed;
-              norm_angle_rad(openloop_angle);
-              m_motor_state.phase = openloop_angle;
-          }
-
-          if (m_phase_override) {
-              m_motor_state.phase = m_phase_now_override;
-          }
-
-          // Apply current limits
-          // TODO: Consider D axis current for the input current as well.
-          auto const mod_q = m_motor_state.mod_q;
-          if (mod_q > 0.001) {
-              truncate_number(iq_set_tmp, m_conf->lo_in_current_min / mod_q,
-                                          m_conf->lo_in_current_max / mod_q);
-          } else if (mod_q < -0.001) {
-              truncate_number(iq_set_tmp, m_conf->lo_in_current_max / mod_q,
-                                          m_conf->lo_in_current_min / mod_q);
-          }
-
-          if (mod_q > 0.0) {
-              truncate_number(iq_set_tmp, m_conf->lo_current_min,
-                                          m_conf->lo_current_max);
-          } else {
-              truncate_number(iq_set_tmp, -m_conf->lo_current_max,
-                                          -m_conf->lo_current_min);
-          }
-
-          saturate_vector_2d(id_set_tmp, iq_set_tmp,
-                  max_abs(m_conf->lo_current_max, m_conf->lo_current_min));
-
-          m_motor_state.id_target = id_set_tmp;
-          m_motor_state.iq_target = iq_set_tmp;
-
-          control_current(m_motor_state, dt);
       } else { // m_state != MC_STATE_RUNNING
           // Track back emf
-  #ifdef HW_HAS_3_SHUNTS
-          auto Va = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS1);
-          auto Vb = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS2);
-          auto Vc = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS3);
-  #else
-          auto Va = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS1);
-          auto Vb = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS3);
-          auto Vc = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS2);
-  #endif
-
-          // Full Clarke transform (no balanced voltages)
-          m_motor_state.v_alpha = (2.0 / 3.0) * Va - (1.0 / 3.0) * Vb - (1.0 / 3.0) * Vc;
-          m_motor_state.v_beta = ONE_BY_SQRT3 * Vb - ONE_BY_SQRT3 * Vc;
-
-          float c, s;
-          fast_sincos_better(m_motor_state.phase, &s, &c);
-
-          // Park transform
-          auto vd_tmp = c * m_motor_state.v_alpha + s * m_motor_state.v_beta;
-          auto vq_tmp = c * m_motor_state.v_beta  - s * m_motor_state.v_alpha;
-
-          UTILS_NAN_ZERO(m_motor_state.vd);
-          UTILS_NAN_ZERO(m_motor_state.vq);
-
-          UTILS_LP_FAST(m_motor_state.vd, vd_tmp, 0.2);
-          UTILS_LP_FAST(m_motor_state.vq, vq_tmp, 0.2);
-
-          m_motor_state.vd_int = m_motor_state.vd;
-          m_motor_state.vq_int = m_motor_state.vq;
-
-          // Update corresponding modulation
-          m_motor_state.mod_d = m_motor_state.vd / ((2.0 / 3.0) * m_motor_state.v_bus);
-          m_motor_state.mod_q = m_motor_state.vq / ((2.0 / 3.0) * m_motor_state.v_bus);
-
-          // The current is 0 when the motor is undriven
-          m_motor_state.i_alpha = 0_A;
-          m_motor_state.i_beta = 0_A;
-          m_motor_state.id = 0_A;
-          m_motor_state.iq = 0_A;
-          m_motor_state.id_filter = 0_A;
-          m_motor_state.iq_filter = 0_A;
-          m_motor_state.i_bus = 0_A;
-          m_motor_state.i_abs = 0_A;
-          m_motor_state.i_abs_filter = 0_A;
-
-          // Run observer
-          observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
-                  m_motor_state.i_alpha, m_motor_state.i_beta, dt,
-                  m_observer_x1,
-                  m_observer_x2,
-                  m_phase_now_observer);
-
-          switch (m_conf->foc_sensor_mode) {
-          case FOC_SENSOR_MODE_ENCODER:
-              m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
-              break;
-          case FOC_SENSOR_MODE_HALL:
-              m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
-              m_motor_state.phase = m_phase_now_observer;
-              break;
-          case FOC_SENSOR_MODE_SENSORLESS:
-              m_motor_state.phase = m_phase_now_observer;
-              break;
-          }
+          track_bemf(dt);
       }
 
       // Calculate duty cycle
@@ -1946,6 +1713,258 @@ namespace mcpwm_foc{
       m_last_adc_isr_duration = TIM12->CNT / TIM12_FREQ;
   }
 
+  void run_foc_control(second_t dt){
+
+    static radian_t phase_before = 0.0_rad;
+    auto const phase_diff = angle_difference_rad(m_motor_state.phase, phase_before);
+    phase_before = m_motor_state.phase;
+
+    ampere_t ia = ADC_curr_norm_value[0] * FAC_CURRENT;
+    ampere_t ib = ADC_curr_norm_value[1] * FAC_CURRENT;
+//    float ic = -(ia + ib);
+
+    // Clarke transform assuming balanced currents
+    m_motor_state.i_alpha = ia;
+    m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
+
+    // Full Clarke transform in case there are current offsets
+//        m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
+//        m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
+
+    const float duty_abs = fabsf(m_motor_state.duty_now);
+    auto id_set_tmp = m_id_set;
+    auto iq_set_tmp = m_iq_set;
+    m_motor_state.max_duty = m_conf->l_max_duty;
+
+    static float duty_filtered = 0.0;
+    UTILS_LP_FAST(duty_filtered, m_motor_state.duty_now, 0.1);
+    truncate_number_abs(duty_filtered, 1.0);
+
+    float duty_set = m_duty_cycle_set;
+    bool control_duty = m_control_mode == CONTROL_MODE_DUTY;
+
+    // When the filtered duty cycle in sensorless mode becomes low in brake mode, the
+    // observer has lost tracking. Use duty cycle control with the lowest duty cycle
+    // to get as smooth braking as possible.
+    if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
+            //                && (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoders
+            && fabsf(duty_filtered) < 0.03) {
+        control_duty = true;
+        duty_set = 0.0;
+    }
+
+    // Brake when set ERPM is below min ERPM
+    if (m_control_mode == CONTROL_MODE_SPEED &&
+            fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
+        control_duty = true;
+        duty_set = 0.0;
+    }
+
+    if (control_duty) {
+        // Duty cycle control
+        static scalar_t duty_i_term = 0.0;
+
+        if (fabsf(duty_set) < (duty_abs - 0.05) ||
+            SIGN(m_motor_state.vq) * m_motor_state.iq < m_conf->lo_current_min) {
+            // Truncating the duty cycle here would be dangerous, so run a PID controller.
+
+            // Compensation for supply voltage variations
+            float scale = 1_V / GET_INPUT_VOLTAGE();
+
+            // Compute error
+            float error = duty_set - m_motor_state.duty_now;
+
+            // Compute parameters
+            float p_term = error * m_conf->foc_duty_dowmramp_kp * scale;
+            duty_i_term += error * m_conf->foc_duty_dowmramp_ki * dt * scale;
+
+            // I-term wind-up protection
+            truncate_number_abs(duty_i_term, 1.0);
+
+            // Calculate output
+            float output = p_term + duty_i_term;
+            truncate_number_abs(output, 1.0);
+            iq_set_tmp = output * m_conf->lo_current_max;
+        } else {
+            // If the duty cycle is less than or equal to the set duty cycle just limit
+            // the modulation and use the maximum allowed current.
+            duty_i_term = 0.0;
+            m_motor_state.max_duty = duty_set;
+            if (duty_set > 0.0) {
+                iq_set_tmp = m_conf->lo_current_max;
+            } else {
+                iq_set_tmp = -m_conf->lo_current_max;
+            }
+        }
+    } else if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+        // Braking
+        iq_set_tmp = fabsf(iq_set_tmp);
+
+        if (phase_diff > 0.0_rad) {
+            iq_set_tmp = -iq_set_tmp;
+        } else if (phase_diff == 0.0_rad) {
+            iq_set_tmp = 0_A;
+        }
+    }
+
+    // Run observer
+    if (!m_phase_override) {
+        observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
+                m_motor_state.i_alpha, m_motor_state.i_beta, dt,
+                m_observer_x1, m_observer_x2, m_phase_now_observer);
+    }
+
+    switch (m_conf->foc_sensor_mode) {
+    case FOC_SENSOR_MODE_ENCODER:
+        if (encoder::index_found()) {
+            m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
+        } else {
+            // Rotate the motor in open loop if the index isn't found.
+            m_motor_state.phase = m_phase_now_encoder_no_index;
+        }
+
+        if (!m_phase_override) {
+            id_set_tmp = 0_A;
+        }
+        break;
+    case FOC_SENSOR_MODE_HALL:
+        m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
+        m_motor_state.phase = m_phase_now_observer;
+
+        if (!m_phase_override) {
+            id_set_tmp = 0_A;
+        }
+        break;
+    case FOC_SENSOR_MODE_SENSORLESS:
+        if (m_phase_observer_override) {
+            m_motor_state.phase = m_phase_now_observer_override;
+        } else {
+            m_motor_state.phase = m_phase_now_observer;
+        }
+
+        // Inject D axis current at low speed to make the observer track
+        // better. This does not seem to be necessary with dead time
+        // compensation.
+        // Note: this is done at high rate prevent noise.
+        if (!m_phase_override) {
+            if (duty_abs < m_conf->foc_sl_d_current_duty) {
+                id_set_tmp = map(duty_abs, 0.0, m_conf->foc_sl_d_current_duty,
+                        fabsf(m_motor_state.iq_target) * m_conf->foc_sl_d_current_factor, 0_A);
+            } else {
+                id_set_tmp = 0_A;
+            }
+        }
+        break;
+    }
+
+    // Force the phase to 0 in handbrake mode so that the current simply locks the rotor.
+    if (m_control_mode == CONTROL_MODE_HANDBRAKE) {
+        m_motor_state.phase = 0.0_rad;
+    } else if (m_control_mode == CONTROL_MODE_OPENLOOP) {
+        static radian_t openloop_angle = 0.0_rad;
+        openloop_angle += dt * m_openloop_speed;
+        norm_angle_rad(openloop_angle);
+        m_motor_state.phase = openloop_angle;
+    }
+
+    if (m_phase_override) {
+        m_motor_state.phase = m_phase_now_override;
+    }
+
+    // Apply current limits
+    // TODO: Consider D axis current for the input current as well.
+    auto const mod_q = m_motor_state.mod_q;
+    if (mod_q > 0.001) {
+        truncate_number(iq_set_tmp, m_conf->lo_in_current_min / mod_q,
+                                    m_conf->lo_in_current_max / mod_q);
+    } else if (mod_q < -0.001) {
+        truncate_number(iq_set_tmp, m_conf->lo_in_current_max / mod_q,
+                                    m_conf->lo_in_current_min / mod_q);
+    }
+
+    if (mod_q > 0.0) {
+        truncate_number(iq_set_tmp, m_conf->lo_current_min,
+                                    m_conf->lo_current_max);
+    } else {
+        truncate_number(iq_set_tmp, -m_conf->lo_current_max,
+                                    -m_conf->lo_current_min);
+    }
+
+    saturate_vector_2d(id_set_tmp, iq_set_tmp,
+            max_abs(m_conf->lo_current_max, m_conf->lo_current_min));
+
+    m_motor_state.id_target = id_set_tmp;
+    m_motor_state.iq_target = iq_set_tmp;
+
+    control_current(m_motor_state, dt);
+  }
+
+  void track_bemf(second_t dt){
+#ifdef HW_HAS_3_SHUNTS
+      auto Va = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS1);
+      auto Vb = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS2);
+      auto Vc = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS3);
+#else
+      auto Va = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS1);
+      auto Vb = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS3);
+      auto Vc = GET_BEMF_VOLTAGE_CH(ADC_IND_SENS2);
+#endif
+
+      // Full Clarke transform (no balanced voltages)
+      m_motor_state.v_alpha = (2.0 / 3.0) * Va - (1.0 / 3.0) * Vb - (1.0 / 3.0) * Vc;
+      m_motor_state.v_beta = ONE_BY_SQRT3 * Vb - ONE_BY_SQRT3 * Vc;
+
+      float c, s;
+      fast_sincos_better(m_motor_state.phase, &s, &c);
+
+      // Park transform
+      auto vd_tmp = c * m_motor_state.v_alpha + s * m_motor_state.v_beta;
+      auto vq_tmp = c * m_motor_state.v_beta  - s * m_motor_state.v_alpha;
+
+      UTILS_NAN_ZERO(m_motor_state.vd);
+      UTILS_NAN_ZERO(m_motor_state.vq);
+
+      UTILS_LP_FAST(m_motor_state.vd, vd_tmp, 0.2);
+      UTILS_LP_FAST(m_motor_state.vq, vq_tmp, 0.2);
+
+      m_motor_state.vd_int = m_motor_state.vd;
+      m_motor_state.vq_int = m_motor_state.vq;
+
+      // Update corresponding modulation
+      m_motor_state.mod_d = m_motor_state.vd / ((2.0 / 3.0) * m_motor_state.v_bus);
+      m_motor_state.mod_q = m_motor_state.vq / ((2.0 / 3.0) * m_motor_state.v_bus);
+
+      // The current is 0 when the motor is undriven
+      m_motor_state.i_alpha = 0_A;
+      m_motor_state.i_beta = 0_A;
+      m_motor_state.id = 0_A;
+      m_motor_state.iq = 0_A;
+      m_motor_state.id_filter = 0_A;
+      m_motor_state.iq_filter = 0_A;
+      m_motor_state.i_bus = 0_A;
+      m_motor_state.i_abs = 0_A;
+      m_motor_state.i_abs_filter = 0_A;
+
+      // Run observer
+      observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
+              m_motor_state.i_alpha, m_motor_state.i_beta, dt,
+              m_observer_x1,
+              m_observer_x2,
+              m_phase_now_observer);
+
+      switch (m_conf->foc_sensor_mode) {
+      case FOC_SENSOR_MODE_ENCODER:
+          m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
+          break;
+      case FOC_SENSOR_MODE_HALL:
+          m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
+          m_motor_state.phase = m_phase_now_observer;
+          break;
+      case FOC_SENSOR_MODE_SENSORLESS:
+          m_motor_state.phase = m_phase_now_observer;
+          break;
+      }
+  }
 
   THD_FUNCTION(timer_thread, arg) {
       (void)arg;
