@@ -21,7 +21,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		38
+#define FW_VERSION_MINOR		40
 
 #include "datatypes.h"
 #include "units_def.h"

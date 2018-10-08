@@ -54,6 +54,15 @@ enum mc_foc_sensor_mode {
 	FOC_SENSOR_MODE_HALL
 };
 
+
+// Auxiliary output mode
+enum out_aux_mode {
+	OUT_AUX_MODE_OFF = 0,
+	OUT_AUX_MODE_ON_AFTER_2S,
+	OUT_AUX_MODE_ON_AFTER_5S,
+	OUT_AUX_MODE_ON_AFTER_10S
+};
+
 enum mc_motor_type {
 	MOTOR_TYPE_BLDC = 0,
 	MOTOR_TYPE_DC,
@@ -260,6 +269,7 @@ struct mc_configuration {
 	hertz_t m_bldc_f_sw_max;
 	hertz_t m_dc_f_sw;
 	float m_ntc_motor_beta;
+	out_aux_mode m_out_aux_mode;
 };
 
 // Applications to use

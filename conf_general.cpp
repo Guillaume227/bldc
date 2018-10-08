@@ -291,6 +291,7 @@ namespace conf_general {
       conf->m_bldc_f_sw_max = MCCONF_M_BLDC_F_SW_MAX;
       conf->m_dc_f_sw = MCCONF_M_DC_F_SW;
       conf->m_ntc_motor_beta = MCCONF_M_NTC_MOTOR_BETA;
+      conf->m_out_aux_mode = MCCONF_M_OUT_AUX_MODE;
   }
 
   /**

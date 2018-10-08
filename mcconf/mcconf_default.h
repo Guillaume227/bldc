@@ -360,4 +360,7 @@
 #ifndef MCCONF_M_NTC_MOTOR_BETA
 #define MCCONF_M_NTC_MOTOR_BETA			3380.0 // Beta value for motor termistor
 #endif
+#ifndef MCCONF_M_OUT_AUX_MODE
+#define MCCONF_M_OUT_AUX_MODE			OUT_AUX_MODE_OFF // Auxiliary output mode
+#endif
 

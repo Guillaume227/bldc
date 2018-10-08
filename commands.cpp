@@ -367,6 +367,7 @@ namespace commands{
           get_float32_auto(mcconf.m_bldc_f_sw_max, data, &ind);
           get_float32_auto(mcconf.m_dc_f_sw, data, &ind);
           get_float32_auto(mcconf.m_ntc_motor_beta, data, &ind);
+          get_enum<out_aux_mode>(mcconf.m_out_aux_mode, data, &ind);
 
           using utils::truncate_number;
           // Apply limits if they are defined
@@ -527,6 +528,7 @@ namespace commands{
           append_float32_auto(send_buffer, mcconf.m_bldc_f_sw_max, &ind);
           append_float32_auto(send_buffer, mcconf.m_dc_f_sw, &ind);
           append_float32_auto(send_buffer, mcconf.m_ntc_motor_beta, &ind);
+          append_enum(send_buffer, mcconf.m_out_aux_mode, &ind);
 
           send_packet(send_buffer, ind);
           break;
