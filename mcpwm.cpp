@@ -1137,10 +1137,9 @@ namespace mcpwm {
 
 #if BLDC_SPEED_CONTROL_CURRENT
     // Compute parameters
-    p_term = error * m_conf->s_pid_kp * (1.0 / 20.0);
-    i_term += error * (m_conf->s_pid_ki * PID_TIME_K) * (1.0 / 20.0);
-    d_term = (error - prev_error) * (m_conf->s_pid_kd / PID_TIME_K)
-        * (1.0 / 20.0);
+    p_term  = error * m_conf->s_pid_kp / 20.0;
+    i_term += error * m_conf->s_pid_ki * PID_TIME_K / 20.0;
+    d_term = (error - prev_error) * (m_conf->s_pid_kd / PID_TIME_K) / 20.0;
 
     // Filter D
     static rpm_t d_filter = 0_rpm;
@@ -1178,9 +1177,9 @@ namespace mcpwm {
     float scale = 1.0 / GET_INPUT_VOLTAGE();
 
     // Compute parameters
-    p_term = error * m_conf->s_pid_kp * scale;
-    i_term += error * (m_conf->s_pid_ki * PID_TIME_K) * scale;
-    d_term = (error - prev_error) * (m_conf->s_pid_kd / PID_TIME_K) * scale;
+    p_term  = error * m_conf->s_pid_kp * scale;
+    i_term += error * m_conf->s_pid_ki * PID_TIME_K * scale;
+    d_term = (error - prev_error) * m_conf->s_pid_kd / PID_TIME_K * scale;
 
     // Filter D
     static rpm_t d_filter = 0_rpm;
@@ -1833,23 +1832,19 @@ namespace mcpwm {
           if (v_diff > 0) {
             cycle_sum += m_conf->m_bldc_f_sw_max / m_switching_frequency_now;
 
-            if (cycle_sum
-                >= map(
-                    fabsf(m_rpm_now),
-                    0_rpm,
-                    m_conf->sl_cycle_int_rpm_br,
-                    rpm_dep.comm_time_sum / 2.0,
-                    (rpm_dep.comm_time_sum / 2.0)
-                        * m_conf->sl_phase_advance_at_br)) {
+            if (cycle_sum >= map(fabsf(m_rpm_now),
+                                 0_rpm,
+                                 m_conf->sl_cycle_int_rpm_br,
+                                 rpm_dep.comm_time_sum / 2.0,
+                                 rpm_dep.comm_time_sum / 2.0 * m_conf->sl_phase_advance_at_br))
+            {
               commutate(1);
-              m_cycle_integrator_sum += cycle_integrator
-                  * (1.0 / (0.0005 * (VDIV_CORR)));
+              m_cycle_integrator_sum += cycle_integrator / (0.0005 * (VDIV_CORR)));
               m_cycle_integrator_iterations++;
               cycle_integrator = 0_Wb;
               cycle_sum = 0.0;
             }
-          }
-          else {
+          } else {
             cycle_integrator = 0_Wb;
             cycle_sum = 0.0;
           }
@@ -1927,7 +1922,7 @@ namespace mcpwm {
         // Optionally apply startup boost.
         if (fabsf(dutycycle_now_tmp) < start_boost) {
           step_towards(dutycycle_now_tmp,
-                       m_current_set > 0_A ? start_boost : -start_boost,
+                       SIGN(m_current_set) * start_boost,
                        ramp_step);
         }
         else {
@@ -1949,8 +1944,7 @@ namespace mcpwm {
 
         // The set dutycycle should be in the correct direction in case the output is lower
         // than the minimum duty cycle and the mechanism below gets activated.
-        m_dutycycle_set =
-            dutycycle_now_tmp >= 0.0 ? m_conf->l_min_duty : -m_conf->l_min_duty;
+        m_dutycycle_set = SIGN(dutycycle_now_tmp) * m_conf->l_min_duty;
 
       }
       else if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
@@ -1994,11 +1988,9 @@ namespace mcpwm {
 
       // Apply limits in priority order
       if (current_nofilter > m_conf->lo_current_max) {
-        step_towards(
-            (float&)m_dutycycle_now,
-            0.0,
-            ramp_step_no_lim * fabsf(current_nofilter - m_conf->lo_current_max)
-                * m_conf->m_current_backoff_gain);
+        step_towards((float&)m_dutycycle_now,
+                     0.0,
+                     ramp_step_no_lim * fabsf(current_nofilter - m_conf->lo_current_max) * m_conf->m_current_backoff_gain);
         limit_delay = 1;
       }
       else if (current_nofilter < m_conf->lo_current_min) {
@@ -2575,8 +2567,9 @@ namespace mcpwm {
     sys_lock_cnt();
 
     // Set the next timer settings if an update is far enough away
-    if (!m_timer_struct.updated && TIM1->CNT > 10
-        && TIM1->CNT < (TIM1->ARR - 500)) {
+    if (!m_timer_struct.updated &&
+        TIM1->CNT > 10 &&
+        TIM1->CNT < (TIM1->ARR - 500)) {
       // Disable preload register updates
       TIM1->CR1 |= TIM_CR1_UDIS;
       TIM8->CR1 |= TIM_CR1_UDIS;
