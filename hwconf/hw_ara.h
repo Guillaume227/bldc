@@ -40,8 +40,10 @@
 #define HW_HAS_PHASE_SHUNTS // used for FOC only
 #define HW_HAS_DRV8313
 #else
-#define HW_NAME			"ARA_F446_IHM08"
-//#define HW_HAS_PHASE_SHUNTS // used for FOC only
+  #ifdef HW_IS_IHM08M1
+    #define HW_NAME			"ARA_F446_IHM08"
+  //#define HW_HAS_PHASE_SHUNTS // used for FOC only
+  #endif
 #endif
 
 #define HW_NO_CCM_RAM           // F446 specific
@@ -126,18 +128,29 @@
 // ADC macros and settings
 
 #define V_REG					3.3_V
+
+#ifdef HW_IS_IHM0xM1
 #define VIN_R1					169_kOhm
 #define VIN_R2					9.31_kOhm
+#else
+#define VIN_R1					39_kOhm
+#define VIN_R2					2.2_kOhm
+#endif
+
 #ifdef HW_IS_IHM07M1
 #define CURRENT_AMP_GAIN		1.528
 #elif defined(HW_IS_IHM08M1)
 #define CURRENT_AMP_GAIN		5.18
+#else
+#define CURRENT_AMP_GAIN		20.0
 #endif
 
 #ifdef HW_IS_IHM07M1
 #define CURRENT_SHUNT_RES		0.33_Ohm
 #elif defined(HW_IS_IHM08M1)
 #define CURRENT_SHUNT_RES		0.01_Ohm
+#else
+#define CURRENT_SHUNT_RES		0.0005_Ohm
 #endif
 
 #define ADC_RES 4095.0
@@ -168,8 +181,9 @@
 #else
 #define PHASE_VOLTAGE_FROM_ADC(adc_val) (ADC_TO_VOLTS(adc_val) * VOLTAGE_DIVIDER)
 
-#define SCALE_V_P(V)        (V) // no adjustment
-#define PHASE_ADJ_VBUS_ADC  (ADC_Value[ADC_IND_VIN_SENS]) // no adjustment
+#define CONV_ADC_V(adcVal)	((float)(adcVal))
+#define SCALE_V_P(V)		(V) // no adjustment
+#define PHASE_ADJ_VBUS_ADC	((float)ADC_Value[ADC_IND_VIN_SENS]) // no adjustment
 #endif
 
 #define GET_BEMF_VOLTAGE_CH(adc_ch) (PHASE_VOLTAGE_FROM_ADC(ADC_Value[adc_ch]))
