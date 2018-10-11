@@ -1137,7 +1137,7 @@ namespace mcpwm {
     }
 
 #if BLDC_SPEED_CONTROL_CURRENT
-    float const scale = 1 / 20.0
+    float const scale = 1 / 20.0;
 #else
     // Compensation for supply voltage variations
     float const scale = 1_V / GET_INPUT_VOLTAGE();

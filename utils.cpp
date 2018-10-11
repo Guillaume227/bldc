@@ -22,12 +22,7 @@
 #include "hal.h"
 #include <math.h>
 #include <string.h>
-
-
-namespace{
-  // Private variables
-  volatile int _sys_lock_cnt = 0;
-}
+#include <atomic>
 
 namespace utils{
 
@@ -604,17 +599,19 @@ namespace utils{
       return ret;
   }
 
+  namespace{
+    std::atomic<int> _sys_lock_cnt{0};
+  }
+
   sys_lock_scope_t::sys_lock_scope_t(){
-    if (!_sys_lock_cnt) {
+    if (!_sys_lock_cnt++) {
       chSysLock();
     }
-    _sys_lock_cnt++;
   }
 
   sys_lock_scope_t::~sys_lock_scope_t(){
     if (_sys_lock_cnt) {
-        _sys_lock_cnt--;
-        if (!_sys_lock_cnt) {
+        if (!_sys_lock_cnt--) {
             chSysUnlock();
         }
     }
