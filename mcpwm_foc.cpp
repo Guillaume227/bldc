@@ -17,10 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include "mcpwm_foc.h"
 #include "mc_interface.h"
 #include "ch.h"
@@ -88,6 +84,7 @@ namespace mcpwm_foc{
       ampere_t get_avg_current() const {
         return avg_current_tot / sample_num;
       }
+
       volt_t get_avg_voltage() const {
         return avg_voltage_tot / sample_num;
       }
@@ -146,7 +143,7 @@ namespace mcpwm_foc{
   void run_pid_control_pos(degree_t angle_now, degree_t angle_set, second_t dt);
   void run_pid_control_speed(second_t dt);
   void run_foc_control(second_t dt);
-  void measure_currents(bool is_v7);
+  void read_current_measures(bool is_v7);
   void track_bemf(second_t dt);
   void stop_pwm_hw(void);
   void start_pwm_hw(void);
@@ -1305,7 +1302,7 @@ namespace mcpwm_foc{
       for (ampere_t i = 2_A; i < (m_conf->l_current_max / 2); i *= 1.5) {
           res_tmp = measure_resistance(i, 20);
 
-          if (i > (1_V / res_tmp)) {
+          if (i * res_tmp > 1_V) {
               i_last = i;
               break;
           }
@@ -1462,9 +1459,13 @@ namespace mcpwm_foc{
           TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
       }
   }
-
-  void measure_currents(bool is_v7){
+#ifdef HW_HAS_PHASE_SHUNTS
+  void read_current_measures(bool is_v7)
+#else
+  void read_current_measures(bool)
+#endif
   {
+    {
       int curr0 = ADC_Value[ADC_IND_CURR1];
       int curr1 = ADC_Value[ADC_IND_CURR2];
 #ifdef HW_HAS_3_SHUNTS
@@ -1488,14 +1489,14 @@ namespace mcpwm_foc{
       ADC_curr_norm_value[2] = curr2;
 
 #ifdef HW_IS_IHM0xM1
-    ADC_curr_norm_value[0] *= -1;
-    ADC_curr_norm_value[1] *= -1;
-    ADC_curr_norm_value[2] *= -1;
+      ADC_curr_norm_value[0] *= -1;
+      ADC_curr_norm_value[1] *= -1;
+      ADC_curr_norm_value[2] *= -1;
 #endif
     }
       // Use the best current samples depending on the modulation state.
 #ifdef HW_HAS_3_SHUNTS
-      if (m_conf->foc_sample_high_current) {
+    if (m_conf->foc_sample_high_current) {
           // High current sampling mode. Choose the lower currents to derive the highest one
           // in order to be able to measure higher currents.
           const float i0_abs = fabsf(ADC_curr_norm_value[0]);
@@ -1542,6 +1543,61 @@ namespace mcpwm_foc{
 
   }
 
+  void inductance_measure_sequence()
+  {
+    static int inductance_state = 0;
+    const uint32_t duty_cnt = (uint32_t)((float)TIM1->ARR * m_samples.measure_inductance_duty);
+    const uint32_t samp_time = duty_cnt - MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET;
+
+    switch(inductance_state) {
+    case 0:
+        TIMER_UPDATE_DUTY_SAMP(0, 0, 0, samp_time);
+        start_pwm_hw();
+        break;
+    case 2:
+        TIMER_UPDATE_DUTY(duty_cnt, 0, duty_cnt);
+        break;
+    case 3:
+        m_samples.avg_current_tot -= ADC_curr_norm_value[1] * FAC_CURRENT;
+        m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
+        m_samples.sample_num++;
+        TIMER_UPDATE_DUTY(0, 0, 0);
+        break;
+    case 4:
+        TIMER_UPDATE_DUTY(0, duty_cnt, duty_cnt);
+        break;
+    case 6:
+        m_samples.avg_current_tot -= ADC_curr_norm_value[0] * FAC_CURRENT;
+        m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
+        m_samples.sample_num++;
+        TIMER_UPDATE_DUTY(0, 0, 0);
+        break;
+    case 8:
+#ifdef HW_HAS_3_SHUNTS
+        TIMER_UPDATE_DUTY(duty_cnt, duty_cnt, 0);
+#else
+        TIMER_UPDATE_DUTY(0, 0, duty_cnt);
+#endif
+        break;
+    case 9:
+        m_samples.avg_current_tot -= ADC_curr_norm_value[2] * FAC_CURRENT;
+        m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
+        m_samples.sample_num++;
+        stop_pwm_hw();
+        TIMER_UPDATE_SAMP(MCPWM_FOC_CURRENT_SAMP_OFFSET);
+        break;
+    case 10:
+        inductance_state = 0;
+        m_samples.measure_inductance_now = false;
+        return;
+    default:
+        break;
+    }
+
+    inductance_state++;
+    return;
+  }
+
   void adc_interrupt_handler(void *p, uint32_t flags) {
       (void)p;
       (void)flags;
@@ -1565,54 +1621,13 @@ namespace mcpwm_foc{
       // Reset the watchdog
       WWDG_SetCounter(100);
 
-      measure_currents(is_v7);
+      read_current_measures(is_v7);
 
       if (m_samples.measure_inductance_now) {
-          if (!is_v7) {
-              return;
-          }
-
-          static int inductance_state = 0;
-          const uint32_t duty_cnt = (uint32_t)((float)TIM1->ARR * m_samples.measure_inductance_duty);
-          const uint32_t samp_time = duty_cnt - MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET;
-
-          if (inductance_state == 0) {
-              TIMER_UPDATE_DUTY_SAMP(0, 0, 0, samp_time);
-              start_pwm_hw();
-          } else if (inductance_state == 2) {
-              TIMER_UPDATE_DUTY(duty_cnt,	0, duty_cnt);
-          } else if (inductance_state == 3) {
-              m_samples.avg_current_tot += - ADC_curr_norm_value[1] * FAC_CURRENT;
-              m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
-              m_samples.sample_num++;
-              TIMER_UPDATE_DUTY(0, 0, 0);
-          } else if (inductance_state == 5) {
-              TIMER_UPDATE_DUTY(0, duty_cnt, duty_cnt);
-          } else if (inductance_state == 6) {
-              m_samples.avg_current_tot += - ADC_curr_norm_value[0] * FAC_CURRENT;
-              m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
-              m_samples.sample_num++;
-              TIMER_UPDATE_DUTY(0, 0, 0);
-          } else if (inductance_state == 8) {
-#ifdef HW_HAS_3_SHUNTS
-              TIMER_UPDATE_DUTY(duty_cnt, duty_cnt, 0);
-#else
-              TIMER_UPDATE_DUTY(0, 0, duty_cnt);
-#endif
-          } else if (inductance_state == 9) {
-              m_samples.avg_current_tot += - ADC_curr_norm_value[2] * FAC_CURRENT;
-              m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
-              m_samples.sample_num++;
-              stop_pwm_hw();
-              TIMER_UPDATE_SAMP(MCPWM_FOC_CURRENT_SAMP_OFFSET);
-          } else if (inductance_state == 10) {
-              inductance_state = 0;
-              m_samples.measure_inductance_now = false;
-              return;
-          }
-
-          inductance_state++;
-          return;
+        if (is_v7) {
+            inductance_measure_sequence();
+        }
+        return;
       }
 
   #ifdef HW_HAS_PHASE_SHUNTS
@@ -1790,11 +1805,8 @@ namespace mcpwm_foc{
             // the modulation and use the maximum allowed current.
             duty_i_term = 0.0;
             m_motor_state.max_duty = duty_set;
-            if (duty_set > 0.0) {
-                iq_set_tmp = m_conf->lo_current_max;
-            } else {
-                iq_set_tmp = -m_conf->lo_current_max;
-            }
+
+            iq_set_tmp = SIGN(duty_set) * m_conf->lo_current_max;
         }
     } else if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
         // Braking
@@ -1845,11 +1857,14 @@ namespace mcpwm_foc{
         // Inject D axis current at low speed to make the observer track
         // better. This does not seem to be necessary with dead time
         // compensation.
-        // Note: this is done at high rate prevent noise.
+        // Note: this is done at high rate to prevent noise.
         if (!m_phase_override) {
             if (duty_abs < m_conf->foc_sl_d_current_duty) {
-                id_set_tmp = map(duty_abs, 0.0, m_conf->foc_sl_d_current_duty,
-                        fabsf(m_motor_state.iq_target) * m_conf->foc_sl_d_current_factor, 0_A);
+                id_set_tmp = map(duty_abs,
+                                 0.0,
+                                 m_conf->foc_sl_d_current_duty,
+                                 fabsf(m_motor_state.iq_target) * m_conf->foc_sl_d_current_factor,
+                                 0_A);
             } else {
                 id_set_tmp = 0_A;
             }
