@@ -1129,17 +1129,23 @@ namespace mcpwm {
 
     // Too low RPM set. Stop and return.
     if (fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
-      i_term = rpm_t{m_dutycycle_now};
+      i_term = m_dutycycle_now;
       prev_error = error;
       set_duty(0.0);
       return;
     }
 
 #if BLDC_SPEED_CONTROL_CURRENT
+    float const scale = 1 / 20.0
+#else
+    // Compensation for supply voltage variations
+    float const scale = 1_V / GET_INPUT_VOLTAGE();
+#endif
+
     // Compute parameters
-    p_term  = error * m_conf->s_pid_kp / 20.0;
-    i_term += error * m_conf->s_pid_ki * PID_TIME_K / 20.0;
-    d_term = (error - prev_error) * (m_conf->s_pid_kd / PID_TIME_K) / 20.0;
+    p_term  = error * m_conf->s_pid_kp * scale;
+    i_term += error * m_conf->s_pid_ki * PID_TIME_K * scale;
+    d_term = (error - prev_error) * (m_conf->s_pid_kd / PID_TIME_K) * scale;
 
     // Filter D
     static rpm_t d_filter = 0_rpm;
@@ -1154,15 +1160,15 @@ namespace mcpwm {
 
     // Calculate output
     float output = static_cast<float>(p_term + i_term + d_term);
+
+#if BLDC_SPEED_CONTROL_CURRENT
     truncate_number_abs(output, 1.0);
 
     // Optionally disable braking
     if (!m_conf->s_pid_allow_braking) {
-      if (rpm > 0_rpm && output < 0.0) {
-        output = 0.0;
-      }
-
-      if (rpm < 0_rpm && output > 0.0) {
+      if ((rpm > 0_rpm && output < 0.0) ||
+          (rpm < 0_rpm && output > 0.0))
+      {
         output = 0.0;
       }
     }
@@ -1173,27 +1179,6 @@ namespace mcpwm {
       set_duty_cycle_hl(SIGN(output) * m_conf->l_min_duty);
     }
 #else
-    // Compensation for supply voltage variations
-    float scale = 1.0 / GET_INPUT_VOLTAGE();
-
-    // Compute parameters
-    p_term  = error * m_conf->s_pid_kp * scale;
-    i_term += error * m_conf->s_pid_ki * PID_TIME_K * scale;
-    d_term = (error - prev_error) * m_conf->s_pid_kd / PID_TIME_K * scale;
-
-    // Filter D
-    static rpm_t d_filter = 0_rpm;
-    UTILS_LP_FAST(d_filter, d_term, m_conf->s_pid_kd_filter);
-    d_term = d_filter;
-
-    // I-term wind-up protection
-    truncate_number_abs(i_term, 1_rpm);
-
-    // Store previous error
-    prev_error = error;
-
-    // Calculate output
-    float output = static_cast<float>(p_term + i_term + d_term);
 
     // Make sure that at least minimum output is used
     if (fabsf(output) < m_conf->l_min_duty) {
@@ -1839,7 +1824,7 @@ namespace mcpwm {
                                  rpm_dep.comm_time_sum / 2.0 * m_conf->sl_phase_advance_at_br))
             {
               commutate(1);
-              m_cycle_integrator_sum += cycle_integrator / (0.0005 * (VDIV_CORR)));
+              m_cycle_integrator_sum += cycle_integrator / (0.0005 * (VDIV_CORR));
               m_cycle_integrator_iterations++;
               cycle_integrator = 0_Wb;
               cycle_sum = 0.0;
@@ -1896,9 +1881,9 @@ namespace mcpwm {
       float dutycycle_now_tmp = m_dutycycle_now;
 
 #if BLDC_SPEED_CONTROL_CURRENT
-      if (m_control_mode == CONTROL_MODE_CURRENT
-          || m_control_mode == CONTROL_MODE_POS
-          || m_control_mode == CONTROL_MODE_SPEED) {
+      if (m_control_mode == CONTROL_MODE_CURRENT ||
+          m_control_mode == CONTROL_MODE_POS ||
+          m_control_mode == CONTROL_MODE_SPEED) {
 #else
         if (m_control_mode == CONTROL_MODE_CURRENT ||
             m_control_mode == CONTROL_MODE_POS) {
