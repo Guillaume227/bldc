@@ -604,31 +604,20 @@ namespace utils{
       return ret;
   }
 
-  /**
-   * A system locking function with a counter. For every lock, a corresponding unlock must
-   * exist to unlock the system. That means, if lock is called five times, unlock has to
-   * be called five times as well. Note that chSysLock and chSysLockFromIsr are the same
-   * for this port.
-   */
-  void sys_lock_cnt(void) {
-      if (!_sys_lock_cnt) {
-          chSysLock();
-      }
-      _sys_lock_cnt++;
+  sys_lock_scope_t::sys_lock_scope_t(){
+    if (!_sys_lock_cnt) {
+      chSysLock();
+    }
+    _sys_lock_cnt++;
   }
 
-  /**
-   * A system unlocking function with a counter. For every lock, a corresponding unlock must
-   * exist to unlock the system. That means, if lock is called five times, unlock has to
-   * be called five times as well. Note that chSysUnlock and chSysUnlockFromIsr are the same
-   * for this port.
-   */
-  void sys_unlock_cnt(void) {
-      if (_sys_lock_cnt) {
-          _sys_lock_cnt--;
-          if (!_sys_lock_cnt) {
-              chSysUnlock();
-          }
-      }
+  sys_lock_scope_t::~sys_lock_scope_t(){
+    if (_sys_lock_cnt) {
+        _sys_lock_cnt--;
+        if (!_sys_lock_cnt) {
+            chSysUnlock();
+        }
+    }
   }
+
 }

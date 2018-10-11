@@ -87,7 +87,8 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	mc_interface::unlock();
 	mc_interface::release_motor();
-	utils::sys_lock_cnt();
+
+	utils::sys_lock_scope_t sys_lock;
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
 	for (int i = 0;i < NEW_APP_SECTORS;i++) {
@@ -102,7 +103,6 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 	}
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
-	utils::sys_unlock_cnt();
 
 	return FLASH_COMPLETE;
 }
@@ -113,7 +113,7 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 
 	mc_interface::unlock();
 	mc_interface::release_motor();
-	utils::sys_lock_cnt();
+	utils::sys_lock_scope_t sys_lock;
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
 	for (uint32_t i = 0;i < len;i++) {
@@ -124,7 +124,6 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 	}
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
-	utils::sys_unlock_cnt();
 
 	return FLASH_COMPLETE;
 }

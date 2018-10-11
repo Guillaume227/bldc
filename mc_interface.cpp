@@ -1039,11 +1039,6 @@ namespace mc_interface{
       if (dccal_done() && m_fault_now == FAULT_CODE_NONE) {
           // Sent to terminal fault logger so that all faults and their conditions
           // can be printed for debugging.
-          utils::sys_lock_cnt();
-          volatile int val_samp = TIM8->CCR1;
-          volatile int current_samp = TIM1->CCR4;
-          volatile int tim_top = TIM1->ARR;
-          utils::sys_unlock_cnt();
 
           fault_data fdata;
           fdata.fault = fault;
@@ -1054,9 +1049,12 @@ namespace mc_interface{
           fdata.rpm = get_rpm();
           fdata.tacho = get_tachometer_value(false);
           fdata.cycles_running = m_cycles_running;
-          fdata.tim_val_samp = val_samp;
-          fdata.tim_current_samp = current_samp;
-          fdata.tim_top = tim_top;
+          {
+            utils::sys_lock_scope_t sys_lock;
+            fdata.tim_val_samp      = TIM8->CCR1;
+            fdata.tim_current_samp  = TIM1->CCR4;
+            fdata.tim_top           = TIM1->ARR;
+          }
           fdata.comm_step = mcpwm::get_comm_step();
           fdata.temperature = NTC_TEMP(ADC_IND_TEMP_MOS);
   #ifdef HW_HAS_DRV8301

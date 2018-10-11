@@ -95,8 +95,16 @@ namespace utils{
   void byte_to_binary(int x, char *b);
   float throttle_curve(float val, float curve_acc, float curve_brake, int mode);
 
-  void sys_lock_cnt(void);
-  void sys_unlock_cnt(void);
+  /**
+   * A system locking function with a counter. For every lock, a corresponding unlock must
+   * exist to unlock the system. That means, if lock is called five times, unlock has to
+   * be called five times as well.
+   * Note that chSysLock and chSysLockFromIsr are the same for this port.
+   */
+  struct sys_lock_scope_t{
+    sys_lock_scope_t();
+    ~sys_lock_scope_t();
+  };
 
   // Return the sign of the argument. -1 if negative, 1 if zero or positive.
   template<typename T>

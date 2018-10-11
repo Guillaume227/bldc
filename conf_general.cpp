@@ -331,7 +331,7 @@ namespace conf_general {
       mc_interface::unlock();
       mc_interface::release_motor();
 
-      utils::sys_lock_cnt();
+      utils::sys_lock_scope_t sys_lock;
       mc_interface::lock();
 
       RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
@@ -357,7 +357,6 @@ namespace conf_general {
 
       chThdSleepMilliseconds(100);
       mc_interface::unlock();
-      utils::sys_unlock_cnt();
 
       return is_ok;
   }
@@ -398,7 +397,7 @@ namespace conf_general {
       mc_interface::unlock();
       mc_interface::release_motor();
 
-      utils::sys_lock_cnt();
+      utils::sys_lock_scope_t sys_lock;
       mc_interface::lock();
 
       RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
@@ -424,7 +423,6 @@ namespace conf_general {
 
       chThdSleepMilliseconds(100);
       mc_interface::unlock();
-      utils::sys_unlock_cnt();
 
       return is_ok;
   }
