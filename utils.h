@@ -92,6 +92,37 @@ namespace utils{
     return T{max_abs(static_cast<float>(va), static_cast<float>(vb))};
   }
 
+  /**
+   * float-type wrapper that performs kahan summation
+   */
+  template<typename T>
+  class kahan_sum_t{
+    T m_running_sum;
+    T m_running_err = T{0.0};
+
+  public:
+
+    kahan_sum_t(T v = T{0.0}) : m_running_sum(v) {}
+
+    operator T const& () const {
+      return m_running_sum;
+    }
+
+    kahan_sum_t & operator=(T const& v) {
+      m_running_sum = v;
+      m_running_err = T{0};
+      return *this;
+    }
+
+    kahan_sum_t & operator+=(T const& v) {
+      auto difference = v - m_running_err;
+      auto temp = m_running_sum + difference;
+      m_running_err = (temp - m_running_sum) - difference;
+      m_running_sum = temp;
+      return *this;
+    }
+  };
+
   void byte_to_binary(int x, char *b);
   float throttle_curve(float val, float curve_acc, float curve_brake, int mode);
 
