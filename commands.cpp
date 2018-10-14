@@ -404,7 +404,7 @@ namespace commands{
   #endif
 
           conf_general::store_mc_configuration(&mcconf);
-          mc_interface::set_configuration(&mcconf);
+          mc_interface::set_configuration(mcconf);
           chThdSleepMilliseconds(200);
 
           ind = 0;
@@ -664,12 +664,12 @@ namespace commands{
           send_func_last = send_func;
 
           mcconf.motor_type = MOTOR_TYPE_FOC;
-          mc_interface::set_configuration(&mcconf);
+          mc_interface::set_configuration(mcconf);
 
           ohm_t r = 0_Ohm;
           microhenry_t l = 0_uH;
           bool res = mcpwm_foc::measure_res_ind(r, l);
-          mc_interface::set_configuration(&mcconf_old);
+          mc_interface::set_configuration(mcconf_old);
 
           if (!res) {
               r = 0_Ohm;
@@ -733,13 +733,13 @@ namespace commands{
               mcconf.foc_f_sw = 10'000_Hz;
               mcconf.foc_current_kp = 0.01_Ohm;
               mcconf.foc_current_ki = 10_Ohm / 1_s;
-              mc_interface::set_configuration(&mcconf);
+              mc_interface::set_configuration(mcconf);
 
               degree_t offset = 0_deg;
               float ratio = 0.0;
               bool inverted = false;
               mcpwm_foc::encoder_detect(current, false, offset, ratio, inverted);
-              mc_interface::set_configuration(&mcconf_old);
+              mc_interface::set_configuration(mcconf_old);
 
               ind = 0;
               send_buffer[ind++] = COMM_DETECT_ENCODER;
@@ -777,11 +777,11 @@ namespace commands{
               mcconf.foc_f_sw = 10'000_Hz;
               mcconf.foc_current_kp = 0.01_Ohm;
               mcconf.foc_current_ki = 10_Ohm / 1_s;
-              mc_interface::set_configuration(&mcconf);
+              mc_interface::set_configuration(mcconf);
 
               uint8_t hall_tab[8];
               bool res = mcpwm_foc::hall_detect(current, hall_tab);
-              mc_interface::set_configuration(&mcconf_old);
+              mc_interface::set_configuration(mcconf_old);
 
               ind = 0;
               send_buffer[ind++] = COMM_DETECT_HALL_FOC;

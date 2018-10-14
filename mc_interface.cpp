@@ -141,11 +141,11 @@ namespace mc_interface{
       chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO, sample_send_thread, NULL);
 
   #ifdef HW_HAS_DRV8301
-      drv8301_set_oc_mode(configuration->m_drv8301_oc_mode);
-      drv8301_set_oc_adj(configuration->m_drv8301_oc_adj);
+      drv8301_set_oc_mode(configuration.m_drv8301_oc_mode);
+      drv8301_set_oc_adj(configuration.m_drv8301_oc_adj);
   #elif defined(HW_HAS_DRV8320)
-      drv8320_set_oc_mode(configuration->m_drv8301_oc_mode);
-      drv8320_set_oc_adj(configuration->m_drv8301_oc_adj);
+      drv8320_set_oc_mode(configuration.m_drv8301_oc_mode);
+      drv8320_set_oc_adj(configuration.m_drv8301_oc_adj);
   #endif
 
       // Initialize encoder
@@ -184,13 +184,13 @@ namespace mc_interface{
       return m_conf;
   }
 
-  void set_configuration(mc_configuration *configuration) {
+  void set_configuration(mc_configuration const& configuration) {
   #if !WS2811_ENABLE
-      if (m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
+      if (m_conf.m_sensor_port_mode != configuration.m_sensor_port_mode) {
           encoder::deinit();
-          switch (configuration->m_sensor_port_mode) {
+          switch (configuration.m_sensor_port_mode) {
           case SENSOR_PORT_MODE_ABI:
-              encoder::init_abi(configuration->m_encoder_counts);
+              encoder::init_abi(configuration.m_encoder_counts);
               break;
 
           case SENSOR_PORT_MODE_AS5047_SPI:
@@ -202,31 +202,31 @@ namespace mc_interface{
           }
       }
 
-      if (configuration->m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {
-          encoder::set_counts(configuration->m_encoder_counts);
+      if (configuration.m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {
+          encoder::set_counts(configuration.m_encoder_counts);
       }
   #endif
 
   #ifdef HW_HAS_DRV8301
-      drv8301_set_oc_mode(configuration->m_drv8301_oc_mode);
-      drv8301_set_oc_adj(configuration->m_drv8301_oc_adj);
+      drv8301_set_oc_mode(configuration.m_drv8301_oc_mode);
+      drv8301_set_oc_adj(configuration.m_drv8301_oc_adj);
   #elif defined(HW_HAS_DRV8320)
-      drv8320_set_oc_mode(configuration->m_drv8301_oc_mode);
-      drv8320_set_oc_adj(configuration->m_drv8301_oc_adj);
+      drv8320_set_oc_mode(configuration.m_drv8301_oc_mode);
+      drv8320_set_oc_adj(configuration.m_drv8301_oc_adj);
   #endif
 
       if (m_conf.motor_type == MOTOR_TYPE_FOC
-              && configuration->motor_type != MOTOR_TYPE_FOC) {
+              && configuration.motor_type != MOTOR_TYPE_FOC) {
           mcpwm_foc::deinit();
-          m_conf = *configuration;
+          m_conf = configuration;
           mcpwm::init(&m_conf);
       } else if (m_conf.motor_type != MOTOR_TYPE_FOC
-              && configuration->motor_type == MOTOR_TYPE_FOC) {
+              && configuration.motor_type == MOTOR_TYPE_FOC) {
           mcpwm::deinit();
-          m_conf = *configuration;
+          m_conf = configuration;
           mcpwm_foc::init(&m_conf);
       } else {
-          m_conf = *configuration;
+          m_conf = configuration;
       }
 
       update_override_limits(&m_conf);
@@ -1314,7 +1314,7 @@ namespace mc_interface{
               }
 
               m_vzero_samples[m_sample_now] = zero;
-              m_curr_fir_samples[m_sample_now] = (int16_t)(get_tot_current() * (8.0 / FAC_CURRENT));
+              m_curr_fir_samples[m_sample_now] = (int16_t)(get_tot_current() * (8.0 / hw::FAC_CURRENT));
               m_f_sw_samples[m_sample_now] = (int16_t)(f_samp / 10.0);
               m_status_samples[m_sample_now] = mcpwm::get_comm_step() | (mcpwm::read_hall_phase() << 3);
 
@@ -1604,9 +1604,9 @@ namespace mc_interface{
 
               using buffer::append_float32_auto;
               buffer[index++] = COMM_SAMPLE_PRINT;
-              append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
-              append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
-              append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
+              append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * hw::FAC_CURRENT, &index);
+              append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * hw::FAC_CURRENT, &index);
+              //append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
 
               volt_t const zeroV = PHASE_VOLTAGE_FROM_ADC(m_vzero_samples[ind_samp]);
               append_float32_auto(buffer, PHASE_VOLTAGE_FROM_ADC(m_ph1_samples[ind_samp]) - zeroV, &index);
@@ -1614,7 +1614,7 @@ namespace mc_interface{
               append_float32_auto(buffer, PHASE_VOLTAGE_FROM_ADC(m_ph3_samples[ind_samp]) - zeroV, &index);
               append_float32_auto(buffer, zeroV, &index);
 
-              append_float32_auto(buffer, (float)m_curr_fir_samples[ind_samp] / (8.0 / FAC_CURRENT), &index);
+              append_float32_auto(buffer, (float)m_curr_fir_samples[ind_samp] / (8.0 / hw::FAC_CURRENT), &index);
               append_float32_auto(buffer, (float)m_f_sw_samples[ind_samp] * 10.0, &index);
               buffer[index++] = m_status_samples[ind_samp];
               buffer[index++] = m_phase_samples[ind_samp];
@@ -1638,7 +1638,7 @@ namespace mc_interface{
       static float potVal = 0; // potentiometer position 0 to 100
       static float dutyCycle = 0;
 
-      potVal = .90 * potVal + .10 * ADC_Value[ADC_IND_POT]/ADC_RES; // 0 to 100
+      potVal = .90 * potVal + .10 * ADC_Value[ADC_IND_POT]/hw::ADC_RES; // 0 to 100
 
       // flag to detect whether dutycycle was set from this method.
       // Only stops if it was started here, so we allow setting dutycle

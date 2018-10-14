@@ -1559,7 +1559,7 @@ namespace mcpwm_foc{
         TIMER_UPDATE_DUTY(duty_cnt, 0, duty_cnt);
         break;
     case 3:
-        m_samples.avg_current_tot -= ADC_curr_norm_value[1] * FAC_CURRENT;
+        m_samples.avg_current_tot += -ADC_curr_norm_value[1] * hw::FAC_CURRENT;
         m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
         m_samples.sample_num++;
         TIMER_UPDATE_DUTY(0, 0, 0);
@@ -1568,7 +1568,7 @@ namespace mcpwm_foc{
         TIMER_UPDATE_DUTY(0, duty_cnt, duty_cnt);
         break;
     case 6:
-        m_samples.avg_current_tot -= ADC_curr_norm_value[0] * FAC_CURRENT;
+        m_samples.avg_current_tot += -ADC_curr_norm_value[0] * hw::FAC_CURRENT;
         m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
         m_samples.sample_num++;
         TIMER_UPDATE_DUTY(0, 0, 0);
@@ -1581,7 +1581,7 @@ namespace mcpwm_foc{
 #endif
         break;
     case 9:
-        m_samples.avg_current_tot -= ADC_curr_norm_value[2] * FAC_CURRENT;
+        m_samples.avg_current_tot += -ADC_curr_norm_value[2] * hw::FAC_CURRENT;
         m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
         m_samples.sample_num++;
         stop_pwm_hw();
@@ -1735,8 +1735,8 @@ namespace mcpwm_foc{
     auto const phase_diff = angle_difference_rad(m_motor_state.phase, phase_before);
     phase_before = m_motor_state.phase;
 
-    ampere_t ia = ADC_curr_norm_value[0] * FAC_CURRENT;
-    ampere_t ib = ADC_curr_norm_value[1] * FAC_CURRENT;
+    ampere_t ia = ADC_curr_norm_value[0] * hw::FAC_CURRENT;
+    ampere_t ib = ADC_curr_norm_value[1] * hw::FAC_CURRENT;
 //    float ic = -(ia + ib);
 
     // Clarke transform assuming balanced currents

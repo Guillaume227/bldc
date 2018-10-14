@@ -445,7 +445,7 @@ namespace conf_general {
       mcconf.sl_cycle_int_limit = 50_Wb;
       mcconf.sl_min_erpm_cycle_int_limit = 1100_rpm;
       mcconf.m_invert_direction = false;
-      mc_interface::set_configuration(&mcconf);
+      mc_interface::set_configuration(mcconf);
 
       // Wait maximum 5s for fault code to disappear
       for (int i = 0;i < 500;i++) {
@@ -479,7 +479,7 @@ namespace conf_general {
               mcconf.sl_min_erpm = 2 * min_rpm;
               mcconf.sl_cycle_int_limit = 20_Wb;
               mc_interface::lock_override_once();
-              mc_interface::set_configuration(&mcconf);
+              mc_interface::set_configuration(mcconf);
               chThdSleepMilliseconds(1000);
               mc_interface::lock_override_once();
               mc_interface::set_current(current);
@@ -489,7 +489,7 @@ namespace conf_general {
               mcconf.sl_min_erpm = 4 * min_rpm;
               mcconf.comm_mode = COMM_MODE_DELAY;
               mc_interface::lock_override_once();
-              mc_interface::set_configuration(&mcconf);
+              mc_interface::set_configuration(mcconf);
               chThdSleepMilliseconds(1000);
               mc_interface::lock_override_once();
               mc_interface::set_current(current);
@@ -527,7 +527,7 @@ namespace conf_general {
       if (!started) {
           mc_interface::set_current(0_A);
           timeout::configure(tout, tout_c);
-          mc_interface::set_configuration(&mcconf_old);
+          mc_interface::set_configuration(mcconf_old);
           mc_interface::unlock();
           return false;
       }
@@ -612,7 +612,7 @@ namespace conf_general {
       bemf_coupling_k = avg_cycle_integrator_running * avg_rpm / volt_t{PHASE_ADJ_VBUS_ADC};
 
       // Restore settings
-      mc_interface::set_configuration(&mcconf_old);
+      mc_interface::set_configuration(mcconf_old);
       timeout::configure(tout, tout_c);
 
       mc_interface::unlock();
@@ -655,7 +655,7 @@ namespace conf_general {
       mcconf.sl_bemf_coupling_k = 300_Wb * 1_rpm / 1_V;
       mcconf.sl_cycle_int_limit = 50_Wb;
       mcconf.sl_min_erpm_cycle_int_limit = 1100_rpm;
-      mc_interface::set_configuration(&mcconf);
+      mc_interface::set_configuration(mcconf);
 
       // Wait maximum 5s for fault code to disappear
       for (int i = 0;i < 500;i++) {
@@ -689,7 +689,7 @@ namespace conf_general {
               mc_interface::release_motor();
               mcconf.sl_cycle_int_limit = 250_Wb;
               mc_interface::lock_override_once();
-              mc_interface::set_configuration(&mcconf);
+              mc_interface::set_configuration(mcconf);
               chThdSleepMilliseconds(1000);
               mc_interface::lock_override_once();
               mc_interface::set_current(current);
@@ -699,7 +699,7 @@ namespace conf_general {
               mcconf.sl_min_erpm = 2 * min_erpm;
               mcconf.sl_cycle_int_limit = 20_Wb;
               mc_interface::lock_override_once();
-              mc_interface::set_configuration(&mcconf);
+              mc_interface::set_configuration(mcconf);
               chThdSleepMilliseconds(1000);
               mc_interface::lock_override_once();
               mc_interface::set_current(current);
@@ -709,7 +709,7 @@ namespace conf_general {
               mcconf.sl_min_erpm = 4 * min_erpm;
               mcconf.comm_mode = COMM_MODE_DELAY;
               mc_interface::lock_override_once();
-              mc_interface::set_configuration(&mcconf);
+              mc_interface::set_configuration(mcconf);
               chThdSleepMilliseconds(1000);
               mc_interface::lock_override_once();
               mc_interface::set_current(current);
@@ -747,7 +747,7 @@ namespace conf_general {
       if (!started) {
           mc_interface::set_current(0_A);
           timeout::configure(tout, tout_c);
-          mc_interface::set_configuration(&mcconf_old);
+          mc_interface::set_configuration(mcconf_old);
           mc_interface::unlock();
           return false;
       }
@@ -768,7 +768,7 @@ namespace conf_general {
       }
 
       timeout::configure(tout, tout_c);
-      mc_interface::set_configuration(&mcconf_old);
+      mc_interface::set_configuration(mcconf_old);
       mc_interface::unlock();
       mc_interface::set_current(0_A);
 

@@ -258,7 +258,7 @@ namespace terminal{
                   if (encoder::is_configured()) {
                       mc_motor_type type_old = mcconf.motor_type;
                       mcconf.motor_type = MOTOR_TYPE_FOC;
-                      mc_interface::set_configuration(&mcconf);
+                      mc_interface::set_configuration(mcconf);
 
                       degree_t offset = 0_deg;
                       float ratio = 0.0;
@@ -266,7 +266,7 @@ namespace terminal{
                       mcpwm_foc::encoder_detect(current, true, offset, ratio, inverted);
 
                       mcconf.motor_type = type_old;
-                      mc_interface::set_configuration(&mcconf);
+                      mc_interface::set_configuration(mcconf);
 
                       printf("Offset   : %.2f", (double)offset);
                       printf("Ratio    : %.2f", (double)ratio);
@@ -287,11 +287,11 @@ namespace terminal{
 
               if (current > 0_A && current <= mcconf.l_current_max) {
                   mcconf.motor_type = MOTOR_TYPE_FOC;
-                  mc_interface::set_configuration(&mcconf);
+                  mc_interface::set_configuration(mcconf);
 
                   printf("Resistance: %.6f ohm\n", (double)mcpwm_foc::measure_resistance(current, 2000));
 
-                  mc_interface::set_configuration(&mcconf_old);
+                  mc_interface::set_configuration(mcconf_old);
               } else {
                   printf("Invalid argument(s).\n");
               }
@@ -306,13 +306,13 @@ namespace terminal{
               if (duty > 0.0 && duty < 0.9) {
                   mcconf.motor_type = MOTOR_TYPE_FOC;
                   mcconf.foc_f_sw = 3000_Hz;
-                  mc_interface::set_configuration(&mcconf);
+                  mc_interface::set_configuration(mcconf);
 
                   ampere_t curr;
                   auto ind = mcpwm_foc::measure_inductance(duty, 200, &curr);
                   printf("Inductance: %.2f microhenry (%.2f A)\n", (double)ind, (double)curr);
 
-                  mc_interface::set_configuration(&mcconf_old);
+                  mc_interface::set_configuration(mcconf_old);
               } else {
                   printf("Invalid argument(s).\n");
               }
@@ -342,7 +342,7 @@ namespace terminal{
           }
       } else if (strcmp(argv[0], "measure_res_ind") == 0) {
           mcconf.motor_type = MOTOR_TYPE_FOC;
-          mc_interface::set_configuration(&mcconf);
+          mc_interface::set_configuration(mcconf);
 
           ohm_t res = 0.0_Ohm;
           microhenry_t ind = 0.0_uH;
@@ -350,7 +350,7 @@ namespace terminal{
           printf("Resistance: %.6f ohm", (double)res);
           printf("Inductance: %.2f microhenry\n", (double)ind);
 
-          mc_interface::set_configuration(&mcconf_old);
+          mc_interface::set_configuration(mcconf_old);
       } else if (strcmp(argv[0], "measure_linkage_foc") == 0) {
           if (argc == 2) {
               float duty = -1.0;
@@ -358,7 +358,7 @@ namespace terminal{
 
               if (duty > 0.0) {
                   mcconf.motor_type = MOTOR_TYPE_FOC;
-                  mc_interface::set_configuration(&mcconf);
+                  mc_interface::set_configuration(mcconf);
                   auto const res = (3.0 / 2.0) * mcconf.foc_motor_r;
 
                   // Disable timeout
@@ -385,7 +385,7 @@ namespace terminal{
                   }
 
                   mc_interface::release_motor();
-                  mc_interface::set_configuration(&mcconf_old);
+                  mc_interface::set_configuration(mcconf_old);
 
                   // Enable timeout
                   timeout::configure(tout, tout_c);

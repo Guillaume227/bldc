@@ -126,60 +126,64 @@
 #define ADC_IND_VREFINT			12
 
 // ADC macros and settings
+namespace hw{
+  constexpr float ADC_RES = 4095.0;
+  constexpr volt_t V_REG	=		3.3_V;
 
-#define V_REG					3.3_V
 
 #ifdef HW_IS_IHM0xM1
-#define VIN_R1					169_kOhm
-#define VIN_R2					9.31_kOhm
+  constexpr ohm_t VIN_R1 = 169_kOhm;
+  constexpr ohm_t VIN_R2 = 9.31_kOhm;
 #else
-#define VIN_R1					39_kOhm
-#define VIN_R2					2.2_kOhm
+  constexpr ohm_t VIN_R1 = 39_kOhm;
+  constexpr ohm_t VIN_R2 = 2.2_kOhm;
+#endif
+
+  // Input voltage
+  constexpr float VOLTAGE_DIVIDER = ((VIN_R1 + VIN_R2) / VIN_R2);
+
+#ifdef HW_IS_IHM07M1
+  constexpr float CURRENT_AMP_GAIN = 1.528;
+#elif defined(HW_IS_IHM08M1)
+  constexpr float CURRENT_AMP_GAIN = 5.18;
+#else
+  constexpr float CURRENT_AMP_GAIN = 20.0;
 #endif
 
 #ifdef HW_IS_IHM07M1
-#define CURRENT_AMP_GAIN		1.528
+  constexpr ohm_t CURRENT_SHUNT_RES = 0.33_Ohm;
 #elif defined(HW_IS_IHM08M1)
-#define CURRENT_AMP_GAIN		5.18
+  constexpr ohm_t CURRENT_SHUNT_RES = 0.01_Ohm;
 #else
-#define CURRENT_AMP_GAIN		20.0
+  constexpr ohm_t CURRENT_SHUNT_RES = 0.0005_Ohm;
 #endif
 
-#ifdef HW_IS_IHM07M1
-#define CURRENT_SHUNT_RES		0.33_Ohm
-#elif defined(HW_IS_IHM08M1)
-#define CURRENT_SHUNT_RES		0.01_Ohm
-#else
-#define CURRENT_SHUNT_RES		0.0005_Ohm
-#endif
+  // Current ADC to amperes factor
+  constexpr ampere_t FAC_CURRENT = ((V_REG / ADC_RES) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN));
+  constexpr ampere_t MAX_ADC_CURRENT = ADC_RES * FAC_CURRENT;
 
-#define ADC_RES 4095.0
-
-// Voltage on ADC channel
-#define ADC_TO_VOLTS(adc_val)   ((adc_val) * V_REG / ADC_RES)
+  // Voltage on ADC channel
+#define ADC_TO_VOLTS(adc_val)   ((adc_val) * hw::V_REG / hw::ADC_RES)
 #define VOLTS_FROM_ADC_CH(ch)   ADC_TO_VOLTS(ADC_Value[ch])
 
-// Input voltage
-#define VOLTAGE_DIVIDER        ((VIN_R1 + VIN_R2) / VIN_R2)
-#define GET_INPUT_VOLTAGE()	   (VOLTS_FROM_ADC_CH(ADC_IND_VIN_SENS) * VOLTAGE_DIVIDER)
+#define GET_INPUT_VOLTAGE()	   (VOLTS_FROM_ADC_CH(ADC_IND_VIN_SENS) * hw::VOLTAGE_DIVIDER)
 
 // converts straight adc reading to BEMF voltage
 #ifdef HW_IS_IHM0xM1
 
-// Phase Voltage
-#define R39_IHM0X 10_kOhm // 10k ohms
-#define R36_IHM0X 2.2_kOhm  // 2.2k ohms
-#define V_D_IHM0X 0.3_V  // schotky BAT30kFILM typical voltage drop
-#define PHASE_DIVIDER ((R39_IHM0X + R36_IHM0X) / R36_IHM0X)
+  // Phase Voltage
+  constexpr ohm_t R39_IHM0X = 10_kOhm;
+  constexpr ohm_t R36_IHM0X = 2.2_kOhm;
+  constexpr volt_t V_D_IHM0X = 0.3_V;  // schotky BAT30kFILM typical voltage drop
+  constexpr float PHASE_DIVIDER = ((R39_IHM0X + R36_IHM0X) / R36_IHM0X);
 
-
-#define SCALE_V_P(V)    (V * VOLTAGE_DIVIDER / PHASE_DIVIDER)
-#define CONV_ADC_V(adcVal)   (float)(((adcVal) * VOLTAGE_DIVIDER + V_D_IHM0X * ADC_RES / V_REG * (PHASE_DIVIDER-1)) / PHASE_DIVIDER)
+#define SCALE_V_P(V)    (V * hw::VOLTAGE_DIVIDER / hw::PHASE_DIVIDER)
+#define CONV_ADC_V(adcVal)   (float)(((adcVal) * hw::VOLTAGE_DIVIDER + hw::V_D_IHM0X * hw::ADC_RES / hw::V_REG * (hw::PHASE_DIVIDER-1)) / hw::PHASE_DIVIDER)
 #define PHASE_ADJ_VBUS_ADC   CONV_ADC_V(ADC_Value[ADC_IND_VIN_SENS])
-#define PHASE_VOLTAGE_FROM_ADC(adc_val) ((ADC_TO_VOLTS(adc_val) - V_D_IHM0X ) * PHASE_DIVIDER + V_D_IHM0X)
+#define PHASE_VOLTAGE_FROM_ADC(adc_val) ((ADC_TO_VOLTS(adc_val) - hw::V_D_IHM0X ) * hw::PHASE_DIVIDER + hw::V_D_IHM0X)
 
 #else
-#define PHASE_VOLTAGE_FROM_ADC(adc_val) (ADC_TO_VOLTS(adc_val) * VOLTAGE_DIVIDER)
+#define PHASE_VOLTAGE_FROM_ADC(adc_val) (ADC_TO_VOLTS(adc_val) * hw::VOLTAGE_DIVIDER)
 
 #define CONV_ADC_V(adcVal)	((float)(adcVal))
 #define SCALE_V_P(V)		(V) // no adjustment
@@ -191,13 +195,13 @@
 // NTC Termistors
 #define NTC_CONV(val)           (10 * val / (5.3 * val + 4.7))
 #define NTC_RES_2               4700.0
-#define NTC_RES(adc_val)		((ADC_RES * NTC_RES_2) / adc_val - NTC_RES_2)
+#define NTC_RES(adc_val)		((hw::ADC_RES * NTC_RES_2) / adc_val - NTC_RES_2)
 #define NTC_BETA_TEMP           3380.0
 #define NTC_REF_RES             10000.0 // resistor value at NTC_REF_TEMP deg
 #define NTC_REF_TEMP            298.15 // 25 deg
 #define NTC_TEMP(adc_ind)		celsius_t(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / NTC_REF_RES) / NTC_BETA_TEMP) + (1.0 / NTC_REF_TEMP)) - 273.15)
 
-#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((ADC_RES / (float)adc_val) - 1.0)) // Motor temp sensor on low side
+#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((hw::ADC_RES / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)    celsius_t(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 // Double samples in beginning and end for positive current measurement.
@@ -211,6 +215,8 @@
 #ifndef CURR3_DOUBLE_SAMPLE
 #define CURR3_DOUBLE_SAMPLE		FALSE
 #endif
+
+}
 
 // Number of servo outputs
 #define HW_SERVO_NUM			2

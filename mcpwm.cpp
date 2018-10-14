@@ -1130,7 +1130,11 @@ namespace mcpwm {
 
     // Too low RPM set. Stop and return.
     if (fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
+#if BLDC_SPEED_CONTROL_CURRENT
+      i_term = 0_rpm;
+#else
       i_term = m_dutycycle_now;
+#endif
       prev_error = error;
       set_duty(0.0);
       return;
@@ -1648,7 +1652,7 @@ namespace mcpwm {
 
     process_detecting();
 
-    m_last_current_sample = curr_tot_sample * FAC_CURRENT;
+    m_last_current_sample = curr_tot_sample * hw::FAC_CURRENT;
 
     // Filter out outliers
     if (fabsf(m_last_current_sample) > (m_conf->l_abs_current_max * 1.2)) {

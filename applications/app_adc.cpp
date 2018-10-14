@@ -125,7 +125,7 @@ namespace app {
             }
 
             // Read the external ADC pin and convert the value to a voltage.
-            volt_t const read_voltage = ADC_Value[ADC_IND_EXT] / 4095 * V_REG;
+            volt_t const read_voltage = VOLTS_FROM_ADC_CH(ADC_IND_EXT);
 
             auto pwr = static_cast<float>(read_voltage);
 

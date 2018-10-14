@@ -129,10 +129,7 @@ constexpr volt_t LED_EXT_BATT_HIGH = 33_V;
 #define SERVO_OUT_RATE_HZ			50		// Update rate in Hz
 
 // Correction factor for computations that depend on the old resistor division factor
-#define VDIV_CORR					((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2_kOhm / (2.2_kOhm + 33.0_kOhm)))
-
-// Current ADC to amperes factor
-#define FAC_CURRENT ((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
+#define VDIV_CORR					((hw::VIN_R2 / (hw::VIN_R2 + hw::VIN_R1)) / (2.2_kOhm / (2.2_kOhm + 33.0_kOhm)))
 
 // Actual voltage on 3.3V net based on internal reference
 //#define V_REG						(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
