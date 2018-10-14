@@ -1196,23 +1196,27 @@ namespace mcpwm_foc{
    */
   ohm_t measure_resistance(ampere_t current, size_t samples) {
 
-      PhaseOverride lockedCurrentContext(0_A, current);
+        PhaseOverride lockedCurrentContext(0_A, current);
 
-      // Wait for the current to rise and the motor to lock.
-      chThdSleepMilliseconds(500);
+        // Wait for the current to rise and the motor to lock.
+        chThdSleepMilliseconds(2000);
 
-      // Sample
-      m_samples.reset();
+        // Sample
+        m_samples.reset();
 
-      for(size_t cnt = 0;
-          cnt <= 10000 && m_samples.sample_num < samples;
-          cnt++)
-      {
-          chThdSleepMilliseconds(1);
-      }
-
+        for(size_t cnt = 0;
+            cnt <= 10000 && m_samples.sample_num < samples;
+            cnt++)
+        {
+            chThdSleepMilliseconds(1);
+        }
       auto const current_avg = m_samples.get_avg_current();
       auto const voltage_avg = m_samples.get_avg_voltage();
+
+      //commands::printf("duty cycle  %f", (double) mc_interface::get_duty_cycle_now());
+      //commands::printf("current set %f", (double) current);
+      //commands::printf("current_avg %f", (double) current_avg);
+      //commands::printf("voltage_avg %f", (double) voltage_avg);
 
       return (voltage_avg / current_avg) * (2.0 / 3.0);
   }
@@ -1295,12 +1299,14 @@ namespace mcpwm_foc{
       m_conf->foc_current_kp = 0.01_Ohm;
       m_conf->foc_current_ki = 10_Ohm / 1_s;
 
+      //commands::printf("\nmeasuring R");
       uint32_t top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
       ohm_t res_tmp = 0_Ohm;
       ampere_t i_last = 0_A;
       for (ampere_t i = 2_A; i < (m_conf->l_current_max / 2); i *= 1.5) {
+          //commands::printf("iteration i=%f", (double)i);
           res_tmp = measure_resistance(i, 20);
 
           if (i * res_tmp > 1_V) {
@@ -2281,7 +2287,7 @@ namespace mcpwm_foc{
 
       // TODO: Have a look at this?
       state_m.i_bus = state_m.mod_d * state_m.id + state_m.mod_q * state_m.iq;
-      state_m.i_abs = units::math::sqrt(SQ(state_m.id) + SQ(state_m.iq));
+      state_m.i_abs        = units::math::sqrt(SQ(state_m.id) + SQ(state_m.iq));
       state_m.i_abs_filter = units::math::sqrt(SQ(state_m.id_filter) + SQ(state_m.iq_filter));
 
       float mod_alpha = c * state_m.mod_d - s * state_m.mod_q;

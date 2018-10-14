@@ -198,7 +198,7 @@ int main(void) {
 
 	mc_configuration mcconf;
 	conf_general::read_mc_configuration(&mcconf);
-	mc_interface::init(&mcconf);
+	mc_interface::init(mcconf);
 
 	commands::init();
 	comm::usb::init();

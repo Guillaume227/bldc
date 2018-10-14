@@ -25,17 +25,17 @@
 namespace mc_interface{
 
   // Functions
-  void init(mc_configuration const*configuration);
+  void init(mc_configuration const& configuration);
   mc_configuration const& get_configuration(void);
   void set_configuration(mc_configuration const& configuration);
-/*
-  class conf_context_t{
+
+  class mc_config_context_t{
     mc_configuration m_config_save;
 
-    conf_context_t(): m_config_save(get_configuration()){}
-    ~conf_context_t(){ set_configuration(m_config_save); }
+    mc_config_context_t(): m_config_save(get_configuration()){}
+    ~mc_config_context_t(){ set_configuration(m_config_save); }
   };
-*/
+
   void set_pwm_callback(void (*p_func)(void));
   void lock(void);
   void unlock(void);

@@ -93,7 +93,7 @@ namespace mc_interface{
   volatil_ second_t m_last_adc_duration_sample;
 
   // Private functions
-  void update_override_limits(volatil_ mc_configuration *conf);
+  void update_override_limits(volatil_ mc_configuration& conf);
 
   // Function pointers
   void(*pwn_done_func)(void) = 0;
@@ -105,8 +105,8 @@ namespace mc_interface{
   THD_FUNCTION(sample_send_thread, arg);
   thread_t *sample_send_tp;
 
-  void init(mc_configuration const*configuration) {
-      m_conf = *configuration;
+  void init(mc_configuration const& configuration) {
+      m_conf = configuration;
       m_fault_now = FAULT_CODE_NONE;
       m_ignore_iterations = 0_ms;
       m_cycles_running = 0;
@@ -229,7 +229,7 @@ namespace mc_interface{
           m_conf = configuration;
       }
 
-      update_override_limits(&m_conf);
+      update_override_limits(m_conf);
 
       switch (m_conf.motor_type) {
       case MOTOR_TYPE_BLDC:
@@ -1346,174 +1346,180 @@ namespace mc_interface{
    * @param conf
    * The configuration to update.
    */
-  void update_override_limits(volatil_ mc_configuration *conf) {
+  void update_override_limits(volatil_ mc_configuration& conf) {
       auto const v_in = GET_INPUT_VOLTAGE();
-      auto const rpm_now = get_rpm();
+      {
+          auto const rpm_now = get_rpm();
 
-      UTILS_LP_FAST(m_temp_fet,   NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
-      UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
+          UTILS_LP_FAST(m_temp_fet,   NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
+          UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf.m_ntc_motor_beta), 0.1);
 
-      // Temperature MOSFET
-      auto lo_min_mos = conf->l_current_min;
-      auto lo_max_mos = conf->l_current_max;
-      if (m_temp_fet < conf->l_temp_fet_start) {
-          // Keep values
-      } else if (m_temp_fet > conf->l_temp_fet_end) {
-          lo_min_mos = 0_A;
-          lo_max_mos = 0_A;
-          fault_stop(FAULT_CODE_OVER_TEMP_FET);
-      } else {
-          ampere_t maxc = fabsf(conf->l_current_max);
-          if (fabsf(conf->l_current_min) > maxc) {
-              maxc = fabsf(conf->l_current_min);
+          // Temperature MOSFET
+          auto lo_min_mos = conf.l_current_min;
+          auto lo_max_mos = conf.l_current_max;
+          if (m_temp_fet < conf.l_temp_fet_start) {
+              // Keep values
+          } else if (m_temp_fet > conf.l_temp_fet_end) {
+              lo_min_mos = 0_A;
+              lo_max_mos = 0_A;
+              fault_stop(FAULT_CODE_OVER_TEMP_FET);
+          } else {
+              ampere_t maxc = fabsf(conf.l_current_max);
+              if (fabsf(conf.l_current_min) > maxc) {
+                  maxc = fabsf(conf.l_current_min);
+              }
+
+              maxc = utils::map(m_temp_fet,
+                                conf.l_temp_fet_start,
+                                conf.l_temp_fet_end,
+                                maxc,
+                                0.0_A);
+              using utils::SIGN;
+              if (fabsf(conf.l_current_min) > maxc) {
+                  lo_min_mos = SIGN(conf.l_current_min) * maxc;
+              }
+
+              if (fabsf(conf.l_current_max) > maxc) {
+                  lo_max_mos = SIGN(conf.l_current_max) * maxc;
+              }
           }
 
-          maxc = utils::map(m_temp_fet,
-                            conf->l_temp_fet_start,
-                            conf->l_temp_fet_end,
-                            maxc,
-                            0.0_A);
-          using utils::SIGN;
-          if (fabsf(conf->l_current_min) > maxc) {
-              lo_min_mos = SIGN(conf->l_current_min) * maxc;
+          // Temperature MOTOR
+          auto lo_min_mot = conf.l_current_min;
+          auto lo_max_mot = conf.l_current_max;
+          if (m_temp_motor < conf.l_temp_motor_start) {
+              // Keep values
+          } else if (m_temp_motor > conf.l_temp_motor_end) {
+              lo_min_mot = 0_A;
+              lo_max_mot = 0_A;
+              fault_stop(FAULT_CODE_OVER_TEMP_MOTOR);
+          } else {
+              ampere_t maxc = fabsf(conf.l_current_max);
+              if (fabsf(conf.l_current_min) > maxc) {
+                  maxc = fabsf(conf.l_current_min);
+              }
+
+              maxc = utils::map(m_temp_motor,
+                                conf.l_temp_motor_start,
+                                conf.l_temp_motor_end,
+                                maxc,
+                                0.0_A);
+
+              using utils::SIGN;
+              if (fabsf(conf.l_current_min) > maxc) {
+                  lo_min_mot = SIGN(conf.l_current_min) * maxc;
+              }
+
+              if (fabsf(conf.l_current_max) > maxc) {
+                  lo_max_mot = SIGN(conf.l_current_max) * maxc;
+              }
           }
 
-          if (fabsf(conf->l_current_max) > maxc) {
-              lo_max_mos = SIGN(conf->l_current_max) * maxc;
-          }
-      }
+          // Decreased temperatures during acceleration
+          // in order to still have braking torque available
+          //float x, float in_min, float in_max, float out_min, float out_max
+          //return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+          //conf.l_temp_accel_dec * (25.0 - conf.l_temp_fet_start) + conf.l_temp_fet_start
+          celsius_t const temp_fet_accel_start   = utils::map(conf.l_temp_accel_dec, 0_degC, 1_degC, conf.l_temp_fet_start,   25_degC);
+          celsius_t const temp_fet_accel_end     = utils::map(conf.l_temp_accel_dec, 0_degC, 1_degC, conf.l_temp_fet_end,     25_degC);
+          celsius_t const temp_motor_accel_start = utils::map(conf.l_temp_accel_dec, 0_degC, 1_degC, conf.l_temp_motor_start, 25_degC);
+          celsius_t const temp_motor_accel_end   = utils::map(conf.l_temp_accel_dec, 0_degC, 1_degC, conf.l_temp_motor_end,   25_degC);
 
-      // Temperature MOTOR
-      auto lo_min_mot = conf->l_current_min;
-      auto lo_max_mot = conf->l_current_max;
-      if (m_temp_motor < conf->l_temp_motor_start) {
-          // Keep values
-      } else if (m_temp_motor > conf->l_temp_motor_end) {
-          lo_min_mot = 0_A;
-          lo_max_mot = 0_A;
-          fault_stop(FAULT_CODE_OVER_TEMP_MOTOR);
-      } else {
-          ampere_t maxc = fabsf(conf->l_current_max);
-          if (fabsf(conf->l_current_min) > maxc) {
-              maxc = fabsf(conf->l_current_min);
-          }
-
-          maxc = utils::map(m_temp_motor,
-                            conf->l_temp_motor_start,
-                            conf->l_temp_motor_end,
-                            maxc,
-                            0.0_A);
-
-          using utils::SIGN;
-          if (fabsf(conf->l_current_min) > maxc) {
-              lo_min_mot = SIGN(conf->l_current_min) * maxc;
+          ampere_t lo_fet_temp_accel = 0_A;
+          if (m_temp_fet < temp_fet_accel_start) {
+              lo_fet_temp_accel = conf.l_current_max;
+          } else if (m_temp_fet > temp_fet_accel_end) {
+              lo_fet_temp_accel = 0_A;
+          } else {
+              lo_fet_temp_accel = utils::map(m_temp_fet,
+                                             temp_fet_accel_start,
+                                             temp_fet_accel_end,
+                                             conf.l_current_max,
+                                             0.0_A);
           }
 
-          if (fabsf(conf->l_current_max) > maxc) {
-              lo_max_mot = SIGN(conf->l_current_max) * maxc;
+          ampere_t lo_motor_temp_accel = 0_A;
+          if (m_temp_motor < temp_motor_accel_start) {
+              lo_motor_temp_accel = conf.l_current_max;
+          } else if (m_temp_motor > temp_motor_accel_end) {
+              lo_motor_temp_accel = 0_A;
+          } else {
+              lo_motor_temp_accel = utils::map(m_temp_motor,
+                                               temp_motor_accel_start,
+                                               temp_motor_accel_end,
+                                               conf.l_current_max,
+                                               0.0_A);
           }
+
+          // RPM max
+          ampere_t lo_max_rpm = 0.0_A;
+          auto const rpm_pos_cut_start = conf.l_max_erpm * conf.l_erpm_start;
+          auto const rpm_pos_cut_end = conf.l_max_erpm;
+          if (rpm_now < rpm_pos_cut_start) {
+              lo_max_rpm = conf.l_current_max;
+          } else if (rpm_now > rpm_pos_cut_end) {
+              lo_max_rpm = 0.0_A;
+          } else {
+              lo_max_rpm = utils::map(rpm_now, rpm_pos_cut_start, rpm_pos_cut_end, conf.l_current_max, 0.0_A);
+          }
+
+          // RPM min
+          ampere_t lo_min_rpm = 0.0_A;
+          auto const rpm_neg_cut_start = conf.l_min_erpm * conf.l_erpm_start;
+          auto const rpm_neg_cut_end = conf.l_min_erpm;
+          if (rpm_now > rpm_neg_cut_start) {
+              lo_min_rpm = conf.l_current_max;
+          } else if (rpm_now < rpm_neg_cut_end) {
+              lo_min_rpm = 0.0_A;
+          } else {
+              lo_min_rpm = utils::map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, conf.l_current_max, 0.0_A);
+          }
+
+          auto lo_max = utils::min_abs(lo_max_mos, lo_max_mot);
+          auto lo_min = utils::min_abs(lo_min_mos, lo_min_mot);
+
+          lo_max = utils::min_abs(lo_max, lo_max_rpm);
+          lo_max = utils::min_abs(lo_max, lo_min_rpm);
+          lo_max = utils::min_abs(lo_max, lo_fet_temp_accel);
+          lo_max = utils::min_abs(lo_max, lo_motor_temp_accel);
+
+          if (lo_max < conf.cc_min_current) {
+              lo_max = conf.cc_min_current;
+          }
+
+          if (lo_min > -conf.cc_min_current) {
+              lo_min = -conf.cc_min_current;
+          }
+
+          conf.lo_current_max = lo_max;
+          conf.lo_current_min = lo_min;
       }
 
-      // Decreased temperatures during acceleration
-      // in order to still have braking torque available
-      //float x, float in_min, float in_max, float out_min, float out_max
-      //return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-      //conf->l_temp_accel_dec * (25.0 - conf->l_temp_fet_start) + conf->l_temp_fet_start
-      celsius_t const temp_fet_accel_start   = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_fet_start,   25_degC);
-      celsius_t const temp_fet_accel_end     = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_fet_end,     25_degC);
-      celsius_t const temp_motor_accel_start = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_motor_start, 25_degC);
-      celsius_t const temp_motor_accel_end   = utils::map(conf->l_temp_accel_dec, 0_degC, 1_degC, conf->l_temp_motor_end,   25_degC);
+      {
+          // Battery cutoff
+          ampere_t lo_in_max_batt = 0.0_A;
+          if (v_in > conf.l_battery_cut_start) {
+              lo_in_max_batt = conf.l_in_current_max;
+          } else if (v_in < conf.l_battery_cut_end) {
+              lo_in_max_batt = 0.0_A;
+          } else {
+              lo_in_max_batt = utils::map(v_in,
+                                          conf.l_battery_cut_start,
+                                          conf.l_battery_cut_end,
+                                          conf.l_in_current_max,
+                                          0.0_A);
+          }
 
-      ampere_t lo_fet_temp_accel = 0_A;
-      if (m_temp_fet < temp_fet_accel_start) {
-          lo_fet_temp_accel = conf->l_current_max;
-      } else if (m_temp_fet > temp_fet_accel_end) {
-          lo_fet_temp_accel = 0_A;
-      } else {
-          lo_fet_temp_accel = utils::map(m_temp_fet,
-                                         temp_fet_accel_start,
-                                         temp_fet_accel_end,
-                                         conf->l_current_max,
-                                         0.0_A);
+          // Wattage limits
+          auto const lo_in_max_watt = conf.l_watt_max / v_in;
+          auto const lo_in_min_watt = conf.l_watt_min / v_in;
+
+          auto const lo_in_max = utils::min_abs(lo_in_max_watt, lo_in_max_batt);
+          auto const lo_in_min = lo_in_min_watt;
+
+          conf.lo_in_current_max = utils::min_abs(conf.l_in_current_max, lo_in_max);
+          conf.lo_in_current_min = utils::min_abs(conf.l_in_current_min, lo_in_min);
       }
-
-      ampere_t lo_motor_temp_accel = 0_A;
-      if (m_temp_motor < temp_motor_accel_start) {
-          lo_motor_temp_accel = conf->l_current_max;
-      } else if (m_temp_motor > temp_motor_accel_end) {
-          lo_motor_temp_accel = 0_A;
-      } else {
-          lo_motor_temp_accel = utils::map(m_temp_motor,
-                                           temp_motor_accel_start,
-                                           temp_motor_accel_end,
-                                           conf->l_current_max,
-                                           0.0_A);
-      }
-
-      // RPM max
-      ampere_t lo_max_rpm = 0.0_A;
-      auto const rpm_pos_cut_start = conf->l_max_erpm * conf->l_erpm_start;
-      auto const rpm_pos_cut_end = conf->l_max_erpm;
-      if (rpm_now < rpm_pos_cut_start) {
-          lo_max_rpm = conf->l_current_max;
-      } else if (rpm_now > rpm_pos_cut_end) {
-          lo_max_rpm = 0.0_A;
-      } else {
-          lo_max_rpm = utils::map(rpm_now, rpm_pos_cut_start, rpm_pos_cut_end, conf->l_current_max, 0.0_A);
-      }
-
-      // RPM min
-      ampere_t lo_min_rpm = 0.0_A;
-      auto const rpm_neg_cut_start = conf->l_min_erpm * conf->l_erpm_start;
-      auto const rpm_neg_cut_end = conf->l_min_erpm;
-      if (rpm_now > rpm_neg_cut_start) {
-          lo_min_rpm = conf->l_current_max;
-      } else if (rpm_now < rpm_neg_cut_end) {
-          lo_min_rpm = 0.0_A;
-      } else {
-          lo_min_rpm = utils::map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, conf->l_current_max, 0.0_A);
-      }
-
-      auto lo_max = utils::min_abs(lo_max_mos, lo_max_mot);
-      auto lo_min = utils::min_abs(lo_min_mos, lo_min_mot);
-
-      lo_max = utils::min_abs(lo_max, lo_max_rpm);
-      lo_max = utils::min_abs(lo_max, lo_min_rpm);
-      lo_max = utils::min_abs(lo_max, lo_fet_temp_accel);
-      lo_max = utils::min_abs(lo_max, lo_motor_temp_accel);
-
-      if (lo_max < conf->cc_min_current) {
-          lo_max = conf->cc_min_current;
-      }
-
-      if (lo_min > -conf->cc_min_current) {
-          lo_min = -conf->cc_min_current;
-      }
-
-      conf->lo_current_max = lo_max;
-      conf->lo_current_min = lo_min;
-
-      // Battery cutoff
-      ampere_t lo_in_max_batt = 0.0_A;
-      if (v_in > conf->l_battery_cut_start) {
-          lo_in_max_batt = conf->l_in_current_max;
-      } else if (v_in < conf->l_battery_cut_end) {
-          lo_in_max_batt = 0.0_A;
-      } else {
-          lo_in_max_batt = utils::map(v_in, conf->l_battery_cut_start,
-                  conf->l_battery_cut_end, conf->l_in_current_max, 0.0_A);
-      }
-
-      // Wattage limits
-      auto const lo_in_max_watt = conf->l_watt_max / v_in;
-      auto const lo_in_min_watt = conf->l_watt_min / v_in;
-
-      auto const lo_in_max = utils::min_abs(lo_in_max_watt, lo_in_max_batt);
-      auto const lo_in_min = lo_in_min_watt;
-
-      conf->lo_in_current_max = utils::min_abs(conf->l_in_current_max, lo_in_max);
-      conf->lo_in_current_min = utils::min_abs(conf->l_in_current_min, lo_in_min);
-
       // Maximum current right now
   //	float duty_abs = fabsf(get_duty_cycle_now());
   //
@@ -1523,17 +1529,17 @@ namespace mc_interface{
   //	}
   //
   //	if (duty_abs > 0.001) {
-  //		conf->lo_current_motor_max_now = utils::min_abs(conf->lo_current_max, conf->lo_in_current_max / duty_abs);
-  //		conf->lo_current_motor_min_now = utils::min_abs(conf->lo_current_min, conf->lo_in_current_min / duty_abs);
+  //		conf.lo_current_motor_max_now = utils::min_abs(conf.lo_current_max, conf.lo_in_current_max / duty_abs);
+  //		conf.lo_current_motor_min_now = utils::min_abs(conf.lo_current_min, conf.lo_in_current_min / duty_abs);
   //	} else {
-  //		conf->lo_current_motor_max_now = conf->lo_current_max;
-  //		conf->lo_current_motor_min_now = conf->lo_current_min;
+  //		conf.lo_current_motor_max_now = conf.lo_current_max;
+  //		conf.lo_current_motor_min_now = conf.lo_current_min;
   //	}
 
       // Note: The above code should work, but many people have reported issues with it. Leaving it
       // disabled for now until I have done more investigation.
-      conf->lo_current_motor_max_now = conf->lo_current_max;
-      conf->lo_current_motor_min_now = conf->lo_current_min;
+      conf.lo_current_motor_max_now = conf.lo_current_max;
+      conf.lo_current_motor_min_now = conf.lo_current_min;
   }
 
   THD_FUNCTION(timer_thread, arg) {
@@ -1552,7 +1558,7 @@ namespace mc_interface{
               }
           }
 
-          update_override_limits(&m_conf);
+          update_override_limits(m_conf);
 
           chThdSleepMilliseconds(1);
       }
