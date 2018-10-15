@@ -91,7 +91,7 @@ namespace mcpwm_foc{
   };
 
   // Private variables
-  volatil_ mc_configuration *m_conf;
+  /*volatile*/ mc_configuration const* m_conf;
   volatile mc_state m_state;
   volatile mc_control_mode m_control_mode;
   volatil_ motor_state_t m_motor_state;
@@ -1005,13 +1005,11 @@ namespace mcpwm_foc{
       PhaseOverride lockedCurrentContext(current, 0_A);
 
       // Save configuration
-      auto offset_old = m_conf->foc_encoder_offset;
-      auto inverted_old = m_conf->foc_encoder_inverted;
-      auto ratio_old = m_conf->foc_encoder_ratio;
+      mc_interface::config_context_t temp_config(m_conf);
 
-      m_conf->foc_encoder_offset = 0_deg;
-      m_conf->foc_encoder_inverted = false;
-      m_conf->foc_encoder_ratio = 1.0;
+      temp_config.conf.foc_encoder_offset = 0_deg;
+      temp_config.conf.foc_encoder_inverted = false;
+      temp_config.conf.foc_encoder_ratio = 1.0;
 
       // Find index
       int cnt = 0;
@@ -1108,8 +1106,8 @@ namespace mcpwm_foc{
       inverted = diff < 0.0;
       ratio = roundf(((2.0 / 3.0) * 180.0) / fabsf(diff));
 
-      m_conf->foc_encoder_inverted = inverted;
-      m_conf->foc_encoder_ratio = ratio;
+      temp_config.conf.foc_encoder_inverted = inverted;
+      temp_config.conf.foc_encoder_ratio = ratio;
 
       if (print) {
           commands::printf("Inversion and ratio detected");
@@ -1174,11 +1172,6 @@ namespace mcpwm_foc{
       if (print) {
           commands::printf("Offset detected");
       }
-
-      // Restore configuration
-      m_conf->foc_encoder_inverted = inverted_old;
-      m_conf->foc_encoder_offset = offset_old;
-      m_conf->foc_encoder_ratio = ratio_old;
   }
 
   /**
@@ -1195,29 +1188,36 @@ namespace mcpwm_foc{
    * The calculated motor resistance.
    */
   ohm_t measure_resistance(ampere_t current, size_t samples) {
+      //{
+          PhaseOverride lockedCurrentContext(0_A, current);
 
-        PhaseOverride lockedCurrentContext(0_A, current);
+          // Wait for the current to rise and the motor to lock.
+          chThdSleepMilliseconds(2000);
 
-        // Wait for the current to rise and the motor to lock.
-        chThdSleepMilliseconds(2000);
+          // Sample
+          m_samples.reset();
 
-        // Sample
-        m_samples.reset();
+          for(size_t cnt = 0;
+              cnt <= 10000 && m_samples.sample_num < samples;
+              cnt++)
+          {
+              chThdSleepMilliseconds(1);
+          }
+      //}
 
-        for(size_t cnt = 0;
-            cnt <= 10000 && m_samples.sample_num < samples;
-            cnt++)
-        {
-            chThdSleepMilliseconds(1);
-        }
       auto const current_avg = m_samples.get_avg_current();
       auto const voltage_avg = m_samples.get_avg_voltage();
 
-      //commands::printf("duty cycle  %f", (double) mc_interface::get_duty_cycle_now());
-      //commands::printf("current set %f", (double) current);
-      //commands::printf("current_avg %f", (double) current_avg);
-      //commands::printf("voltage_avg %f", (double) voltage_avg);
-
+      /*
+      using commands::printf;
+      printf("duty cycle  %f", (double) mc_interface::get_duty_cycle_now());
+      printf("current set %f; limit override %f, %f",
+             (double) current,
+             (double) m_conf->lo_current_min,
+             (double) m_conf->lo_current_max);
+      printf("current_avg %f", (double) current_avg);
+      printf("voltage_avg %f", (double) voltage_avg);
+      */
       return (voltage_avg / current_avg) * (2.0 / 3.0);
   }
 
@@ -1291,58 +1291,54 @@ namespace mcpwm_foc{
    * True if the measurement succeeded, false otherwise.
    */
   bool measure_res_ind(ohm_t &res, microhenry_t &ind) {
-      auto const f_sw_old = m_conf->foc_f_sw;
-      auto const kp_old = m_conf->foc_current_kp;
-      auto const ki_old = m_conf->foc_current_ki;
 
-      m_conf->foc_f_sw = 10'000_Hz;
-      m_conf->foc_current_kp = 0.01_Ohm;
-      m_conf->foc_current_ki = 10_Ohm / 1_s;
+      {
+          mc_interface::config_context_t temp_config(m_conf);
+          temp_config.conf.foc_f_sw = 10'000_Hz;
+          temp_config.conf.foc_current_kp = 0.01_Ohm;
+          temp_config.conf.foc_current_ki = 10_Ohm / 1_s;
 
-      //commands::printf("\nmeasuring R");
+          //commands::printf("\nmeasuring R");
+          uint32_t top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
+          TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
+
+          ohm_t res_tmp = 0_Ohm;
+          ampere_t i_last = 0_A;
+          for (ampere_t i = 2_A; i < (m_conf->l_current_max / 2); i *= 1.5) {
+              //commands::printf("iteration i=%f", (double)i);
+              res_tmp = measure_resistance(i, 20);
+
+              if (i * res_tmp > 1_V) {
+                  i_last = i;
+                  break;
+              }
+          }
+
+          if (i_last < 0.01_A) {
+              i_last = (m_conf->l_current_max / 2.0);
+          }
+
+          res = measure_resistance(i_last, 200);
+
+          temp_config.conf.foc_f_sw = 3000_Hz;
+          top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
+          TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
+
+          float duty_last = 0.0;
+          for (float duty = 0.02; duty < 0.5; duty *= 1.5) {
+              ampere_t i_tmp;
+              measure_inductance(duty, 20, &i_tmp);
+
+              duty_last = duty;
+              if (i_tmp >= i_last) {
+                  break;
+              }
+          }
+
+          ind = measure_inductance(duty_last, 200, nullptr);
+      }
+
       uint32_t top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
-      TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
-
-      ohm_t res_tmp = 0_Ohm;
-      ampere_t i_last = 0_A;
-      for (ampere_t i = 2_A; i < (m_conf->l_current_max / 2); i *= 1.5) {
-          //commands::printf("iteration i=%f", (double)i);
-          res_tmp = measure_resistance(i, 20);
-
-          if (i * res_tmp > 1_V) {
-              i_last = i;
-              break;
-          }
-      }
-
-      if (i_last < 0.01_A) {
-          i_last = (m_conf->l_current_max / 2.0);
-      }
-
-      res = measure_resistance(i_last, 200);
-
-      m_conf->foc_f_sw = 3000_Hz;
-      top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
-      TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
-
-      float duty_last = 0.0;
-      for (float duty = 0.02; duty < 0.5; duty *= 1.5) {
-          ampere_t i_tmp;
-          measure_inductance(duty, 20, &i_tmp);
-
-          duty_last = duty;
-          if (i_tmp >= i_last) {
-              break;
-          }
-      }
-
-      ind = measure_inductance(duty_last, 200, nullptr);
-
-      m_conf->foc_f_sw = f_sw_old;
-      m_conf->foc_current_kp = kp_old;
-      m_conf->foc_current_ki = ki_old;
-
-      top = hw::SYSTEM_CORE_CLOCK / m_conf->foc_f_sw;
       TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
       return true;
